@@ -46,18 +46,19 @@ docker compose down
 docker compose exec backend bash
 ```
 
-3. 以下を実行。
+3. 以下を実行してサーバーを立ち上げる。
 ```bash
-python hello.py
-# 出力： Hello, Bug Gym!
+python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-4. コンテナのbashから抜けるには以下を実行する。
+4. サーバーを止めるには`Ctrl`+`C`を同時に押す。
+
+5. コンテナのbashから抜けるには以下を実行する。
 ```bash
 exit
 ```
 
-5. Dockerコンテナを停止するには以下を実行する。
+6. Dockerコンテナを停止するには以下を実行する。
 ```bash
 docker compose down
 ```
