@@ -6,3 +6,6 @@
 # React Router
 /frontend/.react-router/
 /frontend/build/
+
+# Backend
+/backend/**/__pycache__
