@@ -48,7 +48,7 @@ docker compose exec backend bash
 
 3. 以下を実行してサーバーを立ち上げる。
 ```bash
-python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+python server.py
 ```
 
 4. サーバーを止めるには`Ctrl`+`C`を同時に押す。

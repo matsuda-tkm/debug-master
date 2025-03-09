@@ -11,6 +11,7 @@ services:
     volumes:
       - node_modules:/app/node_modules
       - ./frontend:/app
+    command: npm run dev
 
   backend:
     container_name: bug-gym-backend
@@ -23,6 +24,7 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
+    command: python server.py
 
 volumes:
   node_modules:
