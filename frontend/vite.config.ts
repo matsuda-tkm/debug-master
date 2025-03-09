@@ -1,11 +1,13 @@
-import { reactRouter } from "@react-router/dev/vite";
-import tailwindcss from "@tailwindcss/vite";
-import { defineConfig } from "vite";
-import tsconfigPaths from "vite-tsconfig-paths";
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
+// https://vitejs.dev/config/
 export default defineConfig({
-  server: {
-    host: true, // ネットワークエラーを回避
+  plugins: [react()],
+  optimizeDeps: {
+    exclude: ['lucide-react'],
   },
-  plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
+  server: {
+    host: true,
+  },
 });
