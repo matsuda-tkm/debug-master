@@ -16,3 +16,9 @@ docker compose up -d
 ```bash
 docker compose down
 ```
+
+## APIキーの設定
+
+1. `backend/.env` を作成する。
+
+2. [Notion](https://www.notion.so/matsuda-takumi/1b3179e2944180f2829df89096efdf13?pvs=4)に記載したAPIキーをコピペする。
