@@ -1,0 +1,32 @@
+services:
+  frontend:
+    container_name: bug-gym-frontend
+    working_dir: /app
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    tty: true
+    ports:
+      - "5173:5173"
+    volumes:
+      - node_modules:/app/node_modules
+      - ./frontend:/app
+    command: npm run dev
+
+  backend:
+    container_name: bug-gym-backend
+    working_dir: /app
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    tty: true
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    command: python server.py
+
+volumes:
+  node_modules:
+
+
