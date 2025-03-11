@@ -7,37 +7,37 @@ function ThemeSelection() {
     const navigate = useNavigate();
     const themes = [
         {
-            id: 'array-manipulation',
-            title: 'Array Manipulation',
-            description: 'Fix common bugs in array operations like sorting, filtering, and mapping.',
-            difficulty: 'Easy',
-            image: 'https://images.unsplash.com/photo-1516116216624-53e697fedbea?auto=format&fit=crop&q=80&w=2728&ixlib=rb-4.0.3',
-            languages: ['JavaScript', 'Python', 'Java']
+            'id': 'list-manipulation',
+            'title': 'リスト操作',
+            'description': 'ソート、フィルタリング、内包表記などのリスト操作における一般的なバグを修正します。',
+            'difficulty': '簡単',
+            'image': 'https://images.unsplash.com/photo-1516116216624-53e697fedbea?auto=format&fit=crop&q=80&w=2728&ixlib=rb-4.0.3',
+            'languages': ['Python']
         },
         {
-            id: 'react-hooks',
-            title: 'React Hooks',
-            description: 'Debug issues with useEffect, useState, and other React hooks.',
-            difficulty: 'Medium',
-            image: 'https://images.unsplash.com/photo-1633356122102-3fe601e05bd2?auto=format&fit=crop&q=80&w=2670&ixlib=rb-4.0.3',
-            languages: ['React', 'TypeScript']
+            'id': 'dictionary-handling',
+            'title': '辞書操作',
+            'description': 'キーの存在確認、値の更新、辞書の反復処理など、辞書操作に関する問題をデバッグします。',
+            'difficulty': '中級',
+            'image': 'https://images.unsplash.com/photo-1633356122102-3fe601e05bd2?auto=format&fit=crop&q=80&w=2670&ixlib=rb-4.0.3',
+            'languages': ['Python']
         },
         {
-            id: 'api-integration',
-            title: 'API Integration',
-            description: 'Fix bugs in API calls, error handling, and data processing.',
-            difficulty: 'Hard',
-            image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&q=80&w=2668&ixlib=rb-4.0.3',
-            languages: ['Node.js', 'Python']
+            'id': 'api-integration-python',
+            'title': 'API統合 (Python)',
+            'description': 'requestsライブラリを使用したAPI呼び出し、エラー処理、JSONデータの処理のバグを修正します。',
+            'difficulty': '難しい',
+            'image': 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&q=80&w=2668&ixlib=rb-4.0.3',
+            'languages': ['Python']
         },
         {
-            id: 'state-management',
-            title: 'State Management',
-            description: 'Debug complex state management issues in frontend applications.',
-            difficulty: 'Medium',
-            image: 'https://images.unsplash.com/photo-1551033406-611cf9a28f67?auto=format&fit=crop&q=80&w=2667&ixlib=rb-4.0.3',
-            languages: ['React', 'Vue.js']
-        }
+            'id': 'file-handling',
+            'title': 'ファイル操作',
+            'description': 'ファイルの読み書き、例外処理、with文の使い方など、ファイル操作に関する問題をデバッグします。',
+            'difficulty': '中級',
+            'image': 'https://images.unsplash.com/photo-1551033406-611cf9a28f67?auto=format&fit=crop&q=80&w=2667&ixlib=rb-4.0.3',
+            'languages': ['Python']
+        },
     ];
 
     return (
@@ -47,12 +47,12 @@ function ThemeSelection() {
                 <div className="container mx-auto px-4 py-4 flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                         <Bug className="w-6 h-6 text-indigo-600" />
-                        <span className="text-xl font-bold text-slate-800">BugFix Challenge</span>
+                        <span className="text-xl font-bold text-slate-800">Debug Master</span>
                     </div>
                     <div className="flex items-center space-x-4">
                         <div className="flex items-center space-x-2 text-slate-600">
                             <Trophy className="w-5 h-5" />
-                            <span>Score: 2,450</span>
+                            <span>スコア: 2,450</span>
                         </div>
                         <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
                             Sign In
@@ -64,8 +64,8 @@ function ThemeSelection() {
             {/* Main Content */}
             <main className="container mx-auto px-4 py-8">
                 <div className="max-w-4xl mx-auto">
-                    <h1 className="text-3xl font-bold text-slate-800 mb-2">Choose Your Challenge</h1>
-                    <p className="text-slate-600 mb-8">Select a theme to start debugging and improve your skills.</p>
+                    <h1 className="text-3xl font-bold text-slate-800 mb-2">課題を選択</h1>
+                    <p className="text-slate-600 mb-8">取り組みたい課題テーマを選択してください。</p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {themes.map((theme) => (

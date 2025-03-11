@@ -166,12 +166,12 @@ function ChallengeEditor() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Bug className="w-6 h-6 text-indigo-600" />
-            <span className="text-xl font-bold text-slate-800">Python Challenge</span>
+            <span className="text-xl font-bold text-slate-800">Debug Master</span>
           </div>
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2 text-slate-600">
               <Trophy className="w-5 h-5" />
-              <span>Score: 2,450</span>
+              <span>スコア: 2,450</span>
             </div>
           </div>
         </div>
@@ -182,26 +182,26 @@ function ChallengeEditor() {
           <div className="p-4 border-b border-slate-200">
             <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-indigo-600" />
-              Challenge Info
+              課題
             </h2>
             <div className="prose prose-sm text-slate-600">
-              <p>Write a function that calculates the sum of all numbers in a list.</p>
+            <p>リスト内のすべての数値の合計を計算する関数を記述してください。</p>
               <ul className="list-disc list-inside">
-                <li>Input: List of integers</li>
-                <li>Output: Sum of all numbers</li>
-                <li>Empty list should return 0</li>
+                <li>入力: 整数のリスト</li>
+                <li>出力: すべての数値の合計</li>
+                <li>空のリストは0を返す必要があります</li>
               </ul>
             </div>
           </div>
 
           <div className="flex-1 p-4">
-            <h3 className="text-sm font-semibold text-slate-800 mb-2">Example:</h3>
+            <h3 className="text-sm font-semibold text-slate-800 mb-2">例：</h3>
             <pre className="bg-slate-100 p-3 rounded text-sm font-mono">
-{`Input: [1, 2, 3]
-Output: 6
+{`入力: [1, 2, 3]
+出力: 6
 
-Input: []
-Output: 0`}
+入力: []
+出力: 0`}
             </pre>
           </div>
         </div>
@@ -209,11 +209,11 @@ Output: 0`}
         <div className="flex-1 flex flex-col">
           {/* プロンプト入力欄 */}
           <div className="p-4 bg-white border-b border-slate-200">
-            <h2 className="text-lg font-semibold text-slate-800">Generate Code from Prompt</h2>
+            <h2 className="text-lg font-semibold text-slate-800">Step1：まずは、プロンプトを使ってAIにコードを書かせよう</h2>
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Enter your prompt..."
+              placeholder="AIへの指示を入力..."
               className="w-full p-2 border border-slate-300 rounded mt-2"
               rows={3}
             />
@@ -221,7 +221,7 @@ Output: 0`}
               onClick={handleGenerateCode}
               className="mt-2 bg-indigo-600 text-white px-4 py-2 rounded"
             >
-              Generate Code
+              コードを生成
             </button>
           </div>
 
@@ -230,7 +230,7 @@ Output: 0`}
               <div className="bg-slate-800 px-4 py-2 flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Code2 className="w-5 h-5 text-slate-400" />
-                  <span className="text-slate-200">solution.py</span>
+                  <span className="text-slate-200">main.py</span>
                 </div>
               </div>
               <div className="flex-1 p-4 bg-slate-900">
@@ -247,7 +247,7 @@ Output: 0`}
               <div className="bg-slate-800 px-4 py-2 flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Terminal className="w-5 h-5 text-slate-400" />
-                  <span className="text-slate-200">Test Results</span>
+                  <span className="text-slate-200">テスト結果</span>
                 </div>
                 <button 
                   onClick={handleRunCode}
@@ -266,7 +266,7 @@ Output: 0`}
                   ) : (
                     <>
                       <PlayCircle className="w-4 h-4" />
-                      Run Tests
+                      テスト実行
                     </>
                   )}
                 </button>
@@ -300,7 +300,7 @@ Output: 0`}
                 ))}
                 {testResults.length === 0 && (
                   <div className="text-slate-400">
-                    Click "Run Tests" to check your solution
+                    コードが正しいかを確認するには「テスト実行」ボタンをクリックしてください。
                   </div>
                 )}
               </div>
@@ -311,7 +311,7 @@ Output: 0`}
             <div className="max-w-4xl mx-auto flex items-center justify-between">
               <button className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-200 transition flex items-center gap-2">
                 <MessageSquareWarning className="w-5 h-5" />
-                Get Hint
+                ヒントを表示
               </button>
               <div className="flex items-center gap-4">
                 {testResults.length > 0 && (
@@ -329,7 +329,7 @@ Output: 0`}
                       : 'bg-green-600 text-white hover:bg-green-700'
                   } transition`}
                 >
-                  Submit Solution
+                  回答を提出する
                   <ChevronRight className="w-5 h-5" />
                 </button>
               </div>
