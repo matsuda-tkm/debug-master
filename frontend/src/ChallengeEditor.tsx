@@ -5,6 +5,8 @@ import {
   Timer, ThumbsUp, Send, Sparkles, Eye, Files, ChevronDown, FolderOpen, 
   Terminal, PlayCircle, XCircle, CheckCircle, PartyPopper, SettingsIcon as Confetti 
 } from 'lucide-react';
+import { challengesData } from './challengesData';
+
 
 function SuccessModal({ message, onClose }: { message: string; onClose: () => void }) {
   const navigate = useNavigate();
@@ -58,49 +60,76 @@ function SuccessModal({ message, onClose }: { message: string; onClose: () => vo
 
 function ChallengeEditor() {
   const navigate = useNavigate();
-  const [code, setCode] = useState(`def solution(numbers):
-    # Write your solution here
-    # Calculate the sum of all numbers in the list
-    pass`);
-  const [isRunning, setIsRunning] = useState(false);
-  const [testResults, setTestResults] = useState<Array<{
-    testCase: number;
-    status: string;
-    message: string;
-  }>>([]);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [prompt, setPrompt] = useState(""); // プロンプト入力用の state
+  const { themeId } = useParams();
+  // 現在表示している課題のデータを取得
+  const challenge = challengesData.find((c) => c.id === themeId);
 
-  // プロンプト送信時のハンドラ（AI生成コードを取得）
+  // 万一該当課題がなかった場合の処理
+  useEffect(() => {
+    if (!challenge) {
+      navigate('/');
+    }
+  }, [challenge, navigate]);
+
+  // 初期コードは仮で入れておく
+  const [code, setCode] = useState(`def main(numbers):
+    # Write your solution here
+    pass
+  `);
+  const [isRunning, setIsRunning] = useState(false);
+  const [testResults, setTestResults] = useState<
+    Array<{ testCase: number; status: string; message: string }>
+  >([]);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  // ★ 生成中フラグを追加
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // AIへの入力プロンプト
+  const [prompt, setPrompt] = useState('');
+
+  // -------------------------
+  // AIコード生成
+  // -------------------------
   const handleGenerateCode = async () => {
+    setIsGenerating(true);
     try {
       const response = await fetch('http://localhost:8000/api/generate-code', {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify({ prompt }),
       });
       const data = await response.json();
-      console.log("Generated code response:", data); // 追加
+      console.log('Generated code response:', data);
       if (data.code) {
         setCode(data.code);
       }
     } catch (error) {
-      console.error("Error generating code: ", error);
+      console.error('Error generating code: ', error);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
+  // -------------------------
+  // コード実行
+  // -------------------------
   const handleRunCode = async () => {
+    if (!challenge) return;
+
     setIsRunning(true);
     setTestResults([]);
-    
+
     try {
       const response = await fetch('http://localhost:8000/api/run-python', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ code }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          // ★ 選択中チャレンジのテストケースをサーバーに送る
+          testCases: challenge.testCases,
+        }),
       });
 
       const reader = response.body?.getReader();
@@ -115,43 +144,55 @@ function ChallengeEditor() {
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
-        
+
         for (let i = 0; i < lines.length - 1; i++) {
           const line = lines[i].trim();
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
-              setTestResults(prev => [...prev, data]);
+              setTestResults((prev) => [...prev, data]);
             } catch (e) {
               console.error('Failed to parse SSE data:', e);
             }
           }
         }
-        
         buffer = lines[lines.length - 1];
       }
     } catch (error) {
       console.error('Error running code:', error);
-      setTestResults([{
-        testCase: 1,
-        status: 'error',
-        message: 'Failed to connect to Python server. Please make sure the server is running.'
-      }]);
+      setTestResults([
+        {
+          testCase: 1,
+          status: 'error',
+          message:
+            'Failed to connect to Python server. Please make sure the server is running.',
+        },
+      ]);
     } finally {
       setIsRunning(false);
     }
   };
 
+  // -------------------------
+  // 回答提出（テスト全成功ならモーダル表示）
+  // -------------------------
   const handleSubmitSolution = () => {
-    const allTestsPassed = testResults.every(result => result.status === 'success');
+    const allTestsPassed = testResults.every(
+      (result) => result.status === 'success'
+    );
     if (allTestsPassed) {
       setShowSuccessModal(true);
     }
   };
 
+  // 合格テスト数
   const getPassingTestsCount = () => {
-    return testResults.filter(result => result.status === 'success').length;
+    return testResults.filter((result) => result.status === 'success').length;
   };
+
+  if (!challenge) {
+    return null; // or ローディング中にしたい場合はここでローダーを返す
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col relative">
@@ -178,6 +219,7 @@ function ChallengeEditor() {
       </header>
 
       <div className="flex-1 flex">
+        {/* サイドバー */}
         <div className="w-64 bg-white border-r border-slate-200 flex flex-col">
           <div className="p-4 border-b border-slate-200">
             <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
@@ -185,31 +227,30 @@ function ChallengeEditor() {
               課題
             </h2>
             <div className="prose prose-sm text-slate-600">
-            <p>リスト内のすべての数値の合計を計算する関数を記述してください。</p>
+              <p>{challenge.instructions}</p>
               <ul className="list-disc list-inside">
                 <li>入力: 整数のリスト</li>
-                <li>出力: すべての数値の合計</li>
-                <li>空のリストは0を返す必要があります</li>
+                <li>出力: 合計</li>
+                <li>空のリストは0を返す</li>
               </ul>
             </div>
           </div>
 
           <div className="flex-1 p-4">
             <h3 className="text-sm font-semibold text-slate-800 mb-2">例：</h3>
-            <pre className="bg-slate-100 p-3 rounded text-sm font-mono">
-{`入力: [1, 2, 3]
-出力: 6
-
-入力: []
-出力: 0`}
+            <pre className="bg-slate-100 p-3 rounded text-sm font-mono whitespace-pre-wrap">
+              {challenge.examples}
             </pre>
           </div>
         </div>
 
+        {/* メインコンテンツ */}
         <div className="flex-1 flex flex-col">
           {/* プロンプト入力欄 */}
           <div className="p-4 bg-white border-b border-slate-200">
-            <h2 className="text-lg font-semibold text-slate-800">Step1：まずは、プロンプトを使ってAIにコードを書かせよう</h2>
+            <h2 className="text-lg font-semibold text-slate-800">
+              Step1：まずは、プロンプトを使ってAIにコードを書かせよう
+            </h2>
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
@@ -217,15 +258,25 @@ function ChallengeEditor() {
               className="w-full p-2 border border-slate-300 rounded mt-2"
               rows={3}
             />
-            <button 
+            <button
               onClick={handleGenerateCode}
-              className="mt-2 bg-indigo-600 text-white px-4 py-2 rounded"
+              disabled={isGenerating}
+              className="mt-2 bg-indigo-600 text-white px-4 py-2 rounded flex items-center gap-2"
             >
-              コードを生成
+              {isGenerating ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                'コードを生成'
+              )}
             </button>
           </div>
 
+          {/* エディタ & テスト結果 */}
           <div className="flex-1 grid grid-cols-2 gap-0">
+            {/* コードエディタ */}
             <div className="h-full flex flex-col">
               <div className="bg-slate-800 px-4 py-2 flex items-center justify-between">
                 <div className="flex items-center space-x-2">
@@ -234,7 +285,7 @@ function ChallengeEditor() {
                 </div>
               </div>
               <div className="flex-1 p-4 bg-slate-900">
-                <textarea 
+                <textarea
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   className="w-full h-full font-mono text-sm bg-transparent text-slate-200 outline-none resize-none"
@@ -243,13 +294,14 @@ function ChallengeEditor() {
               </div>
             </div>
 
+            {/* テスト結果 */}
             <div className="h-full flex flex-col border-l border-slate-700">
               <div className="bg-slate-800 px-4 py-2 flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Terminal className="w-5 h-5 text-slate-400" />
                   <span className="text-slate-200">テスト結果</span>
                 </div>
-                <button 
+                <button
                   onClick={handleRunCode}
                   disabled={isRunning}
                   className={`flex items-center gap-2 px-3 py-1 rounded ${
@@ -286,14 +338,16 @@ function ChallengeEditor() {
                         <XCircle className="w-4 h-4 text-red-500 mt-1" />
                       )}
                       <div>
-                        <div className={`font-medium ${
-                          result.status === 'success' ? 'text-green-500' : 'text-red-500'
-                        }`}>
+                        <div
+                          className={`font-medium ${
+                            result.status === 'success'
+                              ? 'text-green-500'
+                              : 'text-red-500'
+                          }`}
+                        >
                           Test Case {result.testCase}
                         </div>
-                        <div className="text-slate-300 mt-1">
-                          {result.message}
-                        </div>
+                        <div className="text-slate-300 mt-1">{result.message}</div>
                       </div>
                     </div>
                   </div>
@@ -307,6 +361,7 @@ function ChallengeEditor() {
             </div>
           </div>
 
+          {/* フッターの提出ボタンなど */}
           <div className="bg-white border-t border-slate-200 p-4">
             <div className="max-w-4xl mx-auto flex items-center justify-between">
               <button className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-200 transition flex items-center gap-2">
@@ -317,14 +372,20 @@ function ChallengeEditor() {
                 {testResults.length > 0 && (
                   <div className="flex items-center gap-2 text-sm text-slate-600">
                     <ThumbsUp className="w-4 h-4" />
-                    <span>{getPassingTestsCount()}/{testResults.length} Tests Passing</span>
+                    <span>
+                      {getPassingTestsCount()}/{testResults.length} Tests Passing
+                    </span>
                   </div>
                 )}
-                <button 
+                <button
                   onClick={handleSubmitSolution}
-                  disabled={testResults.length === 0 || getPassingTestsCount() !== testResults.length}
+                  disabled={
+                    testResults.length === 0 ||
+                    getPassingTestsCount() !== testResults.length
+                  }
                   className={`px-6 py-2 rounded-lg flex items-center gap-2 ${
-                    testResults.length === 0 || getPassingTestsCount() !== testResults.length
+                    testResults.length === 0 ||
+                    getPassingTestsCount() !== testResults.length
                       ? 'bg-slate-100 text-slate-400'
                       : 'bg-green-600 text-white hover:bg-green-700'
                   } transition`}

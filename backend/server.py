@@ -1,10 +1,33 @@
 import http.server
 import io
 import json
+import os
+import random
 import socketserver
 import traceback
 from contextlib import redirect_stdout
 from http import HTTPStatus
+
+from dotenv import load_dotenv
+from google import genai
+from google.genai import types
+
+load_dotenv()
+client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+SYSTEM_INSTRUNCTION = """\
+Below is a Python programming problem. 
+Reason about **what kind of bugs students may make** while coming up with solutions for the given problem. Next, come up with exactly 5 buggy implementations, their corrected versions, and explanations for the bugs. Format it as a JSON object, where each object contains the following keys: ‘code’, ‘fixed_code’, and ‘explanation’:
+{
+"reasoning": "Reasoning about the bugs",
+"content":
+[{ "code": ...,
+"fixed_code": ...,
+"explanation": ... }]
+}
+Implement only this function with various bugs that students may make, incorporating the bugs you reasoned about. Each program should contain only one bug. Make them as diverse as possible. The bugs should not lead to the program not compiling or hanging. Do not add comments.  Do not forget to first reason about possible bugs. 
+Make sure that the function name is `main`.
+Problem Description: 
+"""
 
 
 class TestHandler(http.server.SimpleHTTPRequestHandler):
@@ -26,16 +49,15 @@ class TestHandler(http.server.SimpleHTTPRequestHandler):
         if self.path == "/api/run-python":
             data = self.parse_json_from_request()
             code = data.get("code", "")
-            self.send_sse_headers()
+            test_cases = data.get("testCases", [])
 
-            test_cases = self.get_test_cases()
+            self.send_sse_headers()
             self.run_tests_with_sse(code, test_cases)
             return
 
         elif self.path == "/api/generate-code":
             data = self.parse_json_from_request()
             prompt = data.get("prompt", "")
-
             generated_code = self.generate_code_from_prompt(prompt)
             self.send_json_response({"code": generated_code})
             return
@@ -71,7 +93,6 @@ class TestHandler(http.server.SimpleHTTPRequestHandler):
         self.set_cors_headers()
         self.send_header("Content-Type", "application/json")
         self.end_headers()
-
         response = json.dumps(data)
         self.wfile.write(response.encode("utf-8"))
 
@@ -101,31 +122,29 @@ class TestHandler(http.server.SimpleHTTPRequestHandler):
         受け取ったプロンプトに応じてコードを生成する処理
         （サンプルとしてsumを返す）
         """
-        generated_code = (
-            "def solution(numbers):\n"
-            f"    # Generated code based on prompt: {prompt}\n"
-            "    return sum(numbers)"
+        # Gemini APIを使ってコード生成
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=[prompt],
+            config=types.GenerateContentConfig(
+                temperature=0.0,
+                system_instruction=SYSTEM_INSTRUNCTION,
+                response_mime_type="application/json",
+            ),
         )
+
+        # JSONをパース
+        response = json.loads(response.text)
+        selected_idx = random.randint(0, len(response["content"]) - 1)
+        generated_code = response["content"][selected_idx]["code"]
         return generated_code
 
     # ---------------------------
     # /api/run-python endpoint logic
     # ---------------------------
-
-    def get_test_cases(self):
-        """
-        テストケースを定義して返す
-        """
-        return [
-            {"input": ([1, 2, 3],), "expected": 6},
-            {"input": ([],), "expected": 0},
-            {"input": ([5],), "expected": 5},
-            {"input": ([-1, -2, -3],), "expected": -6},
-        ]
-
     def run_tests_with_sse(self, code, test_cases):
         """
-        渡されたコードをテストケースごとに実行し、その結果をSSEで返す
+        送信されてきた test_cases を使ってテスト
         """
         for i, test_case in enumerate(test_cases):
             result = self.run_single_test_case(code, test_case)
@@ -133,50 +152,29 @@ class TestHandler(http.server.SimpleHTTPRequestHandler):
             self.write_sse_data(response)
 
     def run_single_test_case(self, code, test_case):
-        """
-        単一のテストケースを実行して結果を返す
-        """
         stdout = io.StringIO()
         try:
-            # Create a new namespace for each test
             namespace = {}
-
-            # Execute the user's code in the namespace
             exec(code, namespace)
-
-            # Get the solution function from the namespace
             solution = namespace.get("main")
             if not solution:
                 return {
                     "status": "error",
                     "message": 'Function "main" not found in code',
                 }
-
-            # Capture stdout and run the test
             with redirect_stdout(stdout):
                 result = solution(*test_case["input"])
-
-            if result == test_case["expected"]:
+            expected = test_case["expected"]
+            if result == expected:
                 return {
                     "status": "success",
-                    "message": (
-                        f"Test passed! "
-                        f'Input: {test_case["input"]}, '
-                        f'Expected: {test_case["expected"]}, '
-                        f"Got: {result}"
-                    ),
+                    "message": f"Test passed! Input: {test_case['input']}, Expected: {expected}, Got: {result}",
                 }
             else:
                 return {
                     "status": "error",
-                    "message": (
-                        f"Test failed! "
-                        f'Input: {test_case["input"]}, '
-                        f'Expected: {test_case["expected"]}, '
-                        f"Got: {result}"
-                    ),
+                    "message": f"Test failed! Input: {test_case['input']}, Expected: {expected}, Got: {result}",
                 }
-
         except Exception as e:
             return {
                 "status": "error",
