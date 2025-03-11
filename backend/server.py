@@ -2,13 +2,22 @@ import http.server
 import socketserver
 import json
 import io
-import sys
 from contextlib import redirect_stdout
 import traceback
 from urllib.parse import parse_qs
 from http import HTTPStatus
 
 class TestHandler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/api/health':
+            self.send_response(HTTPStatus.OK)
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "OK"}).encode('utf-8'))
+            return
+        return super().do_GET()
+
     def do_POST(self):
         if self.path == '/api/run-python':
             content_length = int(self.headers['Content-Length'])
@@ -37,6 +46,29 @@ class TestHandler(http.server.SimpleHTTPRequestHandler):
                 response = json.dumps({'testCase': i + 1, **result})
                 self.wfile.write(f"data: {response}\n\n".encode('utf-8'))
                 self.wfile.flush()
+        elif self.path == '/api/generate-code':
+            self.send_response(HTTPStatus.OK)
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+            prompt = data.get('prompt', '')
+            
+            # シンプルなサンプルとして、受け取ったプロンプトを反映したコードを返す
+            generated_code = (
+                "def solution(numbers):\n"
+                f"    # Generated code based on prompt: {prompt}\n"
+                "    return sum(numbers)"
+            )
+            
+            response_data = json.dumps({"code": generated_code})
+            self.wfile.write(response_data.encode('utf-8'))
+            return
 
     def do_OPTIONS(self):
         self.send_response(HTTPStatus.NO_CONTENT)

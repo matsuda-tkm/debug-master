@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Code2, Bug, Trophy, BookOpen, MessageSquareWarning, ChevronRight, Timer, ThumbsUp, Send, Sparkles, Eye, Files, ChevronDown, FolderOpen, Terminal, PlayCircle, XCircle, CheckCircle, PartyPopper, SettingsIcon as Confetti } from 'lucide-react';
+import { 
+  Code2, Bug, Trophy, BookOpen, MessageSquareWarning, ChevronRight, 
+  Timer, ThumbsUp, Send, Sparkles, Eye, Files, ChevronDown, FolderOpen, 
+  Terminal, PlayCircle, XCircle, CheckCircle, PartyPopper, SettingsIcon as Confetti 
+} from 'lucide-react';
 
 function SuccessModal({ message, onClose }: { message: string; onClose: () => void }) {
   const navigate = useNavigate();
@@ -65,6 +69,26 @@ function ChallengeEditor() {
     message: string;
   }>>([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [prompt, setPrompt] = useState(""); // プロンプト入力用の state
+
+  // プロンプト送信時のハンドラ（AI生成コードを取得）
+  const handleGenerateCode = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/generate-code', {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      });
+      const data = await response.json();
+      console.log("Generated code response:", data); // 追加
+      if (data.code) {
+        setCode(data.code);
+      }
+    } catch (error) {
+      console.error("Error generating code: ", error);
+    }
+  };
 
   const handleRunCode = async () => {
     setIsRunning(true);
@@ -183,6 +207,24 @@ Output: 0`}
         </div>
 
         <div className="flex-1 flex flex-col">
+          {/* プロンプト入力欄 */}
+          <div className="p-4 bg-white border-b border-slate-200">
+            <h2 className="text-lg font-semibold text-slate-800">Generate Code from Prompt</h2>
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Enter your prompt..."
+              className="w-full p-2 border border-slate-300 rounded mt-2"
+              rows={3}
+            />
+            <button 
+              onClick={handleGenerateCode}
+              className="mt-2 bg-indigo-600 text-white px-4 py-2 rounded"
+            >
+              Generate Code
+            </button>
+          </div>
+
           <div className="flex-1 grid grid-cols-2 gap-0">
             <div className="h-full flex flex-col">
               <div className="bg-slate-800 px-4 py-2 flex items-center justify-between">
