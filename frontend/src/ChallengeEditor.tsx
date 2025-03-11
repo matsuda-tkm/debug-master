@@ -6,9 +6,12 @@ import {
   Terminal, PlayCircle, XCircle, CheckCircle, PartyPopper, SettingsIcon as Confetti 
 } from 'lucide-react';
 import { challengesData } from './challengesData';
+import CodeMirror from '@uiw/react-codemirror';
+import { python } from '@codemirror/lang-python';
+import { oneDark } from '@codemirror/theme-one-dark';
 
 
-function SuccessModal({ message, onClose }: { message: string; onClose: () => void }) {
+function SuccessModal({ message, onClose }) {
   const navigate = useNavigate();
   
   return (
@@ -61,36 +64,24 @@ function SuccessModal({ message, onClose }: { message: string; onClose: () => vo
 function ChallengeEditor() {
   const navigate = useNavigate();
   const { themeId } = useParams();
-  // 現在表示している課題のデータを取得
   const challenge = challengesData.find((c) => c.id === themeId);
 
-  // 万一該当課題がなかった場合の処理
   useEffect(() => {
     if (!challenge) {
       navigate('/');
     }
   }, [challenge, navigate]);
 
-  // 初期コードは仮で入れておく
   const [code, setCode] = useState(`def main(numbers):
     # Write your solution here
     pass
   `);
   const [isRunning, setIsRunning] = useState(false);
-  const [testResults, setTestResults] = useState<
-    Array<{ testCase: number; status: string; message: string }>
-  >([]);
+  const [testResults, setTestResults] = useState([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-
-  // ★ 生成中フラグを追加
   const [isGenerating, setIsGenerating] = useState(false);
-
-  // AIへの入力プロンプト
   const [prompt, setPrompt] = useState('');
 
-  // -------------------------
-  // AIコード生成
-  // -------------------------
   const handleGenerateCode = async () => {
     setIsGenerating(true);
     try {
@@ -112,12 +103,8 @@ function ChallengeEditor() {
     }
   };
 
-  // -------------------------
-  // コード実行
-  // -------------------------
   const handleRunCode = async () => {
     if (!challenge) return;
-
     setIsRunning(true);
     setTestResults([]);
 
@@ -127,7 +114,6 @@ function ChallengeEditor() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code,
-          // ★ 選択中チャレンジのテストケースをサーバーに送る
           testCases: challenge.testCases,
         }),
       });
@@ -173,9 +159,6 @@ function ChallengeEditor() {
     }
   };
 
-  // -------------------------
-  // 回答提出（テスト全成功ならモーダル表示）
-  // -------------------------
   const handleSubmitSolution = () => {
     const allTestsPassed = testResults.every(
       (result) => result.status === 'success'
@@ -185,13 +168,12 @@ function ChallengeEditor() {
     }
   };
 
-  // 合格テスト数
   const getPassingTestsCount = () => {
     return testResults.filter((result) => result.status === 'success').length;
   };
 
   if (!challenge) {
-    return null; // or ローディング中にしたい場合はここでローダーを返す
+    return null;
   }
 
   return (
@@ -285,11 +267,13 @@ function ChallengeEditor() {
                 </div>
               </div>
               <div className="flex-1 p-4 bg-slate-900">
-                <textarea
+                {/* ここでCodeMirrorを利用してPythonのシンタックスハイライトを実装 */}
+                <CodeMirror
                   value={code}
-                  onChange={(e) => setCode(e.target.value)}
+                  height="100%"
+                  extensions={[python(), oneDark]}
+                  onChange={(value) => setCode(value)}
                   className="w-full h-full font-mono text-sm bg-transparent text-slate-200 outline-none resize-none"
-                  spellCheck="false"
                 />
               </div>
             </div>
