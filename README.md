@@ -1,64 +1,18 @@
-# openHackU-Osaka2025
+# Debug Master
 Open Hack U 2025 OSAKA
 
-## 環境構築の方法
-### フロントエンド
-ターミナルで以下を順に実行する。
+## 実行方法
 
-1. Dockerコンテナを起動。
+1. ターミナルで以下を実行し、コンテナを起動する。
+
 ```bash
 docker compose up -d
 ```
 
-2. フロントエンドコンテナのbashに入る。
-```bash
-docker compose exec frontend bash
-```
+2. http://localhost:5173 にアクセスする。
 
-3. 入ったら以下を実行してサーバーを起動する。
-```bash
-npm run dev
-```
+3. コンテナを停止する場合は以下を実行する。
 
-4. `localhost:5173`にアクセスして、ページが表示されることを確認する。
-
-5. サーバーを停止するには`Ctrl`+`C`を同時に押す。
-
-6. コンテナのbashから抜けるには以下を実行する。
-```bash
-exit
-```
-
-7. Dockerコンテナを停止するには以下を実行する。
-```bash
-docker compose down
-```
-
-
-
-### バックエンド
-ターミナルで以下を順に実行する。
-
-1. Dockerコンテナを起動。（フロントの環境構築時に起動済みの場合は不要）
-
-2. バックエンドコンテナのbashに入る。
-```bash
-docker compose exec backend bash
-```
-
-3. 以下を実行してサーバーを立ち上げる。
-```bash
-python server.py
-```
-
-4. サーバーを止めるには`Ctrl`+`C`を同時に押す。
-
-5. コンテナのbashから抜けるには以下を実行する。
-```bash
-exit
-```
-
-6. Dockerコンテナを停止するには以下を実行する。
 ```bash
 docker compose down
 ```
