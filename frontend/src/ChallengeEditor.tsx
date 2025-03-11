@@ -202,7 +202,7 @@ function ChallengeEditor() {
 
       <div className="flex-1 flex">
         {/* サイドバー */}
-        <div className="w-64 bg-white border-r border-slate-200 flex flex-col">
+        <div className="w-96 bg-white border-r border-slate-200 flex flex-col">
           <div className="p-4 border-b border-slate-200">
             <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-indigo-600" />
@@ -219,7 +219,7 @@ function ChallengeEditor() {
           </div>
 
           <div className="flex-1 p-4">
-            <h3 className="text-sm font-semibold text-slate-800 mb-2">例：</h3>
+            <h3 className="text-sm font-semibold text-slate-800 mb-2">テストケース例：</h3>
             <pre className="bg-slate-100 p-3 rounded text-sm font-mono whitespace-pre-wrap">
               {challenge.examples}
             </pre>

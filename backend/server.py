@@ -168,12 +168,12 @@ class TestHandler(http.server.SimpleHTTPRequestHandler):
             if result == expected:
                 return {
                     "status": "success",
-                    "message": f"Test passed! Input: {test_case['input']}, Expected: {expected}, Got: {result}",
+                    "message": f"Input: {test_case['input']}, Expected: {expected}, Got: {result}",
                 }
             else:
                 return {
                     "status": "error",
-                    "message": f"Test failed! Input: {test_case['input']}, Expected: {expected}, Got: {result}",
+                    "message": f"Input: {test_case['input']}, Expected: {expected}, Got: {result}",
                 }
         except Exception as e:
             return {
