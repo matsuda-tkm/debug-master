@@ -17,7 +17,7 @@ load_dotenv()
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 SYSTEM_INSTRUNCTION: str = """\
 Below is a Python programming problem. 
-Reason about **what kind of bugs students may make** while coming up with solutions for the given problem. Next, come up with exactly 5 buggy implementations, their corrected versions, and explanations for the bugs. Format it as a JSON object, where each object contains the following keys: ‘code’, ‘fixed_code’, and ‘explanation’:
+Reason about **what kind of bugs students may make** while coming up with solutions for the given problem. Next, come up with exactly 3 buggy implementations, their corrected versions, and explanations for the bugs. Format it as a JSON object, where each object contains the following keys: ‘code’, ‘fixed_code’, and ‘explanation’:
 {
 "reasoning": "Reasoning about the bugs",
 "content":
