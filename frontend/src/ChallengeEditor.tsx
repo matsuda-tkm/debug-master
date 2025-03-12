@@ -75,6 +75,47 @@ function SuccessModal({ message, onClose }) {
   );
 }
 
+function HintModal({ hint, onClose }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl shadow-lg p-6 max-w-2xl w-full mx-4 relative animate-pop-in">
+        <div className="flex flex-col">
+          <div className="flex items-start gap-4">
+            {/* Character image */}
+            <div className="w-24 h-24 flex-shrink-0">
+              <img 
+                src="/images/character.jpg" 
+                alt="Debug Master Character" 
+                className="w-full h-full object-contain"
+              />
+            </div>
+            
+            {/* Speech bubble */}
+            <div className="flex-1 bg-indigo-50 rounded-2xl p-5 relative">
+              {/* Speech bubble tail */}
+              <div className="absolute top-1/2 left-0 w-4 h-4 bg-indigo-50 transform translate-y-[-50%] translate-x-[-50%] rotate-45"></div>
+              
+              <h2 className="text-xl font-bold text-indigo-800 mb-3">ヒント</h2>
+              <div className="text-slate-700 whitespace-pre-wrap mb-4">
+                {hint}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex justify-end mt-4">
+          <button
+            onClick={onClose}
+            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition flex items-center gap-2 text-sm font-medium"
+          >
+            閉じる
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ChallengeEditor() {
   const navigate = useNavigate();
   const { themeId } = useParams();
@@ -96,6 +137,10 @@ function ChallengeEditor() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [generationError, setGenerationError] = useState('');
+  const [showHintModal, setShowHintModal] = useState(false);
+  const [hint, setHint] = useState('');
+  const [isLoadingHint, setIsLoadingHint] = useState(false);
+  const [hintError, setHintError] = useState('');
 
   const handleGenerateCode = async () => {
     setIsGenerating(true);
@@ -199,6 +244,40 @@ function ChallengeEditor() {
   const getPassingTestsCount = () => {
     return testResults.filter((result) => result.status === 'success').length;
   };
+  
+  const handleShowHint = async () => {
+    setIsLoadingHint(true);
+    setHintError('');
+    
+    try {
+      const response = await fetch('http://localhost:8000/api/generate-hint', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          instructions: challenge.instructions,
+          examples: challenge.examples,
+          testResults,
+        }),
+      });
+      console.log('Generated hint response:', response);
+      
+      const data = await response.json();
+      
+      if (!response.ok || data.error) {
+        setHintError(data.error || 'ヒントの生成中にエラーが発生しました。');
+        return;
+      }
+      
+      setHint(data.hint);
+      setShowHintModal(true);
+    } catch (error) {
+      console.error('Error generating hint:', error);
+      setHintError('ヒント生成サービスへの接続に失敗しました。');
+    } finally {
+      setIsLoadingHint(false);
+    }
+  };
 
   if (!challenge) {
     return null;
@@ -210,6 +289,12 @@ function ChallengeEditor() {
         <SuccessModal
           message="Congratulations! All tests passed! 🎉"
           onClose={() => setShowSuccessModal(false)}
+        />
+      )}
+      {showHintModal && (
+        <HintModal
+          hint={hint}
+          onClose={() => setShowHintModal(false)}
         />
       )}
 
@@ -392,10 +477,30 @@ function ChallengeEditor() {
           {/* フッターの提出ボタンなど */}
           <div className="bg-white border-t border-slate-200 p-4">
             <div className="max-w-4xl mx-auto flex items-center justify-between">
-              <button className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-200 transition flex items-center gap-2">
-                <MessageSquareWarning className="w-5 h-5" />
-                ヒントを表示
-              </button>
+              <div className="relative">
+                <button 
+                  onClick={handleShowHint}
+                  disabled={isLoadingHint}
+                  className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-200 transition flex items-center gap-2"
+                >
+                  {isLoadingHint ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-slate-700 border-t-transparent rounded-full animate-spin" />
+                      生成中...
+                    </>
+                  ) : (
+                    <>
+                      <MessageSquareWarning className="w-5 h-5" />
+                      ヒントを表示
+                    </>
+                  )}
+                </button>
+                {hintError && (
+                  <div className="absolute top-full left-0 mt-2 text-red-600 text-sm font-medium bg-red-50 px-3 py-1 rounded">
+                    {hintError}
+                  </div>
+                )}
+              </div>
               <div className="flex items-center gap-4">
                 {testResults.length > 0 && (
                   <div className="flex items-center gap-2 text-sm text-slate-600">
