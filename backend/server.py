@@ -48,6 +48,7 @@ Consider the following information:
 - Test results: Which tests are passing and which are failing
 
 Format your response as plain text in Japanese. Keep your hint concise (3-5 sentences) and focused on the most critical issue.
+Do not use Markdown formatting.
 Do not provide a complete solution or rewrite their entire code.
 """
 
