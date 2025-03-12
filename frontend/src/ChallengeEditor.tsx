@@ -250,17 +250,6 @@ function ChallengeEditor() {
     setHintError('');
     
     try {
-      // Always use mock hint for testing since backend is not available
-      console.log('Using mock hint for testing');
-      setTimeout(() => {
-        setHint('リストの最大値を見つけるには、まず変数を初期化して、リスト内の各要素と比較しながら最大値を更新していく方法が効果的です。\n\nヒント: 変数 `max_value` を最初の要素で初期化し、ループで各要素と比較してみましょう。');
-        setShowHintModal(true);
-        setIsLoadingHint(false);
-        console.log('Hint modal should be visible now');
-      }, 1000);
-      return;
-      
-      // This code is unreachable but kept for reference
       const response = await fetch('http://localhost:8000/api/generate-hint', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
