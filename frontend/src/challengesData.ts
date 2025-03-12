@@ -27,9 +27,10 @@ export const challengesData: Challenge[] = [
       'https://images.unsplash.com/photo-1516116216624-53e697fedbea?auto=format&fit=crop&q=80&w=2728&ixlib=rb-4.0.3',
     languages: ['Python'],
     instructions: `整数のリストを入力として受け取り、各要素について以下の処理を行う関数を作成してください。
-- 正の偶数 → そのまま出力
-- 正の奇数 → 3倍して出力
-- 負の数、0、浮動小数点数は無視する
+
+・ 正の偶数 → そのまま出力
+・ 正の奇数 → 3倍して出力
+・ 負の数、0、浮動小数点数は無視する
 
 結果は、元のリストの順序を保った新しいリストとして返してください。`,
     examples: `
@@ -90,54 +91,144 @@ export const challengesData: Challenge[] = [
     id: 'api-json-fetch',
     title: 'API統合: JSONデータ取得と検証',
     description:
-      '外部APIからJSONデータを取得し、"data" キーの値を抽出する関数をデバッグします。HTTPステータスコードが200以外の場合や "data" キーが存在しない場合は例外を発生させる仕様です。',
+      'requestsライブラリを使って、https://httpbin.org のエンドポイントからJSONデータを取得し、レスポンス内の "args" オブジェクトにある "data" キーの値を抽出する関数をデバッグします。HTTPステータスコードやタイムアウト、エラーハンドリングの落とし穴に注意してください。',
     difficulty: '難しい',
     image:
       'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&q=80&w=2668&ixlib=rb-4.0.3',
     languages: ['Python'],
     instructions: `requestsライブラリを使用して、指定されたURLからJSONデータを取得してください。
-- HTTPステータスコードが200の場合、JSON内の "data" キーに対応する値を返す。
-- 200以外の場合、または "data" キーが存在しない場合は例外を発生させる。
-- タイムアウトは5秒に設定すること。`,
+※URLは必ず https://httpbin.org/anything?data=... の形式となります。
+
+仕様は以下の通りです：
+・ レスポンスのHTTPステータスコードが200の場合、レスポンスJSON内の "args" オブジェクトを確認し、その中に "data" キーが存在するかチェックする。
+・ "data" キーが存在する場合、その値はJSON文字列になっているので、これをパースして元のオブジェクトとして返すこと。
+・ HTTPステータスコードが200以外、または "data" キーが存在しない場合は文字列"Error"を返すこと。`,
     examples: `
 例:
-URL: "https://api.example.com/info"
-（仮のレスポンス: {"data": {"id": 1, "name": "Alice"}}）
+入力: "https://httpbin.org/anything?data={'id':1,'name':'Alice'}"
 出力: {"id": 1, "name": "Alice"}
     `,
     testCases: [
-      { input: ["https://api.example.com/success"], expected: { id: 1, name: "Alice" } },
-      { input: ["https://api.example.com/missingdata"], expected: "Exception" },
+      {
+        input: ["https://httpbin.org/anything?data={\"id\":1,\"name\":\"Alice\"}"],
+        expected: { id: 1, name: "Alice" },
+      },
+      {
+        // URLに "data" キーが含まれない場合
+        input: ["https://httpbin.org/anything?info={\"id\":2}"],
+        expected: "Error",
+      },
     ],
   },
   {
-    id: 'log-error-extraction',
-    title: 'ファイル操作: ログファイルからのエラーメッセージ抽出',
+    id: 'dynamic-config-validator',
+    title: '動的設定バリデーター: ネスト設定の検証',
     description:
-      'テキストファイル内のログから、"ERROR:" で始まるエラーメッセージを抽出する関数をデバッグします。ログ行から "ERROR:" 部分を除いたメッセージのみを返す必要があります。',
-    difficulty: '中級',
+      'ネストされた設定辞書 (config) が、仕様辞書 (spec) で示された各項目の型および制約を満たしているかを再帰的に検証する関数を作成してください。すべてのキーが仕様に適合する場合は True を、1つでも不適合な場合や仕様のキーが存在しない場合は "Invalid" を返します。',
+    difficulty: '難しい',
     image:
       'https://images.unsplash.com/photo-1551033406-611cf9a28f67?auto=format&fit=crop&q=80&w=2667&ixlib=rb-4.0.3',
     languages: ['Python'],
-    instructions: `ファイルパスを入力として受け取り、ファイル内の各行をチェックしてください。
-各行が "ERROR:" で始まる場合、"ERROR:" の後ろのテキストのみを抽出してリストに追加し、返す関数を作成してください。
-ファイルが存在しない、または空の場合は、空のリストを返してください。`,
+    instructions: `以下の仕様に従って、設定オブジェクト (config) と仕様オブジェクト (spec) を入力として受け取り、設定が仕様を満たすか検証する関数を作成してください。
+
+【入力】
+- config: ネストされた辞書（Pythonの dict）で、各キーの値は任意の型・構造。
+- spec: 同じ構造を持つ辞書で、各キーに対して期待される型や制約を指定します。
+  - もし spec の値が文字列の場合、その値は期待される型を示します（例："string", "number", "boolean"）。
+  - もし spec の値がオブジェクトの場合、必ず "type" キーを持ち、数値の場合は任意で "min" および "max" を指定できます。例: { type: "number", min: 1, max: 65535 }。
+  - ネストされた辞書の場合は、spec も同じ構造になっており、再帰的に検証します。
+
+【出力】
+- config のすべてのキーが spec の定める型および制約を満たす場合は True を返す。
+- 1つでも仕様を満たさない場合、または spec に定義されたキーが config に存在しない場合は、固定文字列 "Invalid" を返す。
+
+【注意点】
+- 数値の場合、spec に "min" や "max" が定義されていれば、その範囲内であるかをチェックする。
+- config が空の辞書で、spec も空の場合は True を返す。
+- 再帰的に全てのキーを検証する必要があります。
+`,
     examples: `
 例:
-ファイル内容:
-INFO: システム起動
-ERROR: ネットワークに接続できません
-WARNING: メモリ使用率が高い
-ERROR: データベースにアクセスできません
-
-出力: ["ネットワークに接続できません", "データベースにアクセスできません"]
-    `,
-    testCases: [
+config = {
+  "host": "localhost",
+  "port": 8080,
+  "debug": true,
+  "thresholds": {
+    "min": 0,
+    "max": 100
+  }
+}
+spec = {
+  "host": "string",
+  "port": { "type": "number", "min": 1, "max": 65535 },
+  "debug": "boolean",
+  "thresholds": {
+    "min": { "type": "number", "min": 0 },
+    "max": { "type": "number", "max": 1000 }
+  }
+}
+出力: True
+`,
+testCases: [
+  {
+    input: [
       {
-        input: ["path/to/log.txt"],
-        expected: ["ネットワークに接続できません", "データベースにアクセスできません"],
+        host: "localhost",
+        port: 8080,
+        debug: true,
+        thresholds: { min: 0, max: 100 },
       },
-      { input: ["empty.txt"], expected: [] },
+      {
+        host: "string",
+        port: { type: "number", min: 1, max: 65535 },
+        debug: "boolean",
+        thresholds: {
+          min: { type: "number", min: 0 },
+          max: { type: "number", max: 1000 },
+        },
+      },
     ],
+    expected: true,
   },
+  {
+    input: [
+      {
+        host: "localhost",
+        port: 70000,
+        debug: "yes",
+        thresholds: { min: -5, max: 1200 },
+      },
+      {
+        host: "string",
+        port: { type: "number", min: 1, max: 65535 },
+        debug: "boolean",
+        thresholds: {
+          min: { type: "number", min: 0 },
+          max: { type: "number", max: 1000 },
+        },
+      },
+    ],
+    expected: "Invalid",
+  },
+  {
+    input: [
+      {
+        host: "localhost",
+        port: 8080,
+        thresholds: { min: 0, max: 100 },
+      },
+      {
+        host: "string",
+        port: { type: "number", min: 1, max: 65535 },
+        debug: "boolean",
+        thresholds: {
+          min: { type: "number", min: 0 },
+          max: { type: "number", max: 1000 },
+        },
+      },
+    ],
+    expected: "Invalid",
+  },
+],
+},
 ];

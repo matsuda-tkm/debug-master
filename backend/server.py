@@ -17,7 +17,7 @@ load_dotenv()
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 SYSTEM_INSTRUNCTION: str = """\
 Below is a Python programming problem. 
-Reason about **what kind of bugs students may make** while coming up with solutions for the given problem. Next, come up with exactly 5 buggy implementations, their corrected versions, and explanations for the bugs. Format it as a JSON object, where each object contains the following keys: ‘code’, ‘fixed_code’, and ‘explanation’:
+Reason about **what kind of bugs students may make** while coming up with solutions for the given problem. Next, come up with exactly 3 buggy implementations, their corrected versions, and explanations for the bugs. Format it as a JSON object, where each object contains the following keys: ‘code’, ‘fixed_code’, and ‘explanation’:
 {
 "reasoning": "Reasoning about the bugs",
 "content":
@@ -59,8 +59,11 @@ class TestHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path == "/api/generate-code":
             data_gen: Dict[str, Any] = self.parse_json_from_request()
             prompt: str = data_gen.get("prompt", "")
-            generated_code: str = self.generate_code_from_prompt(prompt)
-            self.send_json_response({"code": generated_code})
+            try:
+                generated_code: str = self.generate_code_from_prompt(prompt)
+                self.send_json_response({"code": generated_code})
+            except json.JSONDecodeError as e:
+                self.send_json_response({"error": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return
 
         self.send_error(HTTPStatus.NOT_FOUND, "Not Found")
@@ -143,9 +146,20 @@ class TestHandler(http.server.SimpleHTTPRequestHandler):
         """
         送信されてきた test_cases を使ってテスト
         """
+        if "GEMINI_API_KEY" in code:
+            error_response = json.dumps({
+                "status": "forbidden",
+                "message": "Execution halted: Code contains forbidden string 'GEMINI_API_KEY'."
+            })
+            self.write_sse_data(error_response)
+            return
         for i, test_case in enumerate(test_cases):
             result: Dict[str, Any] = self.run_single_test_case(code, test_case)
-            response: str = json.dumps({"testCase": i + 1, **result})
+            response: str = json.dumps({
+                "status": "ok",
+                "testCase": i + 1,
+                **result,
+            })
             self.write_sse_data(response)
 
     def run_single_test_case(self, code: str, test_case: Dict[str, Any]) -> Dict[str, Any]:
@@ -165,17 +179,17 @@ class TestHandler(http.server.SimpleHTTPRequestHandler):
             if result == expected:
                 return {
                     "status": "success",
-                    "message": f"Input: {test_case['input']}, Expected: {expected}, Got: {result}",
+                    "message": f"Input:\n{test_case['input']}\n\nExpected:\n{expected}\n\nGot:\n{result}",
                 }
             else:
                 return {
                     "status": "error",
-                    "message": f"Input: {test_case['input']}, Expected: {expected}, Got: {result}",
+                    "message": f"Input:\n{test_case['input']}\n\nExpected:\n{expected}\n\nGot:\n{result}",
                 }
         except Exception as e:
             return {
                 "status": "error",
-                "message": f"Error: {str(e)}\n{traceback.format_exc()}",
+                "message": f"Error:\n\n{str(e)}\n{traceback.format_exc()}",
             }
 
     def write_sse_data(self, data: str) -> None:
