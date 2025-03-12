@@ -45,14 +45,14 @@ function SuccessModal({ message, onClose }) {
               onClick={() => navigate('/')}
               className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2 font-medium"
             >
-              Choose Next Challenge
+              他の課題にチャレンジする
               <ChevronRight className="w-5 h-5" />
             </button>
             <button
               onClick={onClose}
               className="text-slate-600 hover:text-slate-800 transition"
             >
-              Continue Current Challenge
+              現在の課題を続ける
             </button>
           </div>
         </div>
@@ -62,7 +62,7 @@ function SuccessModal({ message, onClose }) {
             <div className="flex items-center gap-3">
               <Trophy className="w-8 h-8" />
               <div>
-                <div className="font-medium">Achievement Unlocked!</div>
+                <div className="font-medium">経験値UP!</div>
                 <div className="text-sm opacity-90">Python Master Level 1</div>
               </div>
             </div>
@@ -286,7 +286,7 @@ function ChallengeEditor() {
     <div className="min-h-screen bg-slate-50 flex flex-col relative">
       {showSuccessModal && (
         <SuccessModal
-          message="Congratulations! All tests passed! 🎉"
+          message="おめでとう！バグ修正に成功 🎉"
           onClose={() => setShowSuccessModal(false)}
         />
       )}
