@@ -15,7 +15,6 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.22.3",
-    "eventsource-parser": "^1.1.1",
     "@uiw/react-codemirror": "4.23.10",
     "@codemirror/theme-one-dark": "6.1.2",
     "@codemirror/lang-python": "6.1.7"
