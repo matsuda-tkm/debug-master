@@ -95,9 +95,12 @@ function ChallengeEditor() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [prompt, setPrompt] = useState('');
+  const [generationError, setGenerationError] = useState('');
 
   const handleGenerateCode = async () => {
     setIsGenerating(true);
+    setGenerationError(''); // Reset any previous error message
+
     try {
       const response = await fetch('http://localhost:8000/api/generate-code', {
         method: 'POST',
@@ -105,13 +108,24 @@ function ChallengeEditor() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt }),
       });
+
       const data = await response.json();
       console.log('Generated code response:', data);
+
+      // If the server returns an error status or an error field, handle it:
+      if (!response.ok || data.error) {
+        setGenerationError(data.error || 'An unknown error occurred.');
+        return; // Stop here if there's an error
+      }
+
+       // If everything is okay and 'code' exists, set it in the editor
       if (data.code) {
         setCode(data.code);
       }
     } catch (error) {
       console.error('Error generating code: ', error);
+      // In case of network failure, etc.
+      setGenerationError('Failed to connect to code generation service.');
     } finally {
       setIsGenerating(false);
     }
@@ -273,6 +287,13 @@ function ChallengeEditor() {
                   'コードを生成'
                 )}
               </button>
+
+              {/* Display an error if code generation failed */}
+              {generationError && (
+                <div className="mt-3 text-red-600 font-bold">
+                  ⚠️コード生成時にエラーが発生しました。プロンプトを変更して再度お試しください。
+                </div>
+              )}
             </div>
           </div>
 
@@ -350,8 +371,10 @@ function ChallengeEditor() {
                         >
                           Test Case {result.testCase}
                         </div>
-                        <div className="text-slate-300 mt-1">
-                          {result.message}
+                        <div className="text-slate-300 mt-1 whitespace-pre-wrap">
+                          {result.status === 'forbidden'
+                            ? 'APIキーを抜き取ろうとするコードは許可されていません！'
+                            : result.message}
                         </div>
                       </div>
                     </div>
