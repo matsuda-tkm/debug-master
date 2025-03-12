@@ -5,7 +5,6 @@ import {
   Bug,
   Trophy,
   BookOpen,
-  MessageSquareWarning,
   ChevronRight,
   ThumbsUp,
   Terminal,
@@ -46,14 +45,14 @@ function SuccessModal({ message, onClose }) {
               onClick={() => navigate('/')}
               className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2 font-medium"
             >
-              Choose Next Challenge
+              他の課題にチャレンジする
               <ChevronRight className="w-5 h-5" />
             </button>
             <button
               onClick={onClose}
               className="text-slate-600 hover:text-slate-800 transition"
             >
-              Continue Current Challenge
+              現在の課題を続ける
             </button>
           </div>
         </div>
@@ -63,7 +62,7 @@ function SuccessModal({ message, onClose }) {
             <div className="flex items-center gap-3">
               <Trophy className="w-8 h-8" />
               <div>
-                <div className="font-medium">Achievement Unlocked!</div>
+                <div className="font-medium">経験値UP!</div>
                 <div className="text-sm opacity-90">Python Master Level 1</div>
               </div>
             </div>
@@ -82,9 +81,9 @@ function HintModal({ hint, onClose }) {
         <div className="flex flex-col">
           <div className="flex items-start gap-4">
             {/* Character image */}
-            <div className="w-24 h-24 flex-shrink-0">
+            <div className="w-40 h-63 flex-shrink-0">
               <img 
-                src="/images/character.jpg" 
+                src="/images/character.png" 
                 alt="Debug Master Character" 
                 className="w-full h-full object-contain"
               />
@@ -287,7 +286,7 @@ function ChallengeEditor() {
     <div className="min-h-screen bg-slate-50 flex flex-col relative">
       {showSuccessModal && (
         <SuccessModal
-          message="Congratulations! All tests passed! 🎉"
+          message="おめでとう！バグ修正に成功 🎉"
           onClose={() => setShowSuccessModal(false)}
         />
       )}
@@ -331,6 +330,26 @@ function ChallengeEditor() {
             <pre className="bg-slate-100 p-3 rounded text-sm font-mono whitespace-pre-wrap">
               {challenge.examples}
             </pre>
+            
+            <div className="mt-4 flex justify-center relative">
+              <img 
+                src="/images/character.png" 
+                alt="ヒントキャラクター" 
+                className="w-40 h-63 object-cover cursor-pointer hover:opacity-60 transition hover:scale-105 transform duration-300"
+                onClick={handleShowHint}
+                style={{pointerEvents: isLoadingHint ? 'none' : 'auto' }}
+              />
+              {isLoadingHint && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+              {hintError && (
+                <div className="absolute top-full left-0 mt-2 text-red-600 text-sm font-medium bg-red-50 px-3 py-1 rounded">
+                  {hintError}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -478,28 +497,7 @@ function ChallengeEditor() {
           <div className="bg-white border-t border-slate-200 p-4">
             <div className="max-w-4xl mx-auto flex items-center justify-between">
               <div className="relative">
-                <button 
-                  onClick={handleShowHint}
-                  disabled={isLoadingHint}
-                  className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-200 transition flex items-center gap-2"
-                >
-                  {isLoadingHint ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-slate-700 border-t-transparent rounded-full animate-spin" />
-                      生成中...
-                    </>
-                  ) : (
-                    <>
-                      <MessageSquareWarning className="w-5 h-5" />
-                      ヒントを表示
-                    </>
-                  )}
-                </button>
-                {hintError && (
-                  <div className="absolute top-full left-0 mt-2 text-red-600 text-sm font-medium bg-red-50 px-3 py-1 rounded">
-                    {hintError}
-                  </div>
-                )}
+                {/* Hint button moved to sidebar */}
               </div>
               <div className="flex items-center gap-4">
                 {testResults.length > 0 && (
