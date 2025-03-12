@@ -1,9 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  Code2, Bug, Trophy, BookOpen, MessageSquareWarning, ChevronRight, 
-  Timer, ThumbsUp, Send, Sparkles, Eye, Files, ChevronDown, FolderOpen, 
-  Terminal, PlayCircle, XCircle, CheckCircle, PartyPopper, SettingsIcon as Confetti 
+import {
+  Code2,
+  Bug,
+  Trophy,
+  BookOpen,
+  MessageSquareWarning,
+  ChevronRight,
+  ThumbsUp,
+  Terminal,
+  PlayCircle,
+  XCircle,
+  CheckCircle,
+  PartyPopper,
+  SettingsIcon as Confetti,
+  Wand2
 } from 'lucide-react';
 import { challengesData } from './challengesData';
 import CodeMirror from '@uiw/react-codemirror';
@@ -13,20 +24,23 @@ import { oneDark } from '@codemirror/theme-one-dark';
 
 function SuccessModal({ message, onClose }) {
   const navigate = useNavigate();
-  
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
       <div className="bg-white rounded-xl shadow-2xl p-8 max-w-lg w-full mx-4 relative overflow-hidden">
         <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
           <div className="relative">
             <Confetti className="w-12 h-12 text-yellow-400 animate-bounce" />
-            <PartyPopper className="w-12 h-12 text-pink-500 absolute top-0 left-0 animate-ping" style={{ animationDuration: '2s' }} />
+            <PartyPopper
+              className="w-12 h-12 text-pink-500 absolute top-0 left-0 animate-ping"
+              style={{ animationDuration: '2s' }}
+            />
           </div>
         </div>
-        
+
         <div className="text-center mt-8">
           <h2 className="text-3xl font-bold text-slate-800 mb-4">{message}</h2>
-          
+
           <div className="flex flex-col gap-4 mt-8">
             <button
               onClick={() => navigate('/')}
@@ -186,7 +200,7 @@ function ChallengeEditor() {
       )}
 
       <header className="bg-white border-b border-slate-200">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-2 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Bug className="w-6 h-6 text-indigo-600" />
             <span className="text-xl font-bold text-slate-800">Debug Master</span>
@@ -208,14 +222,9 @@ function ChallengeEditor() {
               <BookOpen className="w-5 h-5 text-indigo-600" />
               課題
             </h2>
-            <div className="prose prose-sm text-slate-600">
-              <p>{challenge.instructions}</p>
-              <ul className="list-disc list-inside">
-                <li>入力: 整数のリスト</li>
-                <li>出力: 合計</li>
-                <li>空のリストは0を返す</li>
-              </ul>
-            </div>
+            <pre className="font-sans whitespace-pre-wrap">
+              {challenge.instructions}
+            </pre>
           </div>
 
           <div className="flex-1 p-4">
@@ -228,32 +237,43 @@ function ChallengeEditor() {
 
         {/* メインコンテンツ */}
         <div className="flex-1 flex flex-col">
-          {/* プロンプト入力欄 */}
           <div className="p-4 bg-white border-b border-slate-200">
-            <h2 className="text-lg font-semibold text-slate-800">
-              Step1：まずは、プロンプトを使ってAIにコードを書かせよう
-            </h2>
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="AIへの指示を入力..."
-              className="w-full p-2 border border-slate-300 rounded mt-2"
-              rows={3}
-            />
-            <button
-              onClick={handleGenerateCode}
-              disabled={isGenerating}
-              className="mt-2 bg-indigo-600 text-white px-4 py-2 rounded flex items-center gap-2"
-            >
-              {isGenerating ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                'コードを生成'
-              )}
-            </button>
+            <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
+              <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2 mb-2">
+                <Wand2 className="w-5 h-5 text-indigo-600" />
+                まずは、AIアシスタントを使ってコードを生成しよう！
+              </h2>
+              <p className="text-slate-600 text-sm mb-4">
+                プロンプトを使ってAIにコードを書かせて、<br />
+                生成されたコードを修正してテストを実行しよう！
+              </p>
+
+              <label className="block mb-1 font-medium text-slate-700 text-sm">
+                AIへの指示
+              </label>
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="AIにさせたい処理を具体的に入力してください..."
+                className="w-full p-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                rows={3}
+              />
+
+              <button
+                onClick={handleGenerateCode}
+                disabled={isGenerating}
+                className="mt-3 bg-indigo-600 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-indigo-700 transition"
+              >
+                {isGenerating ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    生成中...
+                  </>
+                ) : (
+                  'コードを生成'
+                )}
+              </button>
+            </div>
           </div>
 
           {/* エディタ & テスト結果 */}
@@ -267,7 +287,6 @@ function ChallengeEditor() {
                 </div>
               </div>
               <div className="flex-1 p-4 bg-slate-900">
-                {/* ここでCodeMirrorを利用してPythonのシンタックスハイライトを実装 */}
                 <CodeMirror
                   value={code}
                   height="100%"
@@ -331,7 +350,9 @@ function ChallengeEditor() {
                         >
                           Test Case {result.testCase}
                         </div>
-                        <div className="text-slate-300 mt-1">{result.message}</div>
+                        <div className="text-slate-300 mt-1">
+                          {result.message}
+                        </div>
                       </div>
                     </div>
                   </div>
