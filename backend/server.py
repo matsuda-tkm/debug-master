@@ -30,6 +30,27 @@ Make sure that the function name is `main`.
 Problem Description: 
 """
 
+HINT_SYSTEM_INSTRUCTION: str = """\
+You are a helpful programming tutor. Your task is to provide a hint for a student who is working on a programming challenge.
+
+Based on the challenge description, the student's code, and the test results, provide a helpful hint that guides the student towards the solution without giving away the complete answer.
+
+Your hint should:
+1. Identify potential issues in the student's code
+2. Suggest a direction for improvement
+3. Explain relevant concepts if necessary
+4. Be encouraging and supportive
+
+Consider the following information:
+- Challenge instructions: What the student is trying to accomplish
+- Example test cases: Examples of expected inputs and outputs
+- Current code: The student's current implementation
+- Test results: Which tests are passing and which are failing
+
+Format your response as plain text in Japanese. Keep your hint concise (3-5 sentences) and focused on the most critical issue.
+Do not provide a complete solution or rewrite their entire code.
+"""
+
 
 class TestHandler(http.server.SimpleHTTPRequestHandler):
     """
@@ -63,6 +84,21 @@ class TestHandler(http.server.SimpleHTTPRequestHandler):
                 generated_code: str = self.generate_code_from_prompt(prompt)
                 self.send_json_response({"code": generated_code})
             except json.JSONDecodeError as e:
+                self.send_json_response({"error": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+            
+        elif self.path == "/api/generate-hint":
+            data: Dict[str, Any] = self.parse_json_from_request()
+            code: str = data.get("code", "")
+            instructions: str = data.get("instructions", "")
+            examples: str = data.get("examples", "")
+            test_results: List[Dict[str, Any]] = data.get("testResults", [])
+            
+            try:
+                hint: str = self.generate_hint(code, instructions, examples, test_results)
+                self.send_json_response({"hint": hint})
+            except Exception as e:
+                print(e)
                 self.send_json_response({"error": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return
 
@@ -138,6 +174,43 @@ class TestHandler(http.server.SimpleHTTPRequestHandler):
         selected_idx: int = random.randint(0, len(response_json["content"]) - 1)
         generated_code: str = response_json["content"][selected_idx]["code"]
         return generated_code
+        
+    def generate_hint(self, code: str, instructions: str, examples: str, test_results: List[Dict[str, Any]]) -> str:
+        """
+        コード、課題の説明、例、テスト結果に基づいてヒントを生成する
+        """
+        # テスト結果をLLM用にフォーマット
+        test_results_text = ""
+        for i, result in enumerate(test_results):
+            status = "成功" if result.get("status") == "success" else "失敗"
+            test_results_text += f"テストケース {i+1}: {status}\n"
+            test_results_text += f"メッセージ: {result.get('message', '')}\n\n"
+        
+        # LLM用のプロンプトを作成
+        prompt = f"""
+課題:
+{instructions}
+
+例:
+{examples}
+
+学生のコード:
+{code}
+
+テスト結果:
+{test_results_text}
+"""
+        
+        # Gemini APIを使用してヒントを生成
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=[prompt],
+            config=types.GenerateContentConfig(
+                temperature=0.0,
+                system_instruction=HINT_SYSTEM_INSTRUCTION,
+            ),
+        )
+        return response.text
 
     # ---------------------------
     # /api/run-python endpoint logic
