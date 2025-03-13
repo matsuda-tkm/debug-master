@@ -19,6 +19,7 @@ import { challengesData } from './challengesData';
 import CodeMirror from '@uiw/react-codemirror';
 import { python } from '@codemirror/lang-python';
 import { oneDark } from '@codemirror/theme-one-dark';
+import { indentUnit } from '@codemirror/language';
 
 
 function SuccessModal({ message, onClose }) {
@@ -415,7 +416,7 @@ function ChallengeEditor() {
                 <CodeMirror
                   value={code}
                   height="100%"
-                  extensions={[python(), oneDark]}
+                  extensions={[python(), oneDark, indentUnit.of('    ')]}
                   onChange={(value) => setCode(value)}
                   className="w-full h-full font-mono text-sm bg-transparent text-slate-200 outline-none resize-none"
                 />
