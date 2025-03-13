@@ -18,6 +18,65 @@ export interface Challenge {
 
 export const challengesData: Challenge[] = [
   {
+    id: 'sum-n',
+    title: '1からnまでの整数の合計',
+    description:
+      '整数 n を入力として受け取り、1からnまでの整数の合計を計算して返す関数を作成します。n が0の場合は 0 を返すことに注意してください。',
+    difficulty: '初級',
+    image:
+      'images/sum_character.png?auto=format&fit=crop&w=800&q=80',
+    languages: ['Python'],
+    instructions: `整数 n を入力として受け取り、1からnまでの整数の合計を計算する関数 \`sum_n\` を実装してください。
+  
+  【仕様】
+  ・ n は 0 以上の整数
+  ・ n が 0 の場合は 0 を返す
+  ・ 例: n = 10 の場合、1 + 2 + ... + 10 = 55 となる`,
+    examples: `
+  例1:
+  入力: 1
+  出力: 1
+  
+  例2:
+  入力: 5
+  出力: 15
+    `,
+    testCases: [
+      { input: [0], expected: 0 },
+      { input: [1], expected: 1 },
+      { input: [5], expected: 15 },
+      { input: [10], expected: 55 }
+    ]
+  },
+  {
+    id: 'reverse-string',
+    title: '文字列の逆順',
+    description:
+      '入力された文字列を逆順に並べ替えて返す関数を作成します。空文字の場合は空文字を返してください。',
+    difficulty: '初級',
+    image:
+      'images/reverse_character.png?auto=format&fit=crop&w=800&q=80',
+    languages: ['Python'],
+    instructions: `文字列 s を入力として受け取り、s の文字順序を逆にした新しい文字列を返す関数 \`reverse_str\` を実装してください。
+  
+  【仕様】
+  ・ s は任意の文字列
+  ・ 空文字の場合は空文字を返す
+  ・ 例: s = "olleH" の場合、"Hello" を返す`,
+    examples: `
+  例1:
+  入力: "gubeD"
+  出力: "Debug"
+
+    `,
+    testCases: [
+      { input: ["ehT"], expected: "The" },
+      { input: ["drowyek"], expected: "keyword" },
+      { input: ["si"], expected: "is" },
+      { input: ["piks"], expected: "skip" },
+    ]
+  },
+  {
     id: 'list-conditional-transformation',
     title: 'リスト操作: 条件付き変換',
     description:
