@@ -1,0 +1,4 @@
+streamlit==1.43.2
+google-genai==1.5.0
+python-dotenv==1.0.1
+manim==0.19.0
