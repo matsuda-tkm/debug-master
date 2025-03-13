@@ -11,7 +11,7 @@ from google.genai import types
 
 load_dotenv()
 
-SYSTEM_INSTRUNCTION: str = """\
+SYSTEM_INSTRUCTION: str = """\
 Write a Manim program to visually illustrate the following problem with animation:  
 - The animation should convey the problem concisely with minimal text.  
 - When a novice looks at this issue, they should be able to understand how the inputs are converted into outputs.
@@ -271,7 +271,7 @@ def main():
                     generated_code = call_gemini_api(prompt, MODIFY_SYSTEM_INSTRUCTION)
                 else:
                     # Gemini API を呼び出してコード生成
-                    generated_code = call_gemini_api(description, SYSTEM_INSTRUNCTION)
+                    generated_code = call_gemini_api(description, SYSTEM_INSTRUCTION)
                 with st.spinner(
                     f"【試行 {iteration}/{max_iterations}】生成されたコードを実行中..."
                 ):
