@@ -26,7 +26,7 @@ export const challengesData: Challenge[] = [
     image:
       'images/sum_character.png?auto=format&fit=crop&w=800&q=80',
     languages: ['Python'],
-    instructions: `整数 n を入力として受け取り、1からnまでの整数の合計を計算する関数 \`sum_n\` を実装してください。
+    instructions: `整数 n を入力として受け取り、1からnまでの整数の合計を計算する関数を実装してください。
   
   【仕様】
   ・ n は 0 以上の整数
@@ -57,7 +57,7 @@ export const challengesData: Challenge[] = [
     image:
       'images/reverse_character.png?auto=format&fit=crop&w=800&q=80',
     languages: ['Python'],
-    instructions: `文字列 s を入力として受け取り、s の文字順序を逆にした新しい文字列を返す関数 \`reverse_str\` を実装してください。
+    instructions: `文字列 s を入力として受け取り、s の文字順序を逆にした新しい文字列を返す関数を実装してください。
   
   【仕様】
   ・ s は任意の文字列
