@@ -47,7 +47,7 @@ Format it as a JSON object, where each object contains the following keys: ‘co
 'explanation' should be Japanese text explaining the bug and the fix.
 
 Implement only this function with various bugs that AI may make, incorporating the bugs you reasoned about.
-Each program should contain bug that does not pass the test cases. Make them as diverse as possible.
+Each program should contain bugs that does not pass the test cases. Make them as diverse as possible.
 The bugs should not lead to the program not compiling or hanging.
 Do not add comments. 
 Do not forget to first reason about possible bugs. 
