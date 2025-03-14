@@ -46,7 +46,11 @@ Format it as a JSON object, where each object contains the following keys: ‘co
 }
 'explanation' should be Japanese text explaining the bug and the fix.
 
-Implement only this function with various bugs that students may make, incorporating the bugs you reasoned about. Each program should contain only one bug. Make them as diverse as possible. The bugs should not lead to the program not compiling or hanging. Do not add comments.  Do not forget to first reason about possible bugs. 
+Implement only this function with various bugs that AI may make, incorporating the bugs you reasoned about.
+Each program should contain bugs that does not pass the test cases. Make them as diverse as possible.
+The bugs should not lead to the program not compiling or hanging.
+Do not add comments. 
+Do not forget to first reason about possible bugs. 
 Make sure that the function name is `main`.
 """
 
@@ -103,6 +107,7 @@ class TestHandler(http.server.SimpleHTTPRequestHandler):
             data_gen: Dict[str, Any] = self.parse_json_from_request()
             challenge = data_gen.get("challenge", "")
             difficulty = data_gen.get("difficulty", "")
+            test_cases = data_gen.get("testCases", [])
             prompt = f"""\
 Problem description:
 {challenge}
@@ -111,7 +116,7 @@ Difficulty level:
 {difficulty}
             """
             try:
-                result: Dict[str, str] = self.generate_code_from_prompt(prompt)
+                result: Dict[str, str] = self.generate_code_from_prompt(prompt, test_cases)
                 self.send_json_response(result)
             except json.JSONDecodeError as e:
                 self.send_json_response({"error": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR)
@@ -186,15 +191,17 @@ Difficulty level:
     # /api/generate-code endpoint logic
     # ---------------------------
 
-    def generate_code_from_prompt(self, prompt: str) -> Dict[str, str]:
+    def generate_code_from_prompt(self, prompt: str, test_cases: List[Dict[str, Any]] = []) -> Dict[str, str]:
         """
         受け取ったプロンプトに応じてコードと説明を生成する処理
+        生成されたコードが全てのテストケースに成功する場合は別のコードを選択する
+        全てのコードが全てのテストケースに成功する場合はエラーを返す
         """
         response = client.models.generate_content(
             model="gemini-2.0-flash",
             contents=[prompt],
             config=types.GenerateContentConfig(
-                temperature=0.0,
+                temperature=0.5,
                 system_instruction=SYSTEM_INSTRUNCTION,
                 response_mime_type="application/json",
             ),
@@ -202,10 +209,30 @@ Difficulty level:
         print(response.text)
 
         response_json: Dict[str, Any] = json.loads(response.text)
-        selected_idx: int = random.randint(0, len(response_json["content"]) - 1)
-        generated_code: str = response_json["content"][selected_idx]["code"]
-        explanation: str = response_json["content"][selected_idx]["explanation"]
-        return {"code": generated_code, "explanation": explanation}
+        
+        # テストケースが提供されていない場合は従来通りランダムに選択
+        if not test_cases:
+            selected_idx: int = random.randint(0, len(response_json["content"]) - 1)
+            generated_code: str = response_json["content"][selected_idx]["code"]
+            explanation: str = response_json["content"][selected_idx]["explanation"]
+            return {"code": generated_code, "explanation": explanation}
+        
+        # 各コードをテストして、少なくとも1つのテストケースに失敗するコードを探す
+        for idx in range(len(response_json["content"])):
+            code = response_json["content"][idx]["code"]
+            explanation = response_json["content"][idx]["explanation"]
+            
+            # 全てのテストケースに成功するかチェック
+            all_tests_pass = self.test_code_against_all_cases(code, test_cases)
+            
+            # 少なくとも1つのテストケースに失敗する場合はそのコードを選択
+            if not all_tests_pass:
+                print(f"Selected code:\n```\n{code}\n```")
+                return {"code": code, "explanation": explanation}
+        
+        # 全てのコードが全てのテストケースに成功する場合はエラーを返す
+        print("All generated codes passed all test cases. Please select a different difficulty.")
+        return {"error": "全ての生成コードがテストに成功してしまいました。別の難易度を選択してください。"}
         
     def generate_hint(self, code: str, instructions: str, examples: str, test_results: List[Dict[str, Any]]) -> str:
         """
@@ -304,6 +331,19 @@ Difficulty level:
         """
         self.wfile.write(f"data: {data}\n\n".encode("utf-8"))
         self.wfile.flush()
+        
+    def test_code_against_all_cases(self, code: str, test_cases: List[Dict[str, Any]]) -> bool:
+        """
+        指定されたコードが全てのテストケースに成功するかどうかをチェックする
+        全て成功する場合はTrue、一つでも失敗する場合はFalseを返す
+        """
+        for test_case in test_cases:
+            result = self.run_single_test_case(code, test_case)
+            if result["status"] != "success":
+                # 一つでも失敗したらFalseを返す
+                return False
+        # 全て成功した場合はTrueを返す
+        return True
 
 
 if __name__ == "__main__":

@@ -197,6 +197,7 @@ function ChallengeEditor() {
         body: JSON.stringify({ 
           challenge: challenge?.instructions,
           difficulty,
+          testCases: challenge?.testCases,
           }),
       });
 
@@ -527,7 +528,7 @@ function ChallengeEditor() {
               {/* Display an error if code generation failed */}
               {generationError && (
                 <div className="mt-3 text-red-600 font-bold">
-                  ⚠️コード生成時にエラーが発生しました。プロンプトを変更して再度お試しください。
+                  ⚠️バグのあるコードを生成できませんでした。もう一度お試しください。
                 </div>
               )}
             </div>
