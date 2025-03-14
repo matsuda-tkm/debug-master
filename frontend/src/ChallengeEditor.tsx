@@ -22,7 +22,7 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { indentUnit } from '@codemirror/language';
 
 
-function SuccessModal({ message, onClose }) {
+function SuccessModal({ message, explanation, onClose }) {
   const navigate = useNavigate();
 
   return (
@@ -40,6 +40,15 @@ function SuccessModal({ message, onClose }) {
 
         <div className="text-center mt-8">
           <h2 className="text-3xl font-bold text-slate-800 mb-4">{message}</h2>
+
+          {explanation && (
+            <div className="mt-4 bg-slate-50 p-4 rounded-lg text-left">
+              <h3 className="text-lg font-semibold text-slate-800 mb-2">バグの説明:</h3>
+              <div className="text-slate-700 whitespace-pre-wrap text-sm">
+                {explanation}
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-col gap-4 mt-8">
             <button
@@ -168,6 +177,7 @@ function ChallengeEditor() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [difficulty, setDifficulty] = useState('やさしい');
   const [generationError, setGenerationError] = useState('');
+  const [explanation, setExplanation] = useState('');
   const [showHintModal, setShowHintModal] = useState(false);
   const [hint, setHint] = useState('');
   const [isLoadingHint, setIsLoadingHint] = useState(false);
@@ -202,6 +212,10 @@ function ChallengeEditor() {
        // If everything is okay and 'code' exists, set it in the editor
       if (data.code) {
         setCode(data.code);
+      }
+      // If explanation exists, store it
+      if (data.explanation) {
+        setExplanation(data.explanation);
       }
     } catch (error) {
       console.error('Error generating code: ', error);
@@ -329,6 +343,7 @@ function ChallengeEditor() {
       {showSuccessModal && (
         <SuccessModal
           message="おめでとう！バグ修正に成功 🎉"
+          explanation={explanation}
           onClose={() => setShowSuccessModal(false)}
         />
       )}

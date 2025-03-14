@@ -35,6 +35,7 @@ Below is a Python programming problem.
 Reason about **what kind of bugs AI may make** while coming up with solutions for the given problem.
 Next, come up with exactly 3 buggy implementations, their corrected versions, and explanations for the bugs.
 In addition to the Problem, the user will provide a difficulty level for bug detection in Japanese, chosen from "やさしい" (easy to find bugs), "ちょっとわかりにくい" (slightly difficult to find bugs), or "かなりわかりにくい" (very difficult to find bugs). The 3 buggy implementations you generate should reflect the chosen difficulty level of bug detection. The code itself does not need to be intrinsically complex, but the bugs should be designed to be easily, moderately, or very difficult to identify based on the chosen level.
+
 Format it as a JSON object, where each object contains the following keys: ‘code’, ‘fixed_code’, and ‘explanation’:
 {
 "reasoning": "Reasoning about the bugs",
@@ -43,6 +44,8 @@ Format it as a JSON object, where each object contains the following keys: ‘co
 "fixed_code": ...,
 "explanation": ... }]
 }
+'explanation' should be Japanese text explaining the bug and the fix.
+
 Implement only this function with various bugs that students may make, incorporating the bugs you reasoned about. Each program should contain only one bug. Make them as diverse as possible. The bugs should not lead to the program not compiling or hanging. Do not add comments.  Do not forget to first reason about possible bugs. 
 Make sure that the function name is `main`.
 """
@@ -108,8 +111,8 @@ Difficulty level:
 {difficulty}
             """
             try:
-                generated_code: str = self.generate_code_from_prompt(prompt)
-                self.send_json_response({"code": generated_code})
+                result: Dict[str, str] = self.generate_code_from_prompt(prompt)
+                self.send_json_response(result)
             except json.JSONDecodeError as e:
                 self.send_json_response({"error": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return
@@ -183,9 +186,9 @@ Difficulty level:
     # /api/generate-code endpoint logic
     # ---------------------------
 
-    def generate_code_from_prompt(self, prompt: str) -> str:
+    def generate_code_from_prompt(self, prompt: str) -> Dict[str, str]:
         """
-        受け取ったプロンプトに応じてコードを生成する処理
+        受け取ったプロンプトに応じてコードと説明を生成する処理
         """
         response = client.models.generate_content(
             model="gemini-2.0-flash",
@@ -201,7 +204,8 @@ Difficulty level:
         response_json: Dict[str, Any] = json.loads(response.text)
         selected_idx: int = random.randint(0, len(response_json["content"]) - 1)
         generated_code: str = response_json["content"][selected_idx]["code"]
-        return generated_code
+        explanation: str = response_json["content"][selected_idx]["explanation"]
+        return {"code": generated_code, "explanation": explanation}
         
     def generate_hint(self, code: str, instructions: str, examples: str, test_results: List[Dict[str, Any]]) -> str:
         """
