@@ -420,12 +420,12 @@ function ChallengeEditor() {
                 まずは、AIアシスタントを使ってコードを生成しよう！
               </h2>
               <p className="text-slate-600 text-sm mb-4">
-                「エラーの見つけやすさ」を選択してAIにコードを書かせて、<br />
+                「バグの見つけやすさ」を選択してAIにコードを書かせて、<br />
                 生成されたコードを修正してテストを実行しよう！
               </p>
 
               <label className="block mb-1 font-medium text-slate-700 text-sm">
-                エラーの見つけやすさ
+                バグの見つけやすさ
               </label>
               
               <div className="w-full max-w-3xl mx-auto py-8">
