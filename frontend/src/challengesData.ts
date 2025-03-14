@@ -46,8 +46,13 @@ export const challengesData: Challenge[] = [
     testCases: [
       { input: [0], expected: 0 },
       { input: [1], expected: 1 },
+      { input: [2], expected: 3 },
+      { input: [3], expected: 6 },
       { input: [5], expected: 15 },
-      { input: [10], expected: 55 }
+      { input: [10], expected: 55 },
+      { input: [20], expected: 210 },
+      { input: [50], expected: 1275 },
+      { input: [100], expected: 5050 }
     ]
   },
   {
@@ -149,6 +154,22 @@ export const challengesData: Challenge[] = [
         expected: { x: { y: { target: 8 } }, z: { target: 'non-numeric' } },
       },
       { input: [{}], expected: {} },
+      {
+        input: [{ target: 4, nested: { target: 7, deeper: { target: 1.5 } } }],
+        expected: { target: 8, nested: { target: 14, deeper: { target: 3.0 } } },
+      },
+      {
+        input: [{ a: { target: -3 }, b: { nested: { target: 0 } } }],
+        expected: { a: { target: -6 }, b: { nested: { target: 0 } } },
+      },
+      {
+        input: [{ a: { b: 1 }, c: { d: 2 } }],
+        expected: { a: { b: 1 }, c: { d: 2 } },
+      },
+      {
+        input: [{ a: { target: 1, b: { target: 2, c: { target: 3 } } } }],
+        expected: { a: { target: 2, b: { target: 4, c: { target: 6 } } } },
+      }
     ],
   },
   {
@@ -210,6 +231,7 @@ export const challengesData: Challenge[] = [
       {
         // "args" オブジェクトが存在しない場合
         input: ["https://httpbin.org/ip"],
+        expected: "Error",
       }
     ],
   },
@@ -265,64 +287,202 @@ spec = {
 video: "/videos/dynamic-config-validator.mp4",
 testCases: [
   {
-    input: [
+    "input": [
       {
-        host: "localhost",
-        port: 8080,
-        debug: true,
-        thresholds: { min: 0, max: 100 },
+        "host": "localhost",
+        "port": 8080,
+        "debug": true,
+        "thresholds": { "min": 0, "max": 100 },
       },
       {
-        host: "string",
-        port: { type: "number", min: 1, max: 65535 },
-        debug: "boolean",
-        thresholds: {
-          min: { type: "number", min: 0 },
-          max: { type: "number", max: 1000 },
+        "host": "string",
+        "port": { "type": "number", "min": 1, "max": 65535 },
+        "debug": "boolean",
+        "thresholds": {
+          "min": { "type": "number", "min": 0 },
+          "max": { "type": "number", "max": 1000 },
         },
       },
     ],
-    expected: true,
+    "expected": true,
   },
   {
-    input: [
+    "input": [
       {
-        host: "localhost",
-        port: 70000,
-        debug: "yes",
-        thresholds: { min: -5, max: 1200 },
+        "host": "localhost",
+        "port": 70000,
+        "debug": "yes",
+        "thresholds": { "min": -5, "max": 1200 },
       },
       {
-        host: "string",
-        port: { type: "number", min: 1, max: 65535 },
-        debug: "boolean",
-        thresholds: {
-          min: { type: "number", min: 0 },
-          max: { type: "number", max: 1000 },
+        "host": "string",
+        "port": { "type": "number", "min": 1, "max": 65535 },
+        "debug": "boolean",
+        "thresholds": {
+          "min": { "type": "number", "min": 0 },
+          "max": { "type": "number", "max": 1000 },
         },
       },
     ],
-    expected: "Invalid",
+    "expected": "Invalid",
   },
   {
-    input: [
+    "input": [
       {
-        host: "localhost",
-        port: 8080,
-        thresholds: { min: 0, max: 100 },
+        "host": "localhost",
+        "port": 8080,
+        "thresholds": { "min": 0, "max": 100 },
       },
       {
-        host: "string",
-        port: { type: "number", min: 1, max: 65535 },
-        debug: "boolean",
-        thresholds: {
-          min: { type: "number", min: 0 },
-          max: { type: "number", max: 1000 },
+        "host": "string",
+        "port": { "type": "number", "min": 1, "max": 65535 },
+        "debug": "boolean",
+        "thresholds": {
+          "min": { "type": "number", "min": 0 },
+          "max": { "type": "number", "max": 1000 },
         },
       },
     ],
-    expected: "Invalid",
+    "expected": "Invalid",
   },
-],
+  {
+    "input": [
+      {},
+      {}
+    ],
+    "expected": true,
+  },
+  {
+    "input": [
+      {
+        "host": "localhost",
+        "port": 8080,
+        "debug": true,
+        "extra": "not allowed",
+        "thresholds": { "min": 0, "max": 100 },
+      },
+      {
+        "host": "string",
+        "port": { "type": "number", "min": 1, "max": 65535 },
+        "debug": "boolean",
+        "thresholds": {
+          "min": { "type": "number", "min": 0 },
+          "max": { "type": "number", "max": 1000 },
+        },
+      },
+    ],
+    "expected": "Invalid",
+  },
+  {
+    "input": [
+      {
+        "host": "localhost",
+        "port": 8080,
+        "debug": true,
+        "thresholds": { "min": 0 }
+      },
+      {
+        "host": "string",
+        "port": { "type": "number", "min": 1, "max": 65535 },
+        "debug": "boolean",
+        "thresholds": {
+          "min": { "type": "number", "min": 0 },
+          "max": { "type": "number", "max": 1000 },
+        },
+      },
+    ],
+    "expected": "Invalid",
+  },
+  {
+    "input": [
+      {
+        "database": {
+          "user": "admin",
+          "pass": 1234
+        }
+      },
+      {
+        "database": {
+          "user": "string",
+          "pass": "string"
+        }
+      },
+    ],
+    "expected": "Invalid",
+  },
+  {
+    "input": [
+      {
+        "server": {
+          "host": "example.com",
+          "port": 443,
+          "ssl": {
+            "enabled": true,
+            "protocol": "TLSv1.2"
+          }
+        }
+      },
+      {
+        "server": {
+          "host": "string",
+          "port": { "type": "number", "min": 1, "max": 65535 },
+          "ssl": {
+            "enabled": "boolean",
+            "protocol": "string"
+          }
+        }
+      },
+    ],
+    "expected": true,
+  },
+  {
+    "input": [
+      {
+        "limit": 5000
+      },
+      {
+        "limit": { "type": "number", "min": 1, "max": 1000 }
+      },
+    ],
+    "expected": "Invalid",
+  },
+  {
+    "input": [
+      {
+        "featureFlag": "true"
+      },
+      {
+        "featureFlag": "boolean"
+      },
+    ],
+    "expected": "Invalid",
+  },
+  {
+    "input": [
+      {
+        "service": {
+          "name": "myservice",
+          "version": "1.0",
+          "config": {
+            "retry": 3,
+            "timeout": 30,
+            "extra": "oops"
+          }
+        }
+      },
+      {
+        "service": {
+          "name": "string",
+          "version": "string",
+          "config": {
+            "retry": { "type": "number", "min": 1 },
+            "timeout": { "type": "number", "min": 1 }
+          }
+        }
+      },
+    ],
+    "expected": "Invalid",
+  },
+]
 },
 ];
