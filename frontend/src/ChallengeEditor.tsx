@@ -377,34 +377,48 @@ function ChallengeEditor() {
 
       <div className="flex-1 flex">
         {/* サイドバー */}
-        <div className="w-96 bg-white border-r border-slate-200 flex flex-col">
-          <div className="p-4 border-b border-slate-200">
-            <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+        <div className="w-96 bg-white border-r border-slate-200 flex flex-col max-h-[calc(100vh-56px)]">
+          {/* 課題セクション - 見出しは固定、内容はスクロール可能 */}
+          <div className="border-b border-slate-200">
+            <h2 className="text-lg font-semibold text-slate-800 p-4 pb-2 flex items-center gap-2 sticky top-0 bg-white">
               <BookOpen className="w-5 h-5 text-indigo-600" />
               課題
             </h2>
-            <pre className="font-sans whitespace-pre-wrap">
-              {challenge.instructions}
-            </pre>
+            <div className="px-4 pb-4 overflow-auto max-h-[calc(45vh-56px)]">
+              <pre className="font-sans whitespace-pre-wrap">
+                {challenge.instructions}
+              </pre>
+            </div>
           </div>
 
-          <div className="flex-1 p-4">
-            <h3 className="text-sm font-semibold text-slate-800 mb-2">テストケース例：</h3>
-            <pre className="bg-slate-100 p-3 rounded text-sm font-mono whitespace-pre-wrap">
-              {challenge.examples}
-            </pre>
-
-            {challenge.video && (
+          {/* 動画ボタン - 課題セクションの次に配置 */}
+          {challenge.video && (
+            <div className="px-4 py-3 border-b border-slate-200">
               <button
                 onClick={() => handleShowVideo(challenge.video)}
-                className="mt-4 w-full flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+                className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
               >
                 <PlayCircle className="w-5 h-5" />
                 問題の意味を動画で理解
               </button>
-            )}
+            </div>
+          )}
 
-            <div className="mt-4 flex justify-center relative">
+          {/* テストケース例セクション - 見出しは固定、内容はスクロール可能 */}
+          <div className="border-b border-slate-200">
+            <h3 className="text-sm font-semibold text-slate-800 p-4 pb-2 sticky top-0 bg-white">
+              テストケース例：
+            </h3>
+            <div className="px-4 pb-4 overflow-auto max-h-[calc(20vh-28px)]">
+              <pre className="bg-slate-100 p-3 rounded text-sm font-mono whitespace-pre-wrap">
+                {challenge.examples}
+              </pre>
+            </div>
+          </div>
+
+          {/* ヒントキャラクター - 最後に配置 */}
+          <div className="flex-1 p-4 flex justify-center items-center">
+            <div className="relative">
               <img 
                 src="/images/character.png" 
                 alt="ヒントキャラクター" 
@@ -443,7 +457,7 @@ function ChallengeEditor() {
                 バグの見つけやすさ
               </label>
               
-              <div className="w-full max-w-3xl mx-auto py-8">
+              <div className="w-full max-w-3xl mx-auto py-1">
       <div className="relative mt-1 flex items-center justify-between">
         {/* Connecting line */}
         <div className="absolute top-6 left-2 h-0.5 bg-indigo-400 w-[90%] z-0"></div>
@@ -520,7 +534,7 @@ function ChallengeEditor() {
           </div>
 
           {/* エディタ & テスト結果 */}
-          <div className="flex-1 grid grid-cols-2 gap-0">
+          <div className="flex-1 grid grid-cols-2 gap-0 max-h-[calc(100vh-200px)]">
             {/* コードエディタ */}
             <div className="h-full flex flex-col">
               <div className="bg-slate-800 px-4 py-2 flex items-center justify-between">
@@ -529,7 +543,7 @@ function ChallengeEditor() {
                   <span className="text-slate-200">main.py</span>
                 </div>
               </div>
-              <div className="flex-1 p-4 bg-slate-900">
+              <div className="flex-1 p-4 bg-slate-900 overflow-auto">
                 <CodeMirror
                   value={code}
                   height="100%"
@@ -569,7 +583,7 @@ function ChallengeEditor() {
                   )}
                 </button>
               </div>
-              <div className="flex-1 p-4 bg-slate-900 font-mono text-sm overflow-auto">
+              <div className="flex-1 p-4 bg-slate-900 font-mono text-sm overflow-auto max-h-[calc(100vh-200px)]">
                 {testResults.map((result, index) => (
                   <div
                     key={index}
