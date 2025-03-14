@@ -520,7 +520,7 @@ function ChallengeEditor() {
           </div>
 
           {/* エディタ & テスト結果 */}
-          <div className="flex-1 grid grid-cols-2 gap-0">
+          <div className="flex-1 grid grid-cols-2 gap-0 max-h-[calc(100vh-200px)]">
             {/* コードエディタ */}
             <div className="h-full flex flex-col">
               <div className="bg-slate-800 px-4 py-2 flex items-center justify-between">
@@ -529,7 +529,7 @@ function ChallengeEditor() {
                   <span className="text-slate-200">main.py</span>
                 </div>
               </div>
-              <div className="flex-1 p-4 bg-slate-900">
+              <div className="flex-1 p-4 bg-slate-900 overflow-auto">
                 <CodeMirror
                   value={code}
                   height="100%"
@@ -569,7 +569,7 @@ function ChallengeEditor() {
                   )}
                 </button>
               </div>
-              <div className="flex-1 p-4 bg-slate-900 font-mono text-sm overflow-auto">
+              <div className="flex-1 p-4 bg-slate-900 font-mono text-sm overflow-auto max-h-[calc(100vh-200px)]">
                 {testResults.map((result, index) => (
                   <div
                     key={index}
