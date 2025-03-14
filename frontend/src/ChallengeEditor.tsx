@@ -387,18 +387,18 @@ function ChallengeEditor() {
               <div className="w-full max-w-3xl mx-auto py-8">
       <div className="relative mt-1 flex items-center justify-between">
         {/* Connecting line */}
-        <div className="absolute top-6 left-2 h-0.5 bg-blue-400 w-[90%] z-0"></div>
+        <div className="absolute top-6 left-2 h-0.5 bg-indigo-400 w-[90%] z-0"></div>
 
         {/* Easy level */}
         <div className="flex flex-col pt-1 items-center z-10">
           <button
             onClick={() => setDifficulty("やさしい")}
             className={`
-              w-10 h-10 bg-white rounded-full border-2 border-blue-400 flex items-center justify-center mb-3 transition-colors`
+              w-10 h-10 bg-white rounded-full border-2 border-indigo-400 flex items-center justify-center mb-3 transition-colors`
             }
             aria-pressed={difficulty === "やさしい"}
           >
-            <div className={`w-5 h-5 rounded-full  ${difficulty === "やさしい" ? "bg-blue-400" : "bg-white"}`} />
+            <div className={`w-5 h-5 rounded-full  ${difficulty === "やさしい" ? "bg-indigo-400" : "bg-white"}`} />
             <span className="sr-only">やさしい</span>
           </button>
           <span className="text-center text-sm font-medium">やさしい</span>
@@ -409,11 +409,11 @@ function ChallengeEditor() {
           <button
             onClick={() => setDifficulty("ちょっとわかりにくい")}
             className={
-              `w-10 h-10 bg-white rounded-full border-2 border-blue-400 flex items-center justify-center mb-3 transition-colors`
+              `w-10 h-10 bg-white rounded-full border-2 border-indigo-400 flex items-center justify-center mb-3 transition-colors`
             }
             aria-pressed={difficulty === 'ちょっとわかりにくい'}
           >
-            <div className={`w-5 h-5 rounded-full  ${difficulty === "ちょっとわかりにくい" ? "bg-blue-400" : "bg-white"}`} />
+            <div className={`w-5 h-5 rounded-full  ${difficulty === "ちょっとわかりにくい" ? "bg-indigo-400" : "bg-white"}`} />
             <span className="sr-only">ちょっとわかりにくい</span>
           </button>
           <span className="text-center text-sm font-medium">ちょっとわかりにくい</span>
@@ -424,11 +424,11 @@ function ChallengeEditor() {
           <button
             onClick={() => setDifficulty("かなりわかりにくい")}
             className={
-              `w-10 h-10 bg-white rounded-full border-2 border-blue-400 flex items-center justify-center mb-3 transition-colors`
+              `w-10 h-10 bg-white rounded-full border-2 border-indigo-400 flex items-center justify-center mb-3 transition-colors`
             }
             aria-pressed={difficulty === 'かなりわかりにくい'}
           >
-            <div className={`w-5 h-5 rounded-full  ${difficulty === "かなりわかりにくい" ? "bg-blue-400" : "bg-white"}`} />
+            <div className={`w-5 h-5 rounded-full  ${difficulty === "かなりわかりにくい" ? "bg-indigo-400" : "bg-white"}`} />
             <span className="sr-only">かなりわかりにくい</span>
           </button>
           <span className="text-center text-sm font-medium">かなりわかりにくい</span>
