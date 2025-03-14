@@ -116,6 +116,37 @@ function HintModal({ hint, onClose }) {
   );
 }
 
+function VideoModal({ videoSrc, onClose }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl shadow-lg p-6 max-w-4xl w-full mx-4 relative animate-pop-in">
+        <div className="flex flex-col">
+          <h2 className="text-xl font-bold text-indigo-800 mb-3">問題の意味を動画で理解</h2>
+          <div className="relative">
+            <video
+              className="w-full rounded shadow"
+              controls
+              autoPlay
+            >
+              <source src={videoSrc} type="video/mp4" />
+              お使いのブラウザは動画タグに対応していません。
+            </video>
+          </div>
+        </div>
+        
+        <div className="flex justify-end mt-4">
+          <button
+            onClick={onClose}
+            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition flex items-center gap-2 text-sm font-medium"
+          >
+            閉じる
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ChallengeEditor() {
   const navigate = useNavigate();
   const { themeId } = useParams();
@@ -141,6 +172,8 @@ function ChallengeEditor() {
   const [hint, setHint] = useState('');
   const [isLoadingHint, setIsLoadingHint] = useState(false);
   const [hintError, setHintError] = useState('');
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [currentVideo, setCurrentVideo] = useState('');
 
   const handleGenerateCode = async () => {
     setIsGenerating(true);
@@ -278,6 +311,11 @@ function ChallengeEditor() {
       setIsLoadingHint(false);
     }
   };
+  
+  const handleShowVideo = (videoSrc) => {
+    setCurrentVideo(videoSrc);
+    setShowVideoModal(true);
+  };
 
   if (!challenge) {
     return null;
@@ -295,6 +333,12 @@ function ChallengeEditor() {
         <HintModal
           hint={hint}
           onClose={() => setShowHintModal(false)}
+        />
+      )}
+      {showVideoModal && (
+        <VideoModal
+          videoSrc={currentVideo}
+          onClose={() => setShowVideoModal(false)}
         />
       )}
 
@@ -333,13 +377,13 @@ function ChallengeEditor() {
             </pre>
 
             {challenge.video && (
-              <video
-                className="mt-4 w-full max-w-md rounded shadow"
-                controls
+              <button
+                onClick={() => handleShowVideo(challenge.video)}
+                className="mt-4 w-full flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
               >
-                <source src={challenge.video} type="video/mp4" />
-                お使いのブラウザは動画タグに対応していません。
-              </video>
+                <PlayCircle className="w-5 h-5" />
+                問題の意味を動画で理解
+              </button>
             )}
 
             <div className="mt-4 flex justify-center relative">
