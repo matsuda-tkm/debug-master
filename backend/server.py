@@ -278,7 +278,7 @@ Difficulty level:
                 input_data = deepcopy(test_case["input"])
                 result = solution(*input_data)
             expected = test_case["expected"]
-            if result == expected:
+            if result == expected and str(result) == str(expected):
                 return {
                     "status": "success",
                     "message": f"Input:\n{test_case['input']}\n\nExpected:\n{expected}\n\nGot:\n{result}",
