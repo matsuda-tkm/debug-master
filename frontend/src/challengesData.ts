@@ -161,7 +161,6 @@ export const challengesData: Challenge[] = [
       'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&q=80&w=2668&ixlib=rb-4.0.3',
     languages: ['Python'],
     instructions: `requestsライブラリを使用して、指定されたURLからJSONデータを取得してください。
-※URLは必ず https://httpbin.org/anything?data=... の形式となります。
 
 仕様は以下の通りです：
 ・ レスポンスのHTTPステータスコードが200の場合、レスポンスJSON内の "args" オブジェクトを確認し、その中に "data" キーが存在するかチェックする。
@@ -183,6 +182,35 @@ export const challengesData: Challenge[] = [
         input: ["https://httpbin.org/anything?info={\"id\":2}"],
         expected: "Error",
       },
+      {
+        // HTTPステータスコードが200以外の場合（例: 404）
+        input: ["https://httpbin.org/status/404?data={\"id\":3,\"name\":\"Bob\"}"],
+        expected: "Error",
+      },
+      {
+        // "data" キーが存在するが、JSONとしてパース不可能な場合
+        input: ["https://httpbin.org/anything?data=invalid_json"],
+        expected: "Error",
+      },
+      {
+        // "data" キーの値が空のJSON文字列の場合
+        input: ["https://httpbin.org/anything?data={}"],
+        expected: {},
+      },
+      {
+        // "data" キーの値がJSON文字列の配列の場合
+        input: ["https://httpbin.org/anything?data=[1,2,3]"],
+        expected: [1, 2, 3],
+      },
+      {
+        // "data" キーが存在し、他のクエリパラメータも付いている場合
+        input: ["https://httpbin.org/anything?data={\"id\":4}&info=extra"],
+        expected: { id: 4 },
+      },
+      {
+        // "args" オブジェクトが存在しない場合
+        input: ["https://httpbin.org/ip"],
+      }
     ],
   },
   {
