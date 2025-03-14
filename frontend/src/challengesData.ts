@@ -200,7 +200,7 @@ export const challengesData: Challenge[] = [
 - config: ネストされた辞書（Pythonの dict）で、各キーの値は任意の型・構造。
 - spec: 同じ構造を持つ辞書で、各キーに対して期待される型や制約を指定します。
   - もし spec の値が文字列の場合、その値は期待される型を示します（例："string", "number", "boolean"）。
-  - もし spec の値がオブジェクトの場合、必ず "type" キーを持ち、数値の場合は任意で "min" および "max" を指定できます。例: { type: "number", min: 1, max: 65535 }。
+  - もし spec の値がオブジェクトの場合、必ず "type" キーを持ち、数値の場合は任意で "min" および "max" を指定できます。例: { "type": "number", "min": 1, "max": 65535 }。
   - ネストされた辞書の場合は、spec も同じ構造になっており、再帰的に検証します。
 
 【出力】

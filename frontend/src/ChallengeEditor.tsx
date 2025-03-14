@@ -166,7 +166,7 @@ function ChallengeEditor() {
   const [testResults, setTestResults] = useState([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [prompt, setPrompt] = useState('');
+  const [difficulty, setDifficulty] = useState('やさしい');
   const [generationError, setGenerationError] = useState('');
   const [showHintModal, setShowHintModal] = useState(false);
   const [hint, setHint] = useState('');
@@ -184,7 +184,10 @@ function ChallengeEditor() {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ 
+          challenge: challenge?.instructions,
+          difficulty,
+          }),
       });
 
       const data = await response.json();
@@ -417,20 +420,65 @@ function ChallengeEditor() {
                 まずは、AIアシスタントを使ってコードを生成しよう！
               </h2>
               <p className="text-slate-600 text-sm mb-4">
-                プロンプトを使ってAIにコードを書かせて、<br />
+                「エラーの見つけやすさ」を選択してAIにコードを書かせて、<br />
                 生成されたコードを修正してテストを実行しよう！
               </p>
 
               <label className="block mb-1 font-medium text-slate-700 text-sm">
-                AIへの指示
+                エラーの見つけやすさ
               </label>
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="AIにさせたい処理を具体的に入力してください..."
-                className="w-full p-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                rows={3}
-              />
+              
+              <div className="w-full max-w-3xl mx-auto py-8">
+      <div className="relative mt-1 flex items-center justify-between">
+        {/* Connecting line */}
+        <div className="absolute top-6 left-2 h-0.5 bg-indigo-400 w-[90%] z-0"></div>
+
+        {/* Easy level */}
+        <div className="flex flex-col pt-1 items-center z-10">
+          <button
+            onClick={() => setDifficulty("やさしい")}
+            className={`
+              w-10 h-10 bg-white rounded-full border-2 border-indigo-400 flex items-center justify-center mb-3 transition-colors`
+            }
+            aria-pressed={difficulty === "やさしい"}
+          >
+            <div className={`w-5 h-5 rounded-full  ${difficulty === "やさしい" ? "bg-indigo-400" : "bg-white"}`} />
+            <span className="sr-only">やさしい</span>
+          </button>
+          <span className="text-center text-sm font-medium">やさしい</span>
+        </div>
+
+        {/* Medium level */}
+        <div className="flex flex-col pt-1 items-center z-10">
+          <button
+            onClick={() => setDifficulty("ちょっとわかりにくい")}
+            className={
+              `w-10 h-10 bg-white rounded-full border-2 border-indigo-400 flex items-center justify-center mb-3 transition-colors`
+            }
+            aria-pressed={difficulty === 'ちょっとわかりにくい'}
+          >
+            <div className={`w-5 h-5 rounded-full  ${difficulty === "ちょっとわかりにくい" ? "bg-indigo-400" : "bg-white"}`} />
+            <span className="sr-only">ちょっとわかりにくい</span>
+          </button>
+          <span className="text-center text-sm font-medium">ちょっとわかりにくい</span>
+        </div>
+
+        {/* Hard level */}
+        <div className="flex flex-col pt-1 items-center z-10">
+          <button
+            onClick={() => setDifficulty("かなりわかりにくい")}
+            className={
+              `w-10 h-10 bg-white rounded-full border-2 border-indigo-400 flex items-center justify-center mb-3 transition-colors`
+            }
+            aria-pressed={difficulty === 'かなりわかりにくい'}
+          >
+            <div className={`w-5 h-5 rounded-full  ${difficulty === "かなりわかりにくい" ? "bg-indigo-400" : "bg-white"}`} />
+            <span className="sr-only">かなりわかりにくい</span>
+          </button>
+          <span className="text-center text-sm font-medium">かなりわかりにくい</span>
+        </div>
+      </div>
+    </div>
 
               <button
                 onClick={handleGenerateCode}

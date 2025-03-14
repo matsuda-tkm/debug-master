@@ -27,7 +27,9 @@ Reason about **what kind of bugs students may make** while coming up with soluti
 }
 Implement only this function with various bugs that students may make, incorporating the bugs you reasoned about. Each program should contain only one bug. Make them as diverse as possible. The bugs should not lead to the program not compiling or hanging. Do not add comments.  Do not forget to first reason about possible bugs. 
 Make sure that the function name is `main`.
-Problem Description: 
+Problem Description:
+
+In addition to the Problem, the user will provide a difficulty level for bug detection in Japanese, chosen from "やさしい" (easy to find bugs), "ちょっとわかりにくい" (slightly difficult to find bugs), or "かなりわかりにくい" (very difficult to find bugs). The three buggy implementations you generate should reflect the chosen difficulty level of bug detection. The code itself does not need to be intrinsically complex, but the bugs should be designed to be easily, moderately, or very difficult to identify based on the chosen level.
 """
 
 HINT_SYSTEM_INSTRUCTION: str = """\
@@ -80,7 +82,15 @@ class TestHandler(http.server.SimpleHTTPRequestHandler):
 
         elif self.path == "/api/generate-code":
             data_gen: Dict[str, Any] = self.parse_json_from_request()
-            prompt: str = data_gen.get("prompt", "")
+            challenge = data_gen.get("challenge", "")
+            difficulty = data_gen.get("difficulty", "")
+            prompt = f"""
+            課題:
+            {challenge}
+
+            エラーの見つけやすさ：
+            {difficulty}
+            """
             try:
                 generated_code: str = self.generate_code_from_prompt(prompt)
                 self.send_json_response({"code": generated_code})
