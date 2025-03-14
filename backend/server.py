@@ -108,8 +108,8 @@ Difficulty level:
 {difficulty}
             """
             try:
-                generated_code: str = self.generate_code_from_prompt(prompt)
-                self.send_json_response({"code": generated_code})
+                result: Dict[str, str] = self.generate_code_from_prompt(prompt)
+                self.send_json_response(result)
             except json.JSONDecodeError as e:
                 self.send_json_response({"error": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return
@@ -183,9 +183,9 @@ Difficulty level:
     # /api/generate-code endpoint logic
     # ---------------------------
 
-    def generate_code_from_prompt(self, prompt: str) -> str:
+    def generate_code_from_prompt(self, prompt: str) -> Dict[str, str]:
         """
-        受け取ったプロンプトに応じてコードを生成する処理
+        受け取ったプロンプトに応じてコードと説明を生成する処理
         """
         response = client.models.generate_content(
             model="gemini-2.0-flash",
@@ -201,7 +201,8 @@ Difficulty level:
         response_json: Dict[str, Any] = json.loads(response.text)
         selected_idx: int = random.randint(0, len(response_json["content"]) - 1)
         generated_code: str = response_json["content"][selected_idx]["code"]
-        return generated_code
+        explanation: str = response_json["content"][selected_idx]["explanation"]
+        return {"code": generated_code, "explanation": explanation}
         
     def generate_hint(self, code: str, instructions: str, examples: str, test_results: List[Dict[str, Any]]) -> str:
         """
