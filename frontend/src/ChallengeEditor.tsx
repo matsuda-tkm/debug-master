@@ -135,7 +135,7 @@ function ChallengeEditor() {
   const [testResults, setTestResults] = useState([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [prompt, setPrompt] = useState('');
+  const [difficulty, setDifficulty] = useState('やさしい');
   const [generationError, setGenerationError] = useState('');
   const [showHintModal, setShowHintModal] = useState(false);
   const [hint, setHint] = useState('');
@@ -151,7 +151,10 @@ function ChallengeEditor() {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ 
+          challenge: challenge?.instructions,
+          difficulty,
+          }),
       });
 
       const data = await response.json();
@@ -250,6 +253,7 @@ function ChallengeEditor() {
     setHintError('');
     
     try {
+      console.log(challenge?.instructions);
       const response = await fetch('http://localhost:8000/api/generate-hint', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -373,20 +377,28 @@ function ChallengeEditor() {
                 まずは、AIアシスタントを使ってコードを生成しよう！
               </h2>
               <p className="text-slate-600 text-sm mb-4">
-                プロンプトを使ってAIにコードを書かせて、<br />
+                「エラーの見つけやすさ」を選択してAIにコードを書かせて、<br />
                 生成されたコードを修正してテストを実行しよう！
               </p>
 
               <label className="block mb-1 font-medium text-slate-700 text-sm">
-                AIへの指示
+                エラーの見つけやすさ
               </label>
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="AIにさせたい処理を具体的に入力してください..."
+              <select
+                value={difficulty}
+                onChange={(e) => setDifficulty(e.target.value)}
                 className="w-full p-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                rows={3}
-              />
+                style={{
+                  whiteSpace: 'normal',
+                  overflow: 'visible',
+                  textOverflow: 'clip',
+                  maxWidth: '100%'
+                }}
+              >
+                <option value="やさしい" className="w-full">やさしい</option>
+                <option value="ちょっとわかりにくい">ちょっとわかりにくい</option>
+                <option value="かなりわかりにくい">かなりわかりにくい</option>
+              </select>
 
               <button
                 onClick={handleGenerateCode}

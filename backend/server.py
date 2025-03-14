@@ -80,7 +80,15 @@ class TestHandler(http.server.SimpleHTTPRequestHandler):
 
         elif self.path == "/api/generate-code":
             data_gen: Dict[str, Any] = self.parse_json_from_request()
-            prompt: str = data_gen.get("prompt", "")
+            challenge = data_gen.get("challenge", "")
+            difficulty = data_gen.get("difficulty", "")
+            prompt = f"""
+            課題:
+            {challenge}
+
+            エラーの見つけやすさ：
+            {difficulty}
+            """
             try:
                 generated_code: str = self.generate_code_from_prompt(prompt)
                 self.send_json_response({"code": generated_code})
