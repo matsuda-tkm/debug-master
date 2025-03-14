@@ -331,7 +331,15 @@ function ChallengeEditor() {
             <pre className="bg-slate-100 p-3 rounded text-sm font-mono whitespace-pre-wrap">
               {challenge.examples}
             </pre>
-            
+
+            <video
+              className="mt-4 w-full max-w-md rounded shadow"
+              controls
+            >
+              <source src={challenge.video} type="video/mp4" />
+              お使いのブラウザは動画タグに対応していません。
+            </video>
+
             <div className="mt-4 flex justify-center relative">
               <img 
                 src="/images/character.png" 

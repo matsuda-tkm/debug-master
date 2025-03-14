@@ -13,6 +13,7 @@ export interface Challenge {
   languages: string[];
   instructions: string;
   examples: string;
+  video: string;
   testCases: TestCase[];
 }
 
@@ -41,6 +42,7 @@ export const challengesData: Challenge[] = [
   入力: 5
   出力: 15
     `,
+    video: "/videos/sum-n.mp4",
     testCases: [
       { input: [0], expected: 0 },
       { input: [1], expected: 1 },
@@ -69,6 +71,7 @@ export const challengesData: Challenge[] = [
   出力: "Debug"
 
     `,
+    video: "/videos/reverse-string.mp4",
     testCases: [
       { input: ["ehT"], expected: "The" },
       { input: ["drowyek"], expected: "keyword" },
@@ -101,6 +104,7 @@ export const challengesData: Challenge[] = [
 入力: []
 出力: []
     `,
+    video: "/videos/list-conditional-transformation.mp4",
     testCases: [
       { input: [[1, 2, -3, 4, 5, 0, 3.5]], expected: [3, 2, 4, 15] },
       { input: [[-1, -2, 0, 2]], expected: [2] },
@@ -134,6 +138,7 @@ export const challengesData: Challenge[] = [
   "d": {"nested": {"target": 20}}
 }
     `,
+    video: "/videos/nested-dictionary-update.mp4",
     testCases: [
       {
         input: [{ a: { target: 3, other: 1 }, b: { target: 5 }, c: 7 }],
@@ -167,6 +172,7 @@ export const challengesData: Challenge[] = [
 入力: "https://httpbin.org/anything?data={'id':1,'name':'Alice'}"
 出力: {"id": 1, "name": "Alice"}
     `,
+    video: "/videos/api-json-fetch.mp4",
     testCases: [
       {
         input: ["https://httpbin.org/anything?data={\"id\":1,\"name\":\"Alice\"}"],
@@ -228,6 +234,7 @@ spec = {
 }
 出力: True
 `,
+video: "/videos/dynamic-config-validator.mp4",
 testCases: [
   {
     input: [
