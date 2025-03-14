@@ -6,6 +6,7 @@ import random
 import socketserver
 import traceback
 from contextlib import redirect_stdout
+from copy import deepcopy
 from http import HTTPStatus
 from typing import Any, Dict, List
 
@@ -274,7 +275,8 @@ Difficulty level:
                     "message": 'Function "main" not found in code',
                 }
             with redirect_stdout(stdout):
-                result = solution(*test_case["input"])
+                input_data = deepcopy(test_case["input"])
+                result = solution(*input_data)
             expected = test_case["expected"]
             if result == expected:
                 return {
