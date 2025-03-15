@@ -60,7 +60,7 @@ export const DownloadFeedbackQR: React.FC<DownloadFeedbackQRProps> = (props) => 
             const feedbackDownloadURL = await saveFeedbackContentToGithub(feedbackContent);
             setFeedbackFileURL(feedbackDownloadURL);
         })();
-    }, []);
+    }, [challenge, userAnswer]);
 
     return (
         <div>
