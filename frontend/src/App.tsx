@@ -18,15 +18,6 @@ function ThemeSelection() {
                         <Bug className="w-6 h-6 text-indigo-600" />
                         <span className="text-xl font-bold text-slate-800">Debug Master</span>
                     </div>
-                    <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-2 text-slate-600">
-                            <Trophy className="w-5 h-5" />
-                            <span>スコア: 2,450</span>
-                        </div>
-                        <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
-                            Sign In
-                        </button>
-                    </div>
                 </div>
             </header>
 
