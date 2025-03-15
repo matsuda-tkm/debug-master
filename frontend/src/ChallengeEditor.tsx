@@ -20,9 +20,10 @@ import CodeMirror from '@uiw/react-codemirror';
 import { python } from '@codemirror/lang-python';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { indentUnit } from '@codemirror/language';
+import { DownloadFeedbackQR } from './DownloadFeedbackQR';
 
 
-function SuccessModal({ message, explanation, onClose }) {
+function SuccessModal({ message, explanation, onClose, challenge, userAnswer }) {
   const navigate = useNavigate();
 
   return (
@@ -68,15 +69,12 @@ function SuccessModal({ message, explanation, onClose }) {
         </div>
 
         <div className="mt-8 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-4 rounded-lg text-white">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Trophy className="w-8 h-8" />
-              <div>
-                <div className="font-medium">経験値UP!</div>
-                <div className="text-sm opacity-90">Python Master Level 1</div>
-              </div>
-            </div>
-            <div className="text-2xl font-bold">+100 XP</div>
+          <div className="flex px-5 items-center justify-between">
+            <p className="w-1/2 text-lg">
+              フィードバックを<br />ダウンロードして、
+              次のステップに進もう！
+            </p>
+            <DownloadFeedbackQR challenge={challenge} userAnswer={userAnswer} />
           </div>
         </div>
       </div>
@@ -344,6 +342,8 @@ function ChallengeEditor() {
         <SuccessModal
           message="おめでとう！バグ修正に成功 🎉"
           explanation={explanation}
+          challenge={challenge}
+          userAnswer={code}
           onClose={() => setShowSuccessModal(false)}
         />
       )}
