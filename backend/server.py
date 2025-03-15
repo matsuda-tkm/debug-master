@@ -312,12 +312,12 @@ Difficulty level:
             if result == expected and str(result) == str(expected):
                 return {
                     "status": "success",
-                    "message": f"Input:\n{test_case['input']}\n\nExpected:\n{expected}\n\nGot:\n{result}",
+                    "message": f"Input:\n{'\n'.join([str(case) for case in test_case['input']])}\n\nExpected:\n{expected}\n\nGot:\n{result}",
                 }
             else:
                 return {
                     "status": "error",
-                    "message": f"Input:\n{test_case['input']}\n\nExpected:\n{expected}\n\nGot:\n{result}",
+                    "message": f"Input:\n{'\n'.join([str(case) for case in test_case['input']])}\n\nExpected:\n{expected}\n\nGot:\n{result}",
                 }
         except Exception as e:
             return {
