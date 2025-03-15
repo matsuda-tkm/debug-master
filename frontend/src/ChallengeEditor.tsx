@@ -71,7 +71,7 @@ function SuccessModal({ message, explanation, onClose, challenge, userAnswer }) 
         <div className="mt-8 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-4 rounded-lg text-white">
           <div className="flex px-5 items-center justify-between">
             <p className="w-1/2 text-xl font-bold">
-              DebugMaster認定証をゲットしよう▶︎▶▶︎
+              Debug Master認定証をゲットしよう▶︎▶▶︎
             </p>
             <DownloadFeedbackQR challenge={challenge} userAnswer={userAnswer} />
           </div>

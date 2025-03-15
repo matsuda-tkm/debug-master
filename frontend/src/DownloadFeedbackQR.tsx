@@ -24,7 +24,7 @@ export const DownloadFeedbackQR: React.FC<DownloadFeedbackQRProps> = (props) => 
     const [isError, setIsError] = React.useState<boolean>(false);
 
     const generateFeedbackContent = (challenge: Challenge, userAnswer: string) => {
-        const mdContent = `# DebugMaster Certification\n![DebugMater Logo](https://github-production-user-asset-6210df.s3.amazonaws.com/101240248/423011600-a72362aa-1892-4c1c-9822-8988580f80ca.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20250315%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250315T025149Z&X-Amz-Expires=300&X-Amz-Signature=a92e83cad5bcac874339e209ca52b754833b4410b3e713f241e5a5bc23dc6d1b&X-Amz-SignedHeaders=host)\n## ${challenge.title}\n### 問題\n${challenge.description}\n### あなたの回答\n\`\`\`python\n${userAnswer}\n\`\`\``;
+        const mdContent = `# Debug Master Certification\n![DebugMater Logo](https://github-production-user-asset-6210df.s3.amazonaws.com/101240248/423011600-a72362aa-1892-4c1c-9822-8988580f80ca.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20250315%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250315T025149Z&X-Amz-Expires=300&X-Amz-Signature=a92e83cad5bcac874339e209ca52b754833b4410b3e713f241e5a5bc23dc6d1b&X-Amz-SignedHeaders=host)\n## ${challenge.title}\n### 問題\n${challenge.description}\n### あなたの回答\n\`\`\`python\n${userAnswer}\n\`\`\``;
         return mdContent;
     };
 
