@@ -583,7 +583,7 @@ function ChallengeEditor() {
                   )}
                 </button>
               </div>
-              <div className="flex-1 p-4 bg-slate-900 font-mono text-sm overflow-auto max-h-[calc(100vh-200px)]">
+              <div className="flex-1 p-4 bg-slate-900 font-mono text-sm overflow-auto max-h-[calc(100vh-200px)] pb-20">
                 {testResults.map((result, index) => (
                   <div
                     key={index}
