@@ -1,4 +1,7 @@
 # Debug Master
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/matsuda-tkm/DebugMaster)
+
 Open Hack U 2025 OSAKA
 
 ## 実行方法
