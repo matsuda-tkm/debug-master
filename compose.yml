@@ -24,7 +24,7 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
-    command: python server.py
+    command: python main.py
 
 volumes:
   node_modules:
