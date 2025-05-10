@@ -24,7 +24,8 @@ export const challengesData: Challenge[] = [
     description:
       '年齢（整数）を入力として受け取り、「あなたは◯歳ですね！」というメッセージを返す関数を作成します。入力と出力の基本を学びます。',
     difficulty: '初級',
-    image: 'draft',
+    image:
+      'images/Debug_Master.jpeg?auto=format&fit=crop&w=800&q=80',
     languages: ['Python'],
     instructions: `整数 \`age\` を入力として受け取り、「あなたは◯歳ですね！」という形式の文字列を返す関数 \`say_age\` を作成してください。
   
@@ -54,7 +55,8 @@ export const challengesData: Challenge[] = [
     description:
       '好きな食べ物の名前を入力として受け取り、「あなたの好きな食べ物は◯◯ですね！」というメッセージを返す関数を作成します。',
     difficulty: '初級',
-    image: 'draft',
+    image:
+      'images/Debug_Master.jpeg?auto=format&fit=crop&w=800&q=80',
     languages: ['Python'],
     instructions: `文字列 \`food\` を入力として受け取り、「あなたの好きな食べ物は◯◯ですね！」という形式の文字列を返す関数 \`favorite_food_message\` を作成してください。
   
@@ -84,7 +86,8 @@ export const challengesData: Challenge[] = [
     description:
       'りんごの数を入力として受け取り、「カゴに◯個のりんごがあります」という文字列を返す関数を作成します。変数と出力の基本を学びます。',
     difficulty: '初級',
-    image: 'draft',
+    image:
+      'images/Debug_Master.jpeg?auto=format&fit=crop&w=800&q=80',
     languages: ['Python'],
     instructions: `整数 \`n\` を入力として受け取り、「カゴにn個のりんごがあります」という文字列を返す関数 \`apple_message\` を作成してください。
   
