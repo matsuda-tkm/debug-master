@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { challengesData } from './challengesData';
 import ProblemIntroScreen from './ProblemIntroScreen';
 import BugCodeDisplayScreen from './BugCodeDisplayScreen';
 import CodeFixingScreen from './CodeFixingScreen';
 import CelebrationScreen from './CelebrationScreen';
+import HintModal from './HintModal';
 
 enum Screen {
   PROBLEM_INTRO = 'problem_intro',
