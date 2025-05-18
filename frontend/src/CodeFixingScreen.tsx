@@ -195,7 +195,7 @@ const CodeFixingScreen: React.FC<CodeFixingScreenProps> = ({
           {/* 左側：ヒントキャラクター */}
           <div className="relative">
             <img 
-              src="/frontend/images/character.png" 
+              src="/images/character.png" 
               alt="ヒントキャラクター" 
               className="w-16 h-16 object-cover cursor-pointer hover:opacity-80 transition"
               onClick={handleShowHint}

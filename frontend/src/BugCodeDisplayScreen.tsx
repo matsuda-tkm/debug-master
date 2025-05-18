@@ -52,7 +52,7 @@ const BugCodeDisplayScreen: React.FC<BugCodeDisplayScreenProps> = ({
             {/* キャラクターイラスト（小さめ） */}
             <div className="w-20 h-20 flex-shrink-0">
               <img 
-                src="/frontend/images/character.png" 
+                src="/images/character.png" 
                 alt="Debug Master Character" 
                 className="w-full h-full object-contain"
               />

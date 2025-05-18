@@ -30,7 +30,7 @@ const ProblemIntroScreen: React.FC<ProblemIntroScreenProps> = ({ challenge, onAc
             {/* キャラクターイラスト */}
             <div className="w-40 h-40 flex-shrink-0">
               <img 
-                src="/frontend/images/character.png" 
+                src="/images/character.png" 
                 alt="Debug Master Character" 
                 className="w-full h-full object-contain"
               />
