@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, PartyPopper, Confetti } from 'lucide-react';
+import { ChevronRight, PartyPopper, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Challenge } from './challengesData';
 import { DownloadFeedbackQR } from './DownloadFeedbackQR';
@@ -25,7 +25,7 @@ const CelebrationScreen: React.FC<CelebrationScreenProps> = ({
         {/* 上部装飾 */}
         <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
           <div className="relative">
-            <Confetti className="w-12 h-12 text-yellow-400 animate-bounce" />
+            <Sparkles className="w-12 h-12 text-yellow-400 animate-bounce" />
             <PartyPopper
               className="w-12 h-12 text-pink-500 absolute top-0 left-0 animate-ping"
               style={{ animationDuration: '2s' }}
