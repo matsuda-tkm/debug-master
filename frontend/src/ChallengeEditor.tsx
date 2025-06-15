@@ -21,7 +21,6 @@ import CodeMirror from '@uiw/react-codemirror';
 import { python } from '@codemirror/lang-python';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { indentUnit } from '@codemirror/language';
-import { DownloadFeedbackQR } from './DownloadFeedbackQR';
 
 
 function SuccessModal({ message, explanation, onClose, challenge, userAnswer }) {
@@ -68,14 +67,6 @@ function SuccessModal({ message, explanation, onClose, challenge, userAnswer }) 
           </div>
         </div>
 
-        <div className="mt-8 bg-gradient-animated p-4 rounded-lg text-white">
-          <div className="flex px-5 items-center justify-between">
-            <p className="w-1/2 text-xl font-bold">
-              Debug Master認定証をゲットしよう▶︎▶▶︎
-            </p>
-            <DownloadFeedbackQR challenge={challenge} userAnswer={userAnswer} />
-          </div>
-        </div>
       </div>
     </div>
   );
