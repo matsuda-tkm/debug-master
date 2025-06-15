@@ -30,15 +30,15 @@ export const challengesData: Challenge[] = [
     instructions: `自分の名前を「こんにちは、○○です！」の形で表示する関数を作成してください。
   
   【仕様】
-  ・ name という変数に自分の名前を入れる
+  ・ main関数の引数として名前を受け取る
   ・ print()を使って「こんにちは、[名前]です！」と表示する
-  ・ 例: name = "太郎" の場合、「こんにちは、太郎です！」と表示`,
+  ・ 例: main("太郎") が呼ばれたら、「こんにちは、太郎です！」と表示`,
     examples: `
   例:
   name = "花子"
   出力: こんにちは、花子です！
     `,
-    video: "/videos/sum-n.mp4",
+    video: "/videos/hello-world.mp4",
     testCases: [
       { input: ["太郎"], expected: "こんにちは、太郎です！" },
       { input: ["花子"], expected: "こんにちは、花子です！" },
@@ -54,12 +54,12 @@ export const challengesData: Challenge[] = [
     image:
       'images/character.png?auto=format&fit=crop&w=800&q=80',
     languages: ['Python'],
-    instructions: `生まれ年を入力として受け取り、2024年における年齢を計算する関数を実装してください。
+    instructions: `生まれ年を入力として受け取り、2024年における年齢を計算して表示する関数を実装してください。
   
   【仕様】
-  ・ birth_year を入力として受け取る
+  ・ main関数の引数として birth_year を受け取る
   ・ 2024 - birth_year で計算する
-  ・ 計算結果を返す`,
+  ・ print()を使って計算結果を表示する`,
     examples: `
   例1:
   入力: 2010
@@ -69,12 +69,12 @@ export const challengesData: Challenge[] = [
   入力: 2005
   出力: 19
     `,
-    video: "/videos/sum-n.mp4",
+    video: "/videos/age-calculator.mp4",
     testCases: [
-      { input: [2010], expected: 14 },
-      { input: [2005], expected: 19 },
-      { input: [2000], expected: 24 },
-      { input: [1995], expected: 29 },
+      { input: [2010], expected: "14" },
+      { input: [2005], expected: "19" },
+      { input: [2000], expected: "24" },
+      { input: [1995], expected: "29" },
     ]
   },
   {
@@ -86,12 +86,14 @@ export const challengesData: Challenge[] = [
     image:
       'images/character.png?auto=format&fit=crop&w=800&q=80',
     languages: ['Python'],
-    instructions: `温度を入力として受け取り、以下の基準で判定する関数を実装してください。
+    instructions: `温度を入力として受け取り、以下の基準で判定して表示する関数を実装してください。
   
   【仕様】
+  ・ main関数の引数として温度を受け取る
   ・ 30度以上: "暑い"
   ・ 15度以上30度未満: "普通"
-  ・ 15度未満: "寒い"`,
+  ・ 15度未満: "寒い"
+  ・ print()を使って判定結果を表示する`,
     examples: `
   例1:
   入力: 35
@@ -105,7 +107,7 @@ export const challengesData: Challenge[] = [
   入力: 10
   出力: "寒い"
     `,
-    video: "/videos/sum-n.mp4",
+    video: "/videos/temperature-judge.mp4",
     testCases: [
       { input: [35], expected: "暑い" },
       { input: [30], expected: "暑い" },
@@ -124,12 +126,14 @@ export const challengesData: Challenge[] = [
     image:
       'images/sum_character.png?auto=format&fit=crop&w=800&q=80',
     languages: ['Python'],
-    instructions: `整数 n を入力として受け取り、1からnまでの整数の合計を計算する関数を実装してください。
+    instructions: `整数 n を入力として受け取り、1からnまでの整数の合計を計算して表示する関数を実装してください。
   
   【仕様】
+  ・ main関数の引数として n を受け取る
   ・ n は 1 以上の整数
   ・ 例: n = 5 の場合、1 + 2 + 3 + 4 + 5 = 15 となる
-  ・ for文やwhile文を使って計算してみましょう`,
+  ・ for文やwhile文を使って計算してみましょう
+  ・ print()を使って計算結果を表示する`,
     examples: `
   例1:
   入力: 3
@@ -141,10 +145,10 @@ export const challengesData: Challenge[] = [
     `,
     video: "/videos/sum-n.mp4",
     testCases: [
-      { input: [1], expected: 1 },
-      { input: [3], expected: 6 },
-      { input: [5], expected: 15 },
-      { input: [10], expected: 55 },
+      { input: [1], expected: "1" },
+      { input: [3], expected: "6" },
+      { input: [5], expected: "15" },
+      { input: [10], expected: "55" },
     ]
   },
   {
@@ -156,12 +160,14 @@ export const challengesData: Challenge[] = [
     image:
       'images/reverse_character.png?auto=format&fit=crop&w=800&q=80',
     languages: ['Python'],
-    instructions: `文字列 s を入力として受け取り、文字の順番を逆にした文字列を返す関数を実装してください。
+    instructions: `文字列 s を入力として受け取り、文字の順番を逆にした文字列を表示する関数を実装してください。
   
   【仕様】
+  ・ main関数の引数として s を受け取る
   ・ s は任意の文字列
-  ・ 例: s = "abc" の場合、"cba" を返す
-  ・ Pythonのスライス機能を使ってみましょう`,
+  ・ 例: s = "abc" の場合、"cba" を表示する
+  ・ Pythonのスライス機能を使ってみましょう
+  ・ print()を使って結果を表示する`,
     examples: `
   例1:
   入力: "hello"
@@ -188,11 +194,13 @@ export const challengesData: Challenge[] = [
     image:
       'images/character.png?auto=format&fit=crop&w=800&q=80',
     languages: ['Python'],
-    instructions: `数字 n を入力として受け取り、n の九九（1〜9まで）の計算結果をリストで返す関数を実装してください。
+    instructions: `数字 n を入力として受け取り、n の九九（1〜9まで）の計算結果を表示する関数を実装してください。
   
   【仕様】
-  ・ n × 1, n × 2, ..., n × 9 の結果をリストで返す
-  ・ 例: n = 3 の場合、[3, 6, 9, 12, 15, 18, 21, 24, 27] を返す`,
+  ・ main関数の引数として n を受け取る
+  ・ n × 1, n × 2, ..., n × 9 の結果を計算する
+  ・ 例: n = 3 の場合、[3, 6, 9, 12, 15, 18, 21, 24, 27] を表示する
+  ・ print()を使って結果をリスト形式で表示する`,
     examples: `
   例1:
   入力: 2
@@ -202,11 +210,11 @@ export const challengesData: Challenge[] = [
   入力: 5
   出力: [5, 10, 15, 20, 25, 30, 35, 40, 45]
     `,
-    video: "/videos/sum-n.mp4",
+    video: "/videos/multiplication-table.mp4",
     testCases: [
-      { input: [2], expected: [2, 4, 6, 8, 10, 12, 14, 16, 18] },
-      { input: [3], expected: [3, 6, 9, 12, 15, 18, 21, 24, 27] },
-      { input: [5], expected: [5, 10, 15, 20, 25, 30, 35, 40, 45] },
+      { input: [2], expected: "[2, 4, 6, 8, 10, 12, 14, 16, 18]" },
+      { input: [3], expected: "[3, 6, 9, 12, 15, 18, 21, 24, 27]" },
+      { input: [5], expected: "[5, 10, 15, 20, 25, 30, 35, 40, 45]" },
     ]
   },
 ];

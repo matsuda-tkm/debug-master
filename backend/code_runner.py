@@ -6,44 +6,47 @@ from typing import Any, Dict, List
 
 
 def run_single_test_case(code: str, test_case: Dict[str, Any]) -> Dict[str, Any]:
-    stdout_capture: io.StringIO = io.StringIO()  # Renamed to avoid conflict
+    stdout_capture: io.StringIO = io.StringIO()
     try:
         namespace: Dict[str, Any] = {}
-        # It's generally safer to provide a restricted globals dictionary
-        # For now, using an empty one as in the original code.
-        exec(code, namespace)
-        solution = namespace.get("main")
-
-        if not callable(solution):  # Check if 'main' is a function
-            return {
-                "status": "error",
-                "message": f'Function "main" not found or not callable in code. Found: {type(solution)}',
-            }
-
+        
         with redirect_stdout(stdout_capture):
             # Ensure input_data is a list of arguments for splatting
             input_data_orig = test_case.get("input", [])
             if not isinstance(input_data_orig, list):
-                # If input is not a list, wrap it in a list, assuming it's a single arg
-                # This might need adjustment based on expected input structure
                 input_data_list = [input_data_orig]
             else:
                 input_data_list = input_data_orig
 
             input_data = deepcopy(input_data_list)
-            result = solution(*input_data)
+            
+            # Execute the code and check if main function exists
+            exec(code, namespace)
+            solution = namespace.get("main")
 
-        expected = test_case.get("expected")
-        # Robust comparison: type and value
-        if type(result) is type(expected) and result == expected:
+            if not callable(solution):
+                return {
+                    "status": "error",
+                    "message": f'Function "main" not found or not callable in code. Found: {type(solution)}',
+                }
+            
+            # Call the main function (this will produce output via print statements)
+            solution(*input_data)
+
+        # Get the captured output and strip trailing whitespace/newlines
+        actual_output = stdout_capture.getvalue().strip()
+        expected_output = str(test_case.get("expected")).strip()
+        
+        # Compare the outputs
+        if actual_output == expected_output:
             return {
                 "status": "success",
-                "message": f"Input:\n{'\n'.join(map(str, input_data_list))}\n\nExpected:\n{expected}\n\nGot:\n{result}",
+                "message": f"Input:\n{'\n'.join(map(str, input_data_list))}\n\nExpected output:\n{expected_output}\n\nActual output:\n{actual_output}",
             }
         else:
             return {
                 "status": "error",
-                "message": f"Input:\n{'\n'.join(map(str, input_data_list))}\n\nExpected:\n{expected} (type: {type(expected)})\n\nGot:\n{result} (type: {type(result)})",
+                "message": f"Input:\n{'\n'.join(map(str, input_data_list))}\n\nExpected output:\n{expected_output}\n\nActual output:\n{actual_output}",
             }
     except Exception as e:
         return {
