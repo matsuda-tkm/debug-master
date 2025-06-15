@@ -172,7 +172,6 @@ function ChallengeEditor() {
   const [testResults, setTestResults] = useState([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [difficulty, setDifficulty] = useState('やさしい');
   const [generationError, setGenerationError] = useState('');
   const [explanation, setExplanation] = useState('');
   const [showHintModal, setShowHintModal] = useState(false);
@@ -193,7 +192,6 @@ function ChallengeEditor() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           challenge: challenge?.instructions,
-          difficulty,
           testCases: challenge?.testCases,
           }),
       });
@@ -443,65 +441,9 @@ function ChallengeEditor() {
                 まずは、AIアシスタントを使ってコードを生成しよう！
               </h2>
               <p className="text-slate-600 text-sm mb-4">
-                「バグの見つけやすさ」を選択してAIにコードを書かせて、<br />
+                AIにコードを書かせて、<br />
                 生成されたコードを修正してテストを実行しよう！
               </p>
-
-              <label className="block mb-1 font-medium text-slate-700 text-sm">
-                バグの見つけやすさ
-              </label>
-              
-              <div className="w-full max-w-3xl mx-auto py-1">
-      <div className="relative mt-1 flex items-center justify-between">
-        {/* Connecting line */}
-        <div className="absolute top-6 left-2 h-0.5 bg-indigo-400 w-[90%] z-0"></div>
-
-        {/* Easy level */}
-        <div className="flex flex-col pt-1 items-center z-10">
-          <button
-            onClick={() => setDifficulty("やさしい")}
-            className={`
-              w-10 h-10 bg-white rounded-full border-2 border-indigo-400 flex items-center justify-center mb-3 transition-colors`
-            }
-            aria-pressed={difficulty === "やさしい"}
-          >
-            <div className={`w-5 h-5 rounded-full  ${difficulty === "やさしい" ? "bg-indigo-400" : "bg-white"}`} />
-            <span className="sr-only">やさしい</span>
-          </button>
-          <span className="text-center text-sm font-medium">やさしい</span>
-        </div>
-
-        {/* Medium level */}
-        <div className="flex flex-col pt-1 items-center z-10">
-          <button
-            onClick={() => setDifficulty("ちょっとわかりにくい")}
-            className={
-              `w-10 h-10 bg-white rounded-full border-2 border-indigo-400 flex items-center justify-center mb-3 transition-colors`
-            }
-            aria-pressed={difficulty === 'ちょっとわかりにくい'}
-          >
-            <div className={`w-5 h-5 rounded-full  ${difficulty === "ちょっとわかりにくい" ? "bg-indigo-400" : "bg-white"}`} />
-            <span className="sr-only">ちょっとわかりにくい</span>
-          </button>
-          <span className="text-center text-sm font-medium">ちょっとわかりにくい</span>
-        </div>
-
-        {/* Hard level */}
-        <div className="flex flex-col pt-1 items-center z-10">
-          <button
-            onClick={() => setDifficulty("かなりわかりにくい")}
-            className={
-              `w-10 h-10 bg-white rounded-full border-2 border-indigo-400 flex items-center justify-center mb-3 transition-colors`
-            }
-            aria-pressed={difficulty === 'かなりわかりにくい'}
-          >
-            <div className={`w-5 h-5 rounded-full  ${difficulty === "かなりわかりにくい" ? "bg-indigo-400" : "bg-white"}`} />
-            <span className="sr-only">かなりわかりにくい</span>
-          </button>
-          <span className="text-center text-sm font-medium">かなりわかりにくい</span>
-        </div>
-      </div>
-    </div>
 
               <button
                 onClick={handleGenerateCode}

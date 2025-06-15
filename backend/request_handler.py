@@ -31,14 +31,10 @@ class TestHandler(http.server.SimpleHTTPRequestHandler):
             elif self.path == "/api/generate-code":
                 data_gen: Dict[str, Any] = self.parse_json_from_request()
                 challenge = data_gen.get("challenge", "")
-                difficulty = data_gen.get("difficulty", "")
                 test_cases = data_gen.get("testCases", [])
                 prompt = f"""\
 Problem description:
 {challenge}
-
-Difficulty level:
-{difficulty}
                 """
                 result: Dict[str, str] = generate_code_logic(
                     prompt, test_cases, test_code_against_all_cases
