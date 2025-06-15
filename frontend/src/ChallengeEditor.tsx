@@ -374,7 +374,7 @@ function ChallengeEditor() {
               <Bug className="w-8 h-8 text-purple-600" />
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-pink-400 rounded-full animate-ping"></div>
             </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">プログラミング探偵</span>
+            <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">DebugMaster</span>
             <div className="flex items-center gap-1 ml-2">
               <span className="text-sm font-medium text-purple-600">君ならできる！</span> 
             </div>
