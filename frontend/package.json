@@ -16,11 +16,8 @@
     "@codemirror/theme-one-dark": "6.1.2",
     "@uiw/react-codemirror": "4.23.10",
     "lucide-react": "^0.344.0",
-    "octokit": "^4.1.2",
-    "qrcode.react": "^4.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-loading-skeleton": "^3.5.0",
     "react-router-dom": "^6.22.3"
   },
   "devDependencies": {
