@@ -38,7 +38,7 @@ export const challengesData: Challenge[] = [
   name = "花子"
   出力: こんにちは、花子です！
     `,
-    video: "/videos/sum-n.mp4",
+    video: "/videos/hello-world.mp4",
     testCases: [
       { input: ["太郎"], expected: "こんにちは、太郎です！" },
       { input: ["花子"], expected: "こんにちは、花子です！" },
@@ -69,7 +69,7 @@ export const challengesData: Challenge[] = [
   入力: 2005
   出力: 19
     `,
-    video: "/videos/sum-n.mp4",
+    video: "/videos/age-calculator.mp4",
     testCases: [
       { input: [2010], expected: "14" },
       { input: [2005], expected: "19" },
@@ -107,7 +107,7 @@ export const challengesData: Challenge[] = [
   入力: 10
   出力: "寒い"
     `,
-    video: "/videos/sum-n.mp4",
+    video: "/videos/temperature-judge.mp4",
     testCases: [
       { input: [35], expected: "暑い" },
       { input: [30], expected: "暑い" },
@@ -210,7 +210,7 @@ export const challengesData: Challenge[] = [
   入力: 5
   出力: [5, 10, 15, 20, 25, 30, 35, 40, 45]
     `,
-    video: "/videos/sum-n.mp4",
+    video: "/videos/multiplication-table.mp4",
     testCases: [
       { input: [2], expected: "[2, 4, 6, 8, 10, 12, 14, 16, 18]" },
       { input: [3], expected: "[3, 6, 9, 12, 15, 18, 21, 24, 27]" },
