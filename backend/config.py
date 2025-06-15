@@ -43,6 +43,15 @@ The bugs should not lead to the program not compiling or hanging.
 Do not add comments.
 Do not forget to first reason about possible bugs.
 Make sure that the function name is `main`.
+
+CRITICAL: The main function MUST accept the correct number and type of arguments that match the test case inputs. 
+- If test case input is [5], main function should be: def main(n):
+- If test case input is ["hello"], main function should be: def main(s):
+- If test case input is [10, 20], main function should be: def main(a, b):
+- Always check the test case inputs to determine the correct function signature.
+- The main function is called with: main(*input_data) where input_data is the test case input list.
+- NEVER define main() with no parameters unless the test cases have empty input lists.
+- NEVER define main with incorrect parameter names or counts - this will cause the code to fail.
 """
 
 HINT_SYSTEM_INSTRUCTION: str = """\
