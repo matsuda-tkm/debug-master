@@ -13,7 +13,8 @@ import {
   CheckCircle,
   PartyPopper,
   SettingsIcon as Confetti,
-  Wand2
+  Wand2,
+  Lightbulb
 } from 'lucide-react';
 import { challengesData } from './challengesData';
 import CodeMirror from '@uiw/react-codemirror';
@@ -28,19 +29,18 @@ function SuccessModal({ message, explanation, onClose, challenge, userAnswer }) 
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
-      <div className="bg-white rounded-xl shadow-2xl p-8 max-w-lg w-full mx-4 relative overflow-hidden">
+      <div className="bg-white rounded-xl shadow-2xl p-8 max-w-lg w-full mx-4 relative overflow-hidden animate-success">
         <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
           <div className="relative">
-            <Confetti className="w-12 h-12 text-yellow-400 animate-bounce" />
+            <Confetti className="w-12 h-12 text-yellow-400 animate-bounce animate-rainbow" />
             <PartyPopper
-              className="w-12 h-12 text-pink-500 absolute top-0 left-0 animate-ping"
-              style={{ animationDuration: '2s' }}
+              className="w-12 h-12 text-pink-500 absolute top-0 left-0 animate-sparkle"
             />
           </div>
         </div>
 
         <div className="text-center mt-8">
-          <h2 className="text-3xl font-bold text-slate-800 mb-4">{message}</h2>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4 animate-wiggle">🎉 {message} 🎉</h2>
 
           {explanation && (
             <div className="mt-4 bg-slate-50 p-4 rounded-lg text-left">
@@ -54,7 +54,7 @@ function SuccessModal({ message, explanation, onClose, challenge, userAnswer }) 
           <div className="flex flex-col gap-4 mt-8">
             <button
               onClick={() => navigate('/')}
-              className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2 font-medium"
+              className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all transform hover:scale-105 flex items-center justify-center gap-2 font-bold shadow-lg"
             >
               他の課題にチャレンジする
               <ChevronRight className="w-5 h-5" />
@@ -68,7 +68,7 @@ function SuccessModal({ message, explanation, onClose, challenge, userAnswer }) 
           </div>
         </div>
 
-        <div className="mt-8 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-4 rounded-lg text-white">
+        <div className="mt-8 bg-gradient-animated p-4 rounded-lg text-white">
           <div className="flex px-5 items-center justify-between">
             <p className="w-1/2 text-xl font-bold">
               Debug Master認定証をゲットしよう▶︎▶▶︎
@@ -180,10 +180,12 @@ function ChallengeEditor() {
   const [hintError, setHintError] = useState('');
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [currentVideo, setCurrentVideo] = useState('');
+  const [currentStep, setCurrentStep] = useState(1);
 
   const handleGenerateCode = async () => {
     setIsGenerating(true);
-    setGenerationError(''); // Reset any previous error message
+    setGenerationError('');
+    setCurrentStep(2);
 
     try {
       const response = await fetch('http://localhost:8000/api/generate-code', {
@@ -199,23 +201,19 @@ function ChallengeEditor() {
       const data = await response.json();
       console.log('Generated code response:', data);
 
-      // If the server returns an error status or an error field, handle it:
       if (!response.ok || data.error) {
         setGenerationError(data.error || 'An unknown error occurred.');
-        return; // Stop here if there's an error
+        return;
       }
 
-       // If everything is okay and 'code' exists, set it in the editor
       if (data.code) {
         setCode(data.code);
       }
-      // If explanation exists, store it
       if (data.explanation) {
         setExplanation(data.explanation);
       }
     } catch (error) {
       console.error('Error generating code: ', error);
-      // In case of network failure, etc.
       setGenerationError('Failed to connect to code generation service.');
     } finally {
       setIsGenerating(false);
@@ -226,6 +224,7 @@ function ChallengeEditor() {
     if (!challenge) return;
     setIsRunning(true);
     setTestResults([]);
+    setCurrentStep(3);
 
     try {
       const response = await fetch('http://localhost:8000/api/run-python', {
@@ -283,6 +282,7 @@ function ChallengeEditor() {
       (result) => result.status === 'success'
     );
     if (allTestsPassed) {
+      setCurrentStep(4);
       setShowSuccessModal(true);
     }
   };
@@ -335,7 +335,25 @@ function ChallengeEditor() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col relative">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 flex flex-col relative overflow-hidden">
+      {/* Floating character */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <div className="relative">
+          <img 
+            src="/images/character.png" 
+            alt="プログラミング助手" 
+            className="w-16 h-16 object-contain animate-float cursor-pointer hover:animate-wiggle hover:scale-110 transition-transform duration-300"
+          />
+          <div className="absolute -top-1 -right-1">
+            <div className="w-4 h-4 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full animate-sparkle"></div>
+          </div>
+          <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
+            <div className="bg-gradient-to-r from-pink-400 to-purple-400 text-white px-2 py-1 rounded-full shadow-lg text-xs font-bold whitespace-nowrap animate-pulse">
+              頑張って！
+            </div>
+          </div>
+        </div>
+      </div>
       {showSuccessModal && (
         <SuccessModal
           message="おめでとう！バグ修正に成功 🎉"
@@ -358,158 +376,197 @@ function ChallengeEditor() {
         />
       )}
 
-      <header className="bg-white border-b border-slate-200">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-purple-200 shadow-sm">
         <div className="container mx-auto px-4 py-2 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Bug className="w-6 h-6 text-indigo-600" />
-            <span className="text-xl font-bold text-slate-800">Debug Master</span>
+          <div className="flex items-center space-x-3">
+            <div className="relative">
+              <Bug className="w-8 h-8 text-purple-600" />
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-pink-400 rounded-full animate-ping"></div>
+            </div>
+            <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">プログラミング探偵</span>
+            <div className="flex items-center gap-1 ml-2">
+              <span className="text-sm font-medium text-purple-600">君ならできる！</span> 
+            </div>
           </div>
         </div>
       </header>
 
-      <div className="flex-1 flex">
-        {/* サイドバー */}
-        <div className="w-96 bg-white border-r border-slate-200 flex flex-col max-h-[calc(100vh-56px)]">
-          {/* 課題セクション - 見出しは固定、内容はスクロール可能 */}
-          <div className="border-b border-slate-200">
-            <h2 className="text-lg font-semibold text-slate-800 p-4 pb-2 flex items-center gap-2 sticky top-0 bg-white">
-              <BookOpen className="w-5 h-5 text-indigo-600" />
-              課題
-            </h2>
-            <div className="px-4 pb-4 overflow-auto max-h-[calc(45vh-56px)]">
-              <pre className="font-sans whitespace-pre-wrap">
-                {challenge.instructions}
-              </pre>
+      {/* プログレスバー */}
+      <div className="bg-white/90 backdrop-blur-sm border-b border-purple-200 p-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-2xl font-bold text-purple-800">📋 {challenge.title}</h1>
+            <div className="flex items-center gap-2 text-sm text-purple-600">
+              <span className="bg-purple-100 px-3 py-1 rounded-full font-bold">⭐ {challenge.difficulty}</span>
             </div>
           </div>
-
-          {/* 動画ボタン - 課題セクションの次に配置 */}
-          {challenge.video && (
-            <div className="px-4 py-3 border-b border-slate-200">
-              <button
-                onClick={() => handleShowVideo(challenge.video)}
-                className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
-              >
-                <PlayCircle className="w-5 h-5" />
-                問題の意味を動画で理解
-              </button>
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className={`w-6 h-6 ${currentStep >= 1 ? 'bg-gradient-to-r from-purple-500 to-pink-500' : 'bg-purple-200'} rounded-full flex items-center justify-center text-white font-bold text-xs`}>1</div>
+              <span className={`font-medium ${currentStep >= 1 ? 'text-purple-700' : 'text-purple-500'}`}>問題を理解</span>
             </div>
-          )}
-
-          {/* テストケース例セクション - 見出しは固定、内容はスクロール可能 */}
-          <div className="border-b border-slate-200">
-            <h3 className="text-sm font-semibold text-slate-800 p-4 pb-2 sticky top-0 bg-white">
-              テストケース例：
-            </h3>
-            <div className="px-4 pb-4 overflow-auto max-h-[calc(20vh-28px)]">
-              <pre className="bg-slate-100 p-3 rounded text-sm font-mono whitespace-pre-wrap">
-                {challenge.examples}
-              </pre>
+            <div className={`w-8 h-0.5 ${currentStep >= 2 ? 'bg-purple-500' : 'bg-purple-200'}`}></div>
+            <div className="flex items-center gap-2">
+              <div className={`w-6 h-6 ${currentStep >= 2 ? 'bg-gradient-to-r from-purple-500 to-pink-500' : 'bg-purple-200'} rounded-full flex items-center justify-center text-white font-bold text-xs`}>2</div>
+              <span className={`font-medium ${currentStep >= 2 ? 'text-purple-700' : 'text-purple-500'}`}>コード作成</span>
             </div>
-          </div>
-
-          {/* ヒントキャラクター - 最後に配置 */}
-          <div className="flex-1 p-4 flex justify-center items-center">
-            <div className="relative">
-              <img 
-                src="/images/character.png" 
-                alt="ヒントキャラクター" 
-                className="w-40 h-63 object-cover cursor-pointer hover:opacity-60 transition hover:scale-105 transform duration-300"
-                onClick={handleShowHint}
-                style={{pointerEvents: isLoadingHint ? 'none' : 'auto' }}
-              />
-              {isLoadingHint && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-                </div>
-              )}
-              {hintError && (
-                <div className="absolute top-full left-0 mt-2 text-red-600 text-sm font-medium bg-red-50 px-3 py-1 rounded">
-                  {hintError}
-                </div>
-              )}
+            <div className={`w-8 h-0.5 ${currentStep >= 3 ? 'bg-purple-500' : 'bg-purple-200'}`}></div>
+            <div className="flex items-center gap-2">
+              <div className={`w-6 h-6 ${currentStep >= 3 ? 'bg-gradient-to-r from-purple-500 to-pink-500' : 'bg-purple-200'} rounded-full flex items-center justify-center text-white font-bold text-xs`}>3</div>
+              <span className={`font-medium ${currentStep >= 3 ? 'text-purple-700' : 'text-purple-500'}`}>テスト実行</span>
+            </div>
+            <div className={`w-8 h-0.5 ${currentStep >= 4 ? 'bg-purple-500' : 'bg-purple-200'}`}></div>
+            <div className="flex items-center gap-2">
+              <div className={`w-6 h-6 ${currentStep >= 4 ? 'bg-gradient-to-r from-purple-500 to-pink-500' : 'bg-purple-200'} rounded-full flex items-center justify-center text-white font-bold text-xs`}>4</div>
+              <span className={`font-medium ${currentStep >= 4 ? 'text-purple-700' : 'text-purple-500'}`}>提出</span>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* メインコンテンツ */}
-        <div className="flex-1 flex flex-col">
-          <div className="p-4 bg-white border-b border-slate-200">
-            <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2 mb-2">
-                <Wand2 className="w-5 h-5 text-indigo-600" />
-                まずは、AIアシスタントを使ってコードを生成しよう！
-              </h2>
-              <p className="text-slate-600 text-sm mb-4">
-                AIにコードを書かせて、<br />
-                生成されたコードを修正してテストを実行しよう！
-              </p>
-
+      {/* メインコンテンツエリア */}
+      <div className="flex-1 flex flex-col">
+        {/* 上部：問題エリア */}
+        <div className="bg-white/90 backdrop-blur-sm border-b border-purple-200 p-6">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* 問題説明 */}
+            <div className="lg:col-span-2">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200 shadow-lg">
+                <h2 className="text-xl font-bold text-blue-800 mb-4 flex items-center gap-2">
+                  <BookOpen className="w-6 h-6" />
+                  🎯 今日のミッション
+                </h2>
+                <div className="text-blue-900 font-medium leading-relaxed">
+                  <pre className="font-sans whitespace-pre-wrap">{challenge.instructions}</pre>
+                </div>
+                
+                {/* 例の表示 */}
+                <div className="mt-6 bg-white/80 rounded-lg p-4 border border-blue-200">
+                  <h3 className="text-lg font-bold text-blue-800 mb-3 flex items-center gap-2">
+                    💡 例を見てみよう
+                  </h3>
+                  <pre className="bg-slate-100 p-3 rounded text-sm font-mono whitespace-pre-wrap text-slate-700">
+                    {challenge.examples}
+                  </pre>
+                </div>
+              </div>
+            </div>
+            
+            {/* 右側：動画とヒント */}
+            <div className="space-y-4">
+              {/* 動画ボタン */}
+              {challenge.video && (
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border-2 border-purple-200">
+                  <h3 className="text-lg font-bold text-purple-800 mb-3">📺 動画で理解しよう</h3>
+                  <button
+                    onClick={() => handleShowVideo(challenge.video)}
+                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-3 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all transform hover:scale-105 shadow-lg font-bold"
+                  >
+                    <PlayCircle className="w-5 h-5" />
+                    動画を見る
+                  </button>
+                </div>
+              )}
+              
+              {/* ヒントキャラクター */}
+              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 border-2 border-yellow-200 text-center">
+                <h3 className="text-lg font-bold text-orange-800 mb-3">🤔 困ったときは...</h3>
+                <div className="relative inline-block">
+                  <img 
+                    src="/images/character.png" 
+                    alt="ヒントキャラクター" 
+                    className="w-24 h-24 object-contain cursor-pointer hover:opacity-80 transition hover:scale-110 transform duration-300 filter drop-shadow-lg animate-float hover:animate-wiggle mx-auto"
+                    onClick={handleShowHint}
+                    style={{pointerEvents: isLoadingHint ? 'none' : 'auto' }}
+                  />
+                  {isLoadingHint && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  )}
+                </div>
+                <p className="text-orange-700 font-medium mt-2">クリックでヒントをもらおう！</p>
+                {hintError && (
+                  <div className="mt-2 text-pink-600 text-sm font-bold bg-pink-50 px-3 py-1 rounded-lg border border-pink-200">
+                    😅 {hintError}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* AIコード生成ボタン */}
+        <div className="bg-white/90 backdrop-blur-sm border-b border-purple-200 p-4">
+          <div className="max-w-6xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-4">
               <button
                 onClick={handleGenerateCode}
                 disabled={isGenerating}
-                className="mt-3 bg-indigo-600 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-indigo-700 transition"
+                className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:from-green-600 hover:to-emerald-600 transition-all transform hover:scale-105 shadow-lg font-bold"
               >
+                <Wand2 className="w-5 h-5" />
                 {isGenerating ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    生成中...
+                    AIがコード生成中...
                   </>
                 ) : (
-                  'コードを生成'
+                  '🤖 AIコード生成'
                 )}
               </button>
-
-              {/* Display an error if code generation failed */}
               {generationError && (
-                <div className="mt-3 text-red-600 font-bold">
-                  ⚠️バグのあるコードを生成できませんでした。もう一度お試しください。
+                <div className="text-pink-600 font-bold bg-pink-50 px-4 py-2 rounded-lg border border-pink-200 animate-wiggle">
+                  😅 うまくいかなかったね...もう一度チャレンジしてみよう！
                 </div>
               )}
             </div>
+            <div className="text-sm text-green-600 bg-green-50 px-3 py-2 rounded-lg border border-green-200">
+              💡 AIにコードを生成してもらってから、エディタで編集してテストを実行しよう！
+            </div>
           </div>
-
-          {/* エディタ & テスト結果 */}
-          <div className="flex-1 grid grid-cols-2 gap-0 max-h-[calc(100vh-200px)]">
+        </div>
+        
+        {/* 下部：コーディングエリア */}
+        <div className="flex-1 bg-slate-100">
+          <div className="h-full grid grid-cols-1 lg:grid-cols-2 gap-0">
             {/* コードエディタ */}
-            <div className="h-full flex flex-col">
-              <div className="bg-slate-800 px-4 py-2 flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Code2 className="w-5 h-5 text-slate-400" />
-                  <span className="text-slate-200">main.py</span>
-                </div>
+            <div className="flex flex-col">
+              <div className="bg-slate-800 px-4 py-3 flex items-center gap-2 border-b border-slate-700">
+                <Code2 className="w-5 h-5 text-slate-400" />
+                <span className="text-slate-200 font-bold">💻 コードエディタ</span>
               </div>
-              <div className="flex-1 p-4 bg-slate-900 overflow-auto">
+              <div className="flex-1 bg-slate-900">
                 <CodeMirror
                   value={code}
                   height="100%"
                   extensions={[python(), oneDark, indentUnit.of('    ')]}
                   onChange={(value) => setCode(value)}
-                  className="w-full h-full font-mono text-sm bg-transparent text-slate-200 outline-none resize-none"
+                  className="w-full h-full font-mono text-sm"
                 />
               </div>
             </div>
 
             {/* テスト結果 */}
-            <div className="h-full flex flex-col border-l border-slate-700">
-              <div className="bg-slate-800 px-4 py-2 flex items-center justify-between">
-                <div className="flex items-center space-x-2">
+            <div className="bg-white border-l border-slate-300 flex flex-col">
+              <div className="bg-slate-800 px-4 py-3 flex items-center justify-between border-b border-slate-700">
+                <div className="flex items-center gap-2">
                   <Terminal className="w-5 h-5 text-slate-400" />
-                  <span className="text-slate-200">テスト結果</span>
+                  <span className="text-slate-200 font-bold">🧪 テスト結果</span>
                 </div>
                 <button
                   onClick={handleRunCode}
                   disabled={isRunning}
-                  className={`flex items-center gap-2 px-3 py-1 rounded ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded font-bold ${
                     isRunning
                       ? 'bg-slate-700 text-slate-400'
-                      : 'bg-green-600 hover:bg-green-700 text-white'
-                  } text-sm transition`}
+                      : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white transform hover:scale-105'
+                  } text-sm transition-all`}
                 >
                   {isRunning ? (
                     <>
                       <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                      Running...
+                      実行中...
                     </>
                   ) : (
                     <>
@@ -519,31 +576,29 @@ function ChallengeEditor() {
                   )}
                 </button>
               </div>
-              <div className="flex-1 p-4 bg-slate-900 font-mono text-sm overflow-auto max-h-[calc(100vh-200px)] pb-20">
+              <div className="flex-1 p-4 overflow-auto">
                 {testResults.map((result, index) => (
                   <div
                     key={index}
-                    className={`mb-4 p-3 rounded ${
-                      result.status === 'success' ? 'bg-green-950' : 'bg-red-950'
+                    className={`mb-3 p-3 rounded-lg border-2 ${
+                      result.status === 'success' 
+                        ? 'bg-green-50 border-green-200' 
+                        : 'bg-red-50 border-red-200'
                     }`}
                   >
                     <div className="flex items-start gap-2">
                       {result.status === 'success' ? (
-                        <CheckCircle className="w-4 h-4 text-green-500 mt-1" />
+                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                       ) : (
-                        <XCircle className="w-4 h-4 text-red-500 mt-1" />
+                        <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
                       )}
-                      <div>
-                        <div
-                          className={`font-medium ${
-                            result.status === 'success'
-                              ? 'text-green-500'
-                              : 'text-red-500'
-                          }`}
-                        >
-                          Test Case {result.testCase}
+                      <div className="flex-1">
+                        <div className={`font-bold mb-1 ${
+                          result.status === 'success' ? 'text-green-700' : 'text-red-700'
+                        }`}>
+                          テスト {result.testCase} {result.status === 'success' ? '✅' : '❌'}
                         </div>
-                        <div className="text-slate-300 mt-1 whitespace-pre-wrap">
+                        <div className="text-sm text-slate-600 whitespace-pre-wrap">
                           {result.status === 'forbidden'
                             ? 'APIキーを抜き取ろうとするコードは許可されていません！'
                             : result.message}
@@ -553,26 +608,21 @@ function ChallengeEditor() {
                   </div>
                 ))}
                 {testResults.length === 0 && (
-                  <div className="text-slate-400">
-                    コードが正しいかを確認するには「テスト実行」ボタンをクリックしてください。
+                  <div className="text-center text-slate-500 py-8">
+                    <Terminal className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p className="font-medium">まだテストを実行していません</p>
+                    <p className="text-sm">「テスト実行」ボタンを押してみよう！</p>
                   </div>
                 )}
               </div>
-            </div>
-          </div>
-
-          {/* フッターの提出ボタンなど */}
-          <div className="bg-white border-t border-slate-200 p-4">
-            <div className="max-w-4xl mx-auto flex items-center justify-between">
-              <div className="relative">
-                {/* Hint button moved to sidebar */}
-              </div>
-              <div className="flex items-center gap-4">
+              
+              {/* 提出ボタン */}
+              <div className="p-4 border-t border-slate-200">
                 {testResults.length > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <ThumbsUp className="w-4 h-4" />
-                    <span>
-                      {getPassingTestsCount()}/{testResults.length} Tests Passing
+                  <div className="flex items-center justify-center gap-2 text-sm mb-3">
+                    <ThumbsUp className="w-4 h-4 text-purple-500" />
+                    <span className="font-medium text-purple-700">
+                      {getPassingTestsCount()}/{testResults.length} テスト成功
                     </span>
                   </div>
                 )}
@@ -582,14 +632,14 @@ function ChallengeEditor() {
                     testResults.length === 0 ||
                     getPassingTestsCount() !== testResults.length
                   }
-                  className={`px-6 py-2 rounded-lg flex items-center gap-2 ${
+                  className={`w-full px-6 py-3 rounded-lg flex items-center justify-center gap-2 font-bold ${
                     testResults.length === 0 ||
                     getPassingTestsCount() !== testResults.length
-                      ? 'bg-slate-100 text-slate-400'
-                      : 'bg-green-600 text-white hover:bg-green-700'
-                  } transition`}
+                      ? 'bg-gray-200 text-gray-500'
+                      : 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 transform hover:scale-105 shadow-lg animate-success'
+                  } transition-all`}
                 >
-                  回答を提出する
+                  🎉 回答を提出する
                   <ChevronRight className="w-5 h-5" />
                 </button>
               </div>
