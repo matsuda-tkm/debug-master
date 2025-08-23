@@ -3,6 +3,7 @@ import { Routes, Route, useNavigate } from 'react-router-dom';
 import { Bug, Trophy, Code2, BookOpen, MessageSquareWarning, ChevronRight, Timer, ThumbsUp, Send, Sparkles, Layout, Eye, Files, ChevronDown, FolderOpen, Terminal, PlayCircle, XCircle, CheckCircle, ArrowRight, Heart, Star } from 'lucide-react';
 import ChallengeEditor from './ChallengeEditor';
 import { challengesData } from './challengesData';
+import { config } from './config';
 
 
 function ThemeSelection() {
@@ -118,7 +119,7 @@ function App() {
 
     useEffect(() => {
         (async () => {
-            const res = await fetch('http://localhost:8000/api/health');
+            const res = await fetch(`${config.apiBaseUrl}/api/health`);
             const data = await res.json();
             console.log(data);
         })();

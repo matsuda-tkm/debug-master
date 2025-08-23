@@ -17,6 +17,7 @@ import {
   Lightbulb
 } from 'lucide-react';
 import { challengesData } from './challengesData';
+import { config } from './config';
 import CodeMirror from '@uiw/react-codemirror';
 import { python } from '@codemirror/lang-python';
 import { oneDark } from '@codemirror/theme-one-dark';
@@ -179,7 +180,7 @@ function ChallengeEditor() {
     setCurrentStep(2);
 
     try {
-      const response = await fetch('http://localhost:8000/api/generate-code', {
+      const response = await fetch(`${config.apiBaseUrl}/api/generate-code`, {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
@@ -218,7 +219,7 @@ function ChallengeEditor() {
     setCurrentStep(3);
 
     try {
-      const response = await fetch('http://localhost:8000/api/run-python', {
+      const response = await fetch(`${config.apiBaseUrl}/api/run-python`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -287,7 +288,7 @@ function ChallengeEditor() {
     setHintError('');
     
     try {
-      const response = await fetch('http://localhost:8000/api/generate-hint', {
+      const response = await fetch(`${config.apiBaseUrl}/api/generate-hint`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
