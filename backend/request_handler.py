@@ -6,16 +6,36 @@ from typing import Any, Dict, List
 
 from code_runner import run_single_test_case, test_code_against_all_cases
 from gemini_utils import generate_code_logic, generate_hint_logic
+from api.challenges import ChallengesAPIHandler
 
 
 class TestHandler(http.server.SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        self.challenges_handler = ChallengesAPIHandler()
+        super().__init__(*args, **kwargs)
+
     def do_GET(self) -> None:
-        if self.path == "/api/health":
-            self.send_json_response({"status": "OK"})
-            return
-        # For serving static files if needed, or a 404 for other GET requests
-        # super().do_GET() # If you have static files in the same directory
-        self.send_error(HTTPStatus.NOT_FOUND, "File Not Found")
+        try:
+            if self.path == "/api/health":
+                self.send_json_response({"status": "OK"})
+                return
+            elif self.path.startswith("/api/challenges"):
+                # Handle challenges GET requests
+                result = self.challenges_handler.handle_get_challenges(self.path)
+                if "error" in result:
+                    self.send_json_response({"error": result["error"]}, result["status"])
+                else:
+                    self.send_json_response(result["data"], result["status"])
+                return
+            # For serving static files if needed, or a 404 for other GET requests
+            # super().do_GET() # If you have static files in the same directory
+            self.send_error(HTTPStatus.NOT_FOUND, "File Not Found")
+        except Exception as e:
+            print(f"Unhandled exception in GET: {e}\n{traceback.format_exc()}")
+            self.send_json_response(
+                {"error": f"Internal server error: {str(e)}"},
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
 
     def do_POST(self) -> None:
         try:
@@ -57,6 +77,16 @@ Problem description:
                 self.send_json_response({"hint": hint})
                 return
 
+            elif self.path == "/api/challenges":
+                # Handle challenges POST requests (create new challenge)
+                data = self.parse_json_from_request()
+                result = self.challenges_handler.handle_post_challenge(data)
+                if "error" in result:
+                    self.send_json_response({"error": result["error"]}, result["status"])
+                else:
+                    self.send_json_response(result["data"], result["status"])
+                return
+
             self.send_error(HTTPStatus.NOT_FOUND, "API endpoint not found")
         except json.JSONDecodeError as e:
             self.send_json_response(
@@ -64,6 +94,51 @@ Problem description:
             )
         except Exception as e:
             print(f"Unhandled exception in POST: {e}\n{traceback.format_exc()}")
+            self.send_json_response(
+                {"error": f"Internal server error: {str(e)}"},
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
+
+    def do_PUT(self) -> None:
+        try:
+            if self.path.startswith("/api/challenges/"):
+                # Handle challenges PUT requests (update challenge)
+                challenge_id = self.path.split("/")[-1]
+                data = self.parse_json_from_request()
+                result = self.challenges_handler.handle_put_challenge(challenge_id, data)
+                if "error" in result:
+                    self.send_json_response({"error": result["error"]}, result["status"])
+                else:
+                    self.send_json_response(result["data"], result["status"])
+                return
+
+            self.send_error(HTTPStatus.NOT_FOUND, "API endpoint not found")
+        except json.JSONDecodeError as e:
+            self.send_json_response(
+                {"error": f"Invalid JSON in request: {str(e)}"}, HTTPStatus.BAD_REQUEST
+            )
+        except Exception as e:
+            print(f"Unhandled exception in PUT: {e}\n{traceback.format_exc()}")
+            self.send_json_response(
+                {"error": f"Internal server error: {str(e)}"},
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
+
+    def do_DELETE(self) -> None:
+        try:
+            if self.path.startswith("/api/challenges/"):
+                # Handle challenges DELETE requests (delete challenge)
+                challenge_id = self.path.split("/")[-1]
+                result = self.challenges_handler.handle_delete_challenge(challenge_id)
+                if "error" in result:
+                    self.send_json_response({"error": result["error"]}, result["status"])
+                else:
+                    self.send_json_response({"message": result["message"]}, result["status"])
+                return
+
+            self.send_error(HTTPStatus.NOT_FOUND, "API endpoint not found")
+        except Exception as e:
+            print(f"Unhandled exception in DELETE: {e}\n{traceback.format_exc()}")
             self.send_json_response(
                 {"error": f"Internal server error: {str(e)}"},
                 HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -100,7 +175,7 @@ Problem description:
 
     def set_cors_headers(self) -> None:
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
 
     def write_sse_data(self, data: str) -> None:

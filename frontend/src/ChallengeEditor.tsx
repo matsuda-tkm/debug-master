@@ -16,7 +16,8 @@ import {
   Wand2,
   Lightbulb
 } from 'lucide-react';
-import { challengesData } from './challengesData';
+import { challengeService } from './services/challengeService';
+import { Challenge } from './types/challenge';
 import CodeMirror from '@uiw/react-codemirror';
 import { python } from '@codemirror/lang-python';
 import { oneDark } from '@codemirror/theme-one-dark';
@@ -147,13 +148,30 @@ function VideoModal({ videoSrc, onClose }) {
 function ChallengeEditor() {
   const navigate = useNavigate();
   const { themeId } = useParams();
-  const challenge = challengesData.find((c) => c.id === themeId);
+  const [challenge, setChallenge] = useState<Challenge | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!challenge) {
-      navigate('/');
-    }
-  }, [challenge, navigate]);
+    const loadChallenge = async () => {
+      if (!themeId) {
+        navigate('/');
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const challengeData = await challengeService.getChallengeById(themeId);
+        setChallenge(challengeData);
+      } catch (error) {
+        console.error('Failed to load challenge:', error);
+        navigate('/');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadChallenge();
+  }, [themeId, navigate]);
 
   const [code, setCode] = useState(`def main(numbers):
     # Write your solution here
@@ -320,6 +338,17 @@ function ChallengeEditor() {
     setCurrentVideo(videoSrc);
     setShowVideoModal(true);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-purple-700 font-medium">問題を読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!challenge) {
     return null;

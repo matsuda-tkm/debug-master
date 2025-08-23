@@ -1,13 +1,34 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { Bug, Trophy, Code2, BookOpen, MessageSquareWarning, ChevronRight, Timer, ThumbsUp, Send, Sparkles, Layout, Eye, Files, ChevronDown, FolderOpen, Terminal, PlayCircle, XCircle, CheckCircle, ArrowRight, Heart, Star } from 'lucide-react';
 import ChallengeEditor from './ChallengeEditor';
-import { challengesData } from './challengesData';
+import { challengeService } from './services/challengeService';
+import { Challenge } from './types/challenge';
 
 
 function ThemeSelection() {
     const navigate = useNavigate();
-    const themes = challengesData;;
+    const [themes, setThemes] = useState<Challenge[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const loadChallenges = async () => {
+            try {
+                setLoading(true);
+                const challenges = await challengeService.getAllChallenges();
+                setThemes(challenges);
+                setError(null);
+            } catch (err) {
+                console.error('Failed to load challenges:', err);
+                setError('問題データの読み込みに失敗しました。');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadChallenges();
+    }, []);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 relative overflow-hidden">
@@ -71,8 +92,25 @@ function ThemeSelection() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {themes.map((theme) => (
+                    {loading && (
+                        <div className="text-center py-12">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+                            <p className="mt-4 text-purple-700 font-medium">ミッションを読み込み中...</p>
+                        </div>
+                    )}
+
+                    {error && (
+                        <div className="text-center py-12">
+                            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg max-w-md mx-auto">
+                                <p className="font-medium">{error}</p>
+                                <p className="text-sm mt-2">ページを再読み込みして再度お試しください。</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {!loading && !error && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {themes.map((theme) => (
                             <div
                                 key={theme.id}
                                 className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border-2 border-purple-200 overflow-hidden hover:shadow-xl hover:border-pink-300 transition-all duration-300 group cursor-pointer transform hover:scale-105"
@@ -106,8 +144,9 @@ function ThemeSelection() {
                                     </div>
                                 </div>
                             </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </main>
         </div>
