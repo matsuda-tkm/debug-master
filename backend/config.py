@@ -3,11 +3,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-PORT: int = int(os.environ.get("PORT", 8000))
+PORT: int = 8000
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
-GENERATE_TEMPERATURE = float(os.environ.get("GENERATE_TEMPERATURE", 0.5))
-HINT_TEMPERATURE = float(os.environ.get("HINT_TEMPERATURE", 0.0))
 
 SYSTEM_INSTRUNCTION: str = """\
 <references>

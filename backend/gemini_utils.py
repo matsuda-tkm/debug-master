@@ -16,10 +16,10 @@ def generate_code_logic(
     fn_test_code_against_all_cases: Callable[[str, List[Dict[str, Any]]], bool],
 ) -> Dict[str, str]:
     response = client.models.generate_content(
-        model=config.GEMINI_MODEL,
+        model="gemini-2.0-flash",  # Consider making model name a config variable
         contents=[prompt_str],
         config=types.GenerateContentConfig(
-            temperature=config.GENERATE_TEMPERATURE,
+            temperature=0.5,  # Consider making temperature a config variable
             system_instruction=config.SYSTEM_INSTRUNCTION,
             response_mime_type="application/json",
         ),
@@ -100,10 +100,10 @@ def generate_hint_logic(
 {test_results_text}
 """
     response = client.models.generate_content(
-        model=config.GEMINI_MODEL,
+        model="gemini-2.0-flash",  # Consider making model name a config variable
         contents=[prompt],
         config=types.GenerateContentConfig(
-            temperature=config.HINT_TEMPERATURE,
+            temperature=0.0,  # Consider making temperature a config variable
             system_instruction=config.HINT_SYSTEM_INSTRUCTION,
         ),
     )
