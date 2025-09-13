@@ -27,16 +27,14 @@ GEMINI_API_KEY=XXXXXXXXXXXX
 
 1. ターミナルで以下を実行し、コンテナを起動する。
 
-```bash
-docker compose up --build -d
-```
+    ```bash
+   docker compose up --build -d
+   ```
 
 2. http://localhost:5173 にアクセスする。
 
 
 ### コンテナの停止
-
-1. ターミナルで以下を実行し、コンテナを停止する。
 
 ```bash
 docker compose down -v
