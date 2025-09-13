@@ -1,4 +1,3 @@
-import json
 from http import HTTPStatus
 from typing import Dict, Any
 from database.challenge_repository import ChallengeRepository
