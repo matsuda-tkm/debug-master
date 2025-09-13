@@ -1,6 +1,6 @@
 services:
   frontend:
-    container_name: bug-gym-frontend
+    container_name: debug-master-frontend
     working_dir: /app
     build: 
       context: ./frontend
@@ -14,7 +14,7 @@ services:
     command: npm run dev
 
   backend:
-    container_name: bug-gym-backend
+    container_name: debug-master-backend
     working_dir: /app
     build: 
       context: ./backend
