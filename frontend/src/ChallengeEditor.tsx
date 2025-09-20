@@ -354,6 +354,13 @@ function ChallengeEditor() {
     return null;
   }
 
+  const handleGoHome = () => {
+    const confirmed = window.confirm('本当にホーム画面に戻りますか？\n現在の進行状況は保存されません。');
+    if (confirmed) {
+      navigate('/');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 flex flex-col relative overflow-hidden">
       {/* Floating character */}
@@ -399,11 +406,19 @@ function ChallengeEditor() {
       <header className="bg-white/80 backdrop-blur-sm border-b border-purple-200 shadow-sm">
         <div className="container mx-auto px-4 py-2 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="relative">
+            <div 
+              className="relative cursor-pointer transform hover:scale-105 transition-transform duration-200"
+              onClick={handleGoHome}
+            >
               <Bug className="w-8 h-8 text-purple-600" />
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-pink-400 rounded-full animate-ping"></div>
             </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">DebugMaster</span>
+            <span 
+              className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-opacity duration-200"
+              onClick={handleGoHome}
+            >
+              DebugMaster
+            </span>
             <div className="flex items-center gap-1 ml-2">
               <span className="text-sm font-medium text-purple-600">君ならできる！</span> 
             </div>
