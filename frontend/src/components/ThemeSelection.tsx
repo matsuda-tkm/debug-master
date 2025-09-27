@@ -15,7 +15,7 @@ function ThemeSelection() {
                     <img 
                         src="/images/fight-character.png" 
                         alt="プログラミング助手" 
-                        className="w-20 h-20 object-contain animate-bounce hover:scale-110 transition-transform duration-300"
+                        className="w-20 h-20 object-contain animate-bounce transition-transform duration-300"
                         style={{animationDuration: '3s'}}
                     />
                     <div className="absolute -top-2 -right-2">
