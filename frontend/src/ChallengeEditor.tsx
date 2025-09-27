@@ -17,6 +17,7 @@ import {
   Lightbulb
 } from 'lucide-react';
 import { challengeService } from './services/challengeService';
+import Markdown from './components/Markdown';
 import { Challenge } from './types/challenge';
 import CodeMirror from '@uiw/react-codemirror';
 import { python } from '@codemirror/lang-python';
@@ -24,12 +25,86 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { indentUnit } from '@codemirror/language';
 
 
-function SuccessModal({ message, explanation, onClose, challenge, userAnswer }) {
+function SuccessModal({ message, explanation, onClose, challenge, userAnswer, lastFailingCode, aiGeneratedCode, testResults }) {
   const navigate = useNavigate();
+  const [openDetail, setOpenDetail] = useState(false);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [detail, setDetail] = useState<any>(null);
+  const [detailError, setDetailError] = useState('');
+  const [showDiff, setShowDiff] = useState(false);
+
+  useEffect(() => {
+    const generate = async () => {
+      try {
+        setLoadingDetail(true);
+        setDetailError('');
+        const resp = await fetch('http://localhost:8000/api/generate-explanation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            beforeCode: aiGeneratedCode || lastFailingCode || '',
+            afterCode: userAnswer || '',
+            instructions: challenge?.instructions || '',
+            examples: challenge?.examples || '',
+            testResults: testResults || [],
+          }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          throw new Error(data?.detail || '詳細解説の生成に失敗しました');
+        }
+        setDetail(data);
+      } catch (e: any) {
+        setDetailError(e?.message || '詳細解説の生成に失敗しました');
+      } finally {
+        setLoadingDetail(false);
+      }
+    };
+    generate();
+  }, [challenge, lastFailingCode, aiGeneratedCode, testResults, userAnswer]);
+
+  // Simple line-based diff (LCS)
+  const diffLines = (before: string, after: string) => {
+    const a = before.split('\n');
+    const b = after.split('\n');
+    const n = a.length, m = b.length;
+    const dp: number[][] = Array.from({ length: n + 1 }, () => Array(m + 1).fill(0));
+    for (let i = n - 1; i >= 0; i--) {
+      for (let j = m - 1; j >= 0; j--) {
+        dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+      }
+    }
+    const res: { type: 'unchanged' | 'removed' | 'added'; text: string }[] = [];
+    let i = 0, j = 0;
+    while (i < n && j < m) {
+      if (a[i] === b[j]) {
+        res.push({ type: 'unchanged', text: a[i] }); i++; j++;
+      } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+        res.push({ type: 'removed', text: a[i] }); i++;
+      } else {
+        res.push({ type: 'added', text: b[j] }); j++;
+      }
+    }
+    while (i < n) { res.push({ type: 'removed', text: a[i++] }); }
+    while (j < m) { res.push({ type: 'added', text: b[j++] }); }
+    return res;
+  };
+  const truncate = (s: string, n = 80) => (s?.length > n ? s.slice(0, n) + '…' : s);
+  const baseForDiff = aiGeneratedCode || '';
+  const addedRemovedCount = (() => {
+    if (!aiGeneratedCode) return { added: 0, removed: 0 };
+    const d = diffLines(baseForDiff, userAnswer || '');
+    return {
+      added: d.filter((x) => x.type === 'added').length,
+      removed: d.filter((x) => x.type === 'removed').length,
+    };
+  })();
+  const keyPoint1 = detail?.reason || '...';
+  const keyPoint2 = detail?.explain_diff || '...';
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
-      <div className="bg-white rounded-xl shadow-2xl p-8 max-w-lg w-full mx-4 relative overflow-hidden animate-success">
+      <div className="bg-white rounded-xl shadow-2xl p-6 sm:p-8 w-full mx-4 my-6 relative animate-success max-w-3xl md:max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
           <div className="relative">
             <Confetti className="w-12 h-12 text-yellow-400 animate-bounce animate-rainbow" />
@@ -39,17 +114,101 @@ function SuccessModal({ message, explanation, onClose, challenge, userAnswer }) 
           </div>
         </div>
 
-        <div className="text-center mt-8">
+        <div className="text-center mt-6 sm:mt-8">
           <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4 animate-wiggle">🎉 {message} 🎉</h2>
 
           {explanation && (
             <div className="mt-4 bg-slate-50 p-4 rounded-lg text-left">
-              <h3 className="text-lg font-semibold text-slate-800 mb-2">バグの説明:</h3>
+              <h3 className="text-lg font-semibold text-slate-800 mb-2">バグの説明（AI生成の要約）</h3>
               <div className="text-slate-700 whitespace-pre-wrap text-sm">
                 {explanation}
               </div>
             </div>
           )}
+
+          {/* 詳細解説（シンプル版） */}
+          <div className="mt-6 text-left">
+            <button
+              onClick={() => setOpenDetail((v) => !v)}
+              className="w-full flex items-center justify-between bg-indigo-50 hover:bg-indigo-100 px-4 py-3 rounded-lg border border-indigo-200 transition"
+            >
+              <span className="text-indigo-800 font-semibold">🔍 詳細解説</span>
+              <ChevronRight className={`w-5 h-5 text-indigo-600 transition-transform ${openDetail ? 'rotate-90' : ''}`} />
+            </button>
+            {openDetail && (
+              <div className="mt-3 space-y-4">
+                {/* 3つでわかるポイント */}
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                  <h4 className="font-semibold text-slate-800 mb-2">なにが問題？</h4>
+                  <Markdown content={keyPoint1} className="text-slate-800 text-sm" />
+                  <br/>
+                  <h4 className="font-semibold text-slate-800 mb-2">どう直した？</h4>
+                  <Markdown content={keyPoint2} className="text-slate-800 text-sm" />
+                  <br/>
+                </div>
+
+                {loadingDetail && (
+                  <div className="text-slate-600 text-sm">生成中...</div>
+                )}
+                {detailError && (
+                  <div className="text-pink-700 bg-pink-50 border border-pink-200 rounded px-3 py-2 text-sm">{detailError}</div>
+                )}
+                {detail && (
+                  <>
+                    {/* コードのちがい（小さな見本） */}
+                    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                      <div className="bg-slate-800 px-4 py-2 text-slate-200 text-sm font-bold flex items-center justify-between">
+                        <span>コードのちがい</span>
+                        <button className="text-slate-200 text-xs underline" onClick={() => setShowDiff((v) => !v)}>
+                          {showDiff ? 'とじる' : 'ひらく'}
+                        </button>
+                      </div>
+                      {showDiff && (
+                        <pre className="max-h-56 overflow-auto p-3 text-xs font-mono leading-5">
+                          {aiGeneratedCode ? (
+                            diffLines(baseForDiff, userAnswer).filter((d) => d.type !== 'unchanged').map((d, i) => (
+                              <div key={i} className={
+                                d.type === 'added' ? 'text-emerald-700 bg-emerald-50' :
+                                d.type === 'removed' ? 'text-rose-700 bg-rose-50' : 'text-slate-800'
+                              }>
+                                {d.type === 'added' ? '+ ' : '- '}
+                                {d.text}
+                              </div>
+                            ))
+                          ) : (
+                            <span className="text-slate-600">AI生成コードがありません。先に「AIでコード作成」を使ってください。</span>
+                          )}
+                        </pre>
+                      )}
+                      <div className="px-3 py-2 text-[11px] text-slate-600 border-t border-slate-200">+{addedRemovedCount.added} / -{addedRemovedCount.removed}</div>
+                    </div>
+
+                    {/* 動作例（2件まで） */}
+                    <div className="rounded-lg border border-slate-200 overflow-hidden">
+                      <div className="bg-slate-800 px-4 py-2 text-slate-200 text-sm font-bold flex items-center gap-2">
+                        <Terminal className="w-4 h-4 text-slate-400" />
+                        <span>動作例</span>
+                      </div>
+                      <div className="bg-slate-50 p-3 text-xs font-mono">
+                        {(testResults?.slice(0, 2) || []).length ? (
+                          testResults.slice(0, 2).map((r: any, idx: number) => (
+                            <div key={idx} className="mb-2">
+                              <div className={`font-bold ${r.status === 'success' ? 'text-green-700' : 'text-red-700'}`}>
+                                &gt; テスト {r.testCase ?? r.testCaseNumber ?? idx + 1} {r.status === 'success' ? '✅' : '❌'}
+                              </div>
+                              <div className="whitespace-pre-wrap text-slate-700">{truncate(r.message, 180)}</div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-slate-600">テスト結果が見つかりません。</div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
 
           <div className="flex flex-col gap-4 mt-8">
             <button
@@ -76,7 +235,7 @@ function SuccessModal({ message, explanation, onClose, challenge, userAnswer }) 
 function HintModal({ hint, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-lg p-6 max-w-2xl w-full mx-4 relative animate-pop-in">
+      <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 w-full mx-4 my-6 relative animate-pop-in max-w-3xl md:max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="flex flex-col">
           <div className="flex items-start gap-4">
             {/* Character image */}
@@ -117,7 +276,7 @@ function HintModal({ hint, onClose }) {
 function VideoModal({ videoSrc, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-lg p-6 max-w-4xl w-full mx-4 relative animate-pop-in">
+      <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 w-full mx-4 my-6 relative animate-pop-in max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="flex flex-col">
           <h2 className="text-xl font-bold text-indigo-800 mb-3">問題の意味を動画で理解</h2>
           <div className="relative">
@@ -183,6 +342,8 @@ function ChallengeEditor() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState('');
   const [explanation, setExplanation] = useState('');
+  const [lastFailingCode, setLastFailingCode] = useState<string | null>(null);
+  const [aiGeneratedCode, setAiGeneratedCode] = useState<string | null>(null);
   const [showHintModal, setShowHintModal] = useState(false);
   const [hint, setHint] = useState('');
   const [isLoadingHint, setIsLoadingHint] = useState(false);
@@ -217,6 +378,7 @@ function ChallengeEditor() {
 
       if (data.code) {
         setCode(data.code);
+        setAiGeneratedCode(data.code);
       }
       if (data.explanation) {
         setExplanation(data.explanation);
@@ -250,6 +412,7 @@ function ChallengeEditor() {
 
       const decoder = new TextDecoder();
       let buffer = '';
+      let anyFailure = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -263,6 +426,9 @@ function ChallengeEditor() {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
+              if (data.status && data.status !== 'success') {
+                anyFailure = true;
+              }
               setTestResults((prev) => [...prev, data]);
             } catch (e) {
               console.error('Failed to parse SSE data:', e);
@@ -270,6 +436,10 @@ function ChallengeEditor() {
           }
         }
         buffer = lines[lines.length - 1];
+      }
+      // After stream ends, remember the current code as failing snapshot if any test failed
+      if (anyFailure) {
+        setLastFailingCode(code);
       }
     } catch (error) {
       console.error('Error running code:', error);
@@ -387,6 +557,9 @@ function ChallengeEditor() {
           explanation={explanation}
           challenge={challenge}
           userAnswer={code}
+          lastFailingCode={lastFailingCode}
+          aiGeneratedCode={aiGeneratedCode}
+          testResults={testResults}
           onClose={() => setShowSuccessModal(false)}
         />
       )}

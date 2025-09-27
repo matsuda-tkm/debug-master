@@ -7,7 +7,11 @@ from api.challenges import ChallengesAPIHandler
 from code_runner import run_single_test_case, test_code_against_all_cases
 from fastapi import Body, FastAPI, HTTPException, Path
 from fastapi.middleware.cors import CORSMiddleware
-from gemini_utils import generate_code_logic, generate_hint_logic
+from gemini_utils import (
+    generate_code_logic,
+    generate_hint_logic,
+    generate_explanation_logic,
+)
 from starlette.responses import JSONResponse, StreamingResponse
 
 app = FastAPI(title="Debug Master Backend", version="1.0.0")
@@ -139,6 +143,22 @@ def generate_hint(payload: dict[str, Any] = Body(...)) -> dict[str, str]:
     test_results: list[dict[str, Any]] = payload.get("testResults", [])
     hint: str = generate_hint_logic(code, instructions, examples, test_results)
     return {"hint": hint}
+
+
+@app.post("/api/generate-explanation")
+def generate_explanation(payload: dict[str, Any] = Body(...)) -> JSONResponse:
+    before_code: str = payload.get("beforeCode", "")
+    after_code: str = payload.get("afterCode", "")
+    instructions: str = payload.get("instructions", "")
+    examples: str = payload.get("examples", "")
+    test_results: list[dict[str, Any]] = payload.get("testResults", [])
+    try:
+        explanation = generate_explanation_logic(
+            before_code, after_code, instructions, examples, test_results
+        )
+        return JSONResponse(content=explanation)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 if __name__ == "__main__":

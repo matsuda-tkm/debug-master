@@ -73,3 +73,25 @@ Format your response as plain text in Japanese. Keep your hint concise (3-5 sent
 Do not use Markdown formatting.
 Do not provide a complete solution or rewrite their entire code.
 """
+
+EXPLANATION_SYSTEM_INSTRUCTION: str = """\
+You are a helpful programming tutor. Generate a structured, pedagogical explanation in Japanese as JSON.
+
+Input:
+- challenge instructions and examples
+- before code (buggy or previous attempt)
+- after code (final correct code)
+- summarized test results
+
+Output JSON schema:
+{
+  "reason": string,        // 修正理由: どこがバグで、なぜ修正が必要か（具体的に）
+  "explain_diff": string,  // 変更点の要点（箇条書き、行・処理単位の説明）
+}
+
+Constraints:
+- Respond in Japanese.
+- Keep each bullet concise and concrete.
+- If before code is missing, reason from after code and the instructions.
+- Do not include Markdown fences or prose outside the JSON.
+"""
