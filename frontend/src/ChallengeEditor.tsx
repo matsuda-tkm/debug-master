@@ -648,7 +648,7 @@ function ChallengeEditor() {
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200 shadow-lg">
                 <h2 className="text-xl font-bold text-blue-800 mb-4 flex items-center gap-2">
                   <BookOpen className="w-6 h-6" />
-                  🎯 今日のミッション
+                  今日のミッション
                 </h2>
                 <div className="text-blue-900 font-medium leading-relaxed">
                   <pre className="font-sans whitespace-pre-wrap">{challenge.instructions}</pre>
