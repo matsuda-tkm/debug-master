@@ -13,9 +13,9 @@ function ThemeSelection() {
             <div className="fixed bottom-6 right-6 z-50">
                 <div className="relative">
                     <img 
-                        src="/images/character.png" 
+                        src="/images/fite-character.png" 
                         alt="プログラミング助手" 
-                        className="w-20 h-20 object-contain animate-bounce cursor-pointer hover:scale-110 transition-transform duration-300"
+                        className="w-20 h-20 object-contain animate-bounce hover:scale-110 transition-transform duration-300"
                         style={{animationDuration: '3s'}}
                     />
                     <div className="absolute -top-2 -right-2">
