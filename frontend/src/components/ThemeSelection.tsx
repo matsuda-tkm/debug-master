@@ -88,7 +88,7 @@ function ThemeSelection() {
                                 </div>
                                 <div className="p-6">
                                     <h3 className="text-xl font-bold text-purple-800 mb-2 flex items-center justify-between">
-                                        🎯 {theme.title}
+                                        {theme.title}
                                         <ArrowRight className="w-6 h-6 text-pink-500 group-hover:text-purple-600 group-hover:translate-x-2 transition-all duration-300" />
                                     </h3>
                                     <p className="text-purple-700 mb-4 font-medium">{theme.description}</p>
