@@ -365,19 +365,25 @@ function ChallengeEditor() {
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 flex flex-col relative overflow-hidden">
       {/* Floating character */}
       <div className="fixed bottom-6 right-6 z-40">
-        <div className="relative">
+        <div 
+          className="relative w-24 h-24 group cursor-pointer"
+          onClick={handleShowHint}
+          style={{ pointerEvents: isLoadingHint ? 'none' : 'auto' }}
+        >
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-pink-400/50 via-purple-400/40 to-indigo-400/20 opacity-0 blur-md transition duration-200 group-hover:opacity-100" />
+          <div className="absolute inset-0 rounded-full border-2 border-transparent group-hover:border-pink-300 transition duration-200" />
           <img 
             src="/images/character.png" 
             alt="プログラミング助手" 
-            className="w-16 h-16 object-contain animate-float cursor-pointer hover:animate-wiggle hover:scale-110 transition-transform duration-300"
+            className="relative z-10 w-full h-full object-contain animate-float group-hover:animate-wiggle group-hover:scale-110 transition-transform duration-300 drop-shadow-lg"
           />
-          <div className="absolute -top-1 -right-1">
-            <div className="w-4 h-4 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full animate-sparkle"></div>
-          </div>
-          <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
-            <div className="bg-gradient-to-r from-pink-400 to-purple-400 text-white px-2 py-1 rounded-full shadow-lg text-xs font-bold whitespace-nowrap animate-pulse">
-              頑張って！
+          {isLoadingHint && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center">
+              <div className="w-10 h-10 border-4 border-pink-400 border-t-transparent rounded-full animate-spin" />
             </div>
+          )}
+          <div className="absolute -top-1 -right-1 z-30">
+            <div className="w-4 h-4 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full animate-sparkle"></div>
           </div>
         </div>
       </div>
@@ -510,17 +516,10 @@ function ChallengeEditor() {
                   <img 
                     src="/images/character.png" 
                     alt="ヒントキャラクター" 
-                    className="w-24 h-24 object-contain cursor-pointer hover:opacity-80 transition hover:scale-110 transform duration-300 filter drop-shadow-lg animate-float hover:animate-wiggle mx-auto"
-                    onClick={handleShowHint}
-                    style={{pointerEvents: isLoadingHint ? 'none' : 'auto' }}
+                    className="w-24 h-24 object-contain filter drop-shadow-lg animate-float mx-auto"
                   />
-                  {isLoadingHint && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-                    </div>
-                  )}
                 </div>
-                <p className="text-orange-700 font-medium mt-2">クリックでヒントをもらおう！</p>
+                <p className="text-orange-700 font-medium mt-2">右下のキャラクターをクリックしてヒントをもらおう！</p>
                 {hintError && (
                   <div className="mt-2 text-pink-600 text-sm font-bold bg-pink-50 px-3 py-1 rounded-lg border border-pink-200">
                     😅 {hintError}
