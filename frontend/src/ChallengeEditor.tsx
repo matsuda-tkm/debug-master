@@ -512,13 +512,6 @@ function ChallengeEditor() {
               {/* ヒントキャラクター */}
               <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 border-2 border-yellow-200 text-center">
                 <h3 className="text-lg font-bold text-orange-800 mb-3">🤔 困ったときは...</h3>
-                <div className="relative inline-block">
-                  <img 
-                    src="/images/character.png" 
-                    alt="ヒントキャラクター" 
-                    className="w-24 h-24 object-contain filter drop-shadow-lg animate-float mx-auto"
-                  />
-                </div>
                 <p className="text-orange-700 font-medium mt-2">右下のキャラクターをクリックしてヒントをもらおう！</p>
                 {hintError && (
                   <div className="mt-2 text-pink-600 text-sm font-bold bg-pink-50 px-3 py-1 rounded-lg border border-pink-200">
