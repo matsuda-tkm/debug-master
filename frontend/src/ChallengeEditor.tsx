@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, type ReactNode } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Code2,
@@ -231,36 +231,92 @@ function ChallengeEditor() {
     : 'ヒント';
   const hintButtonLabel = isHintOpen ? 'ヒントを閉じる' : 'ヒントを開く';
 
+  const renderInlineSegments = useCallback(
+    (text: string, keyPrefix = 'inline'): ReactNode[] => {
+      if (!text) {
+        return [];
+      }
+
+      const segments = text.split(/(``[^`]+``|`[^`]+`)/g);
+      const nodes: ReactNode[] = [];
+
+      segments.forEach((segment, index) => {
+        if (!segment) {
+          return;
+        }
+
+        const isDoubleTick = segment.startsWith('``') && segment.endsWith('``') && segment.length > 4;
+        const isSingleTick = segment.startsWith('`') && segment.endsWith('`') && segment.length > 2;
+
+        if (isDoubleTick || isSingleTick) {
+          const trimLength = isDoubleTick ? 2 : 1;
+          nodes.push(
+            <code
+              key={`${keyPrefix}-code-${index}`}
+              className="mx-1 rounded bg-slate-900/80 px-1.5 py-0.5 font-mono text-xs text-white"
+            >
+              {segment.slice(trimLength, -trimLength)}
+            </code>
+          );
+        } else {
+          nodes.push(
+            <span key={`${keyPrefix}-text-${index}`}>{segment}</span>
+          );
+        }
+      });
+
+      return nodes;
+    },
+    []
+  );
+
   const renderedHintContent = useMemo(() => {
     if (!activeHint?.content) {
       return null;
     }
 
-    const segments = activeHint.content.split(/(``[^`]+``|`[^`]+`)/g);
+    const content = activeHint.content;
+    const nodes: ReactNode[] = [];
+    const blockRegex = /```([a-zA-Z0-9_-]+)?\n?([\s\S]*?)```/g;
 
-    return segments.map((segment, index) => {
-      const isDoubleTick = segment.startsWith('``') && segment.endsWith('``') && segment.length > 4;
-      const isSingleTick = segment.startsWith('`') && segment.endsWith('`') && segment.length > 2;
+    let lastIndex = 0;
+    let blockIndex = 0;
+    let match: RegExpExecArray | null;
 
-      if (isDoubleTick || isSingleTick) {
-        const trimLength = isDoubleTick ? 2 : 1;
-        return (
-          <code
-            key={`code-${index}`}
-            className="rounded bg-slate-900/80 px-1.5 py-0.5 mx-1 font-mono text-xs text-white"
-          >
-            {segment.slice(trimLength, -trimLength)}
-          </code>
-        );
+    while ((match = blockRegex.exec(content)) !== null) {
+      const [fullMatch, language = '', codeBody = ''] = match;
+      const matchStart = match.index;
+
+      if (matchStart > lastIndex) {
+        const precedingText = content.slice(lastIndex, matchStart);
+        nodes.push(...renderInlineSegments(precedingText, `pre-${blockIndex}`));
       }
 
-      return (
-        <span key={`text-${index}`}>
-          {segment}
-        </span>
+      const trimmedCode = codeBody.startsWith('\n') ? codeBody.slice(1) : codeBody;
+      const normalizedCode = trimmedCode.replace(/\s+$/, '');
+
+      nodes.push(
+        <pre
+          key={`block-${blockIndex}`}
+          className="my-3 overflow-x-auto rounded-lg bg-slate-900/90 p-3 text-xs text-slate-100 whitespace-pre"
+        >
+          <code className={language ? `language-${language.toLowerCase()}` : undefined}>
+            {normalizedCode}
+          </code>
+        </pre>
       );
-    });
-  }, [activeHint?.content]);
+
+      lastIndex = matchStart + fullMatch.length;
+      blockIndex += 1;
+    }
+
+    if (lastIndex < content.length) {
+      const remainingText = content.slice(lastIndex);
+      nodes.push(...renderInlineSegments(remainingText, `post-${blockIndex}`));
+    }
+
+    return nodes.length ? nodes : null;
+  }, [activeHint?.content, renderInlineSegments]);
 
   const closeHint = useCallback(() => {
     setIsHintOpen(false);
