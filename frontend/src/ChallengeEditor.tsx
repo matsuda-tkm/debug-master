@@ -1085,7 +1085,7 @@ function ChallengeEditor() {
                   最終ヒントはほぼ答えなので、表示前に確認ダイアログが出ます。
                 </p>
                 <p className="mt-2 text-indigo-600 text-xs leading-relaxed">
-                  一度見たヒントのレベルはこの課題で自動保存され、再訪しても続きから再開できます。
+                  内容が合わないときはリセットボタンからヒントを再生成してみましょう。
                 </p>
                 {hintError && (
                   <p className="mt-3 rounded-lg border border-pink-200 bg-pink-50 px-3 py-2 text-xs font-semibold text-pink-600">
