@@ -1,7 +1,8 @@
 import json
 import random
+import re
 import textwrap
-from typing import Any, Dict, List, Callable
+from typing import Any, Dict, List, Callable, Optional
 
 from google import genai
 from google.genai import types
@@ -9,6 +10,92 @@ from google.genai import types
 import config
 
 client = genai.Client(api_key=config.GEMINI_API_KEY)
+
+INLINE_CODE_PATTERN = re.compile(r"(^|[^`])`([^`\n]+)`(?!`)")
+TRIPLE_BACKTICK_PATTERN = re.compile(r"```([a-zA-Z0-9_-]+)?\s*\n?([\s\S]*?)```", re.MULTILINE)
+
+
+def _normalize_hint_content(text: str) -> str:
+    if not text:
+        return ""
+
+    normalized = text.replace("\r\n", "\n")
+
+    code_blocks: List[str] = []
+
+    def _extract_block(match: re.Match[str]) -> str:
+        language = (match.group(1) or "").strip()
+        body = match.group(2) or ""
+        body = re.sub(r"^\n+", "", body)
+        body = re.sub(r"\n+$", "", body)
+
+        header = f"```{language}\n" if language else "```\n"
+        block = f"{header}{body}\n```"
+
+        placeholder = f"__CODE_BLOCK_{len(code_blocks)}__"
+        code_blocks.append(block)
+        return placeholder
+
+    normalized = TRIPLE_BACKTICK_PATTERN.sub(_extract_block, normalized)
+
+    def _replace_inline(match: re.Match[str]) -> str:
+        prefix, code = match.groups()
+        trimmed = code.strip()
+        if not trimmed:
+            return match.group(0)
+        return f"{prefix}``{trimmed}``"
+
+    normalized = INLINE_CODE_PATTERN.sub(_replace_inline, normalized)
+
+    for index, block in enumerate(code_blocks):
+        placeholder = f"__CODE_BLOCK_{index}__"
+        normalized = normalized.replace(placeholder, block, 1)
+
+    return normalized.strip()
+
+
+def _iter_json_candidates(raw_text: str) -> List[str]:
+    candidates: List[str] = []
+
+    stripped = raw_text.strip()
+    if stripped:
+        candidates.append(stripped)
+
+    fenced_match = TRIPLE_BACKTICK_PATTERN.search(raw_text)
+    if fenced_match:
+        body = (fenced_match.group(2) or "").strip()
+        if body:
+            candidates.append(body)
+
+    object_match = re.search(r"\{[\s\S]*\}", raw_text)
+    if object_match:
+        guessed = object_match.group(0).strip()
+        if guessed and guessed not in candidates:
+            candidates.append(guessed)
+
+    array_match = re.search(r"\[[\s\S]*\]", raw_text)
+    if array_match:
+        guessed = array_match.group(0).strip()
+        if guessed and guessed not in candidates:
+            candidates.append(guessed)
+
+    return candidates
+
+
+def _load_hint_payload(raw_text: str) -> Optional[Dict[str, Any]]:
+    for candidate in _iter_json_candidates(raw_text):
+        try:
+            loaded = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+
+        if isinstance(loaded, dict):
+            return loaded
+
+        if isinstance(loaded, list):
+            return {"levels": loaded}
+
+    return None
 
 
 def generate_code_logic(
@@ -87,24 +174,26 @@ def _build_test_results_summary(test_results: List[Dict[str, Any]]) -> str:
 
 
 def _parse_hint_levels(raw_text: str) -> List[Dict[str, Any]]:
-    try:
-        payload: Dict[str, Any] = json.loads(raw_text)
-    except json.JSONDecodeError:
+    payload = _load_hint_payload(raw_text)
+    if payload is None:
         return [
             {
                 "level": 1,
                 "title": "ヒント",
-                "content": raw_text.strip(),
+                "content": _normalize_hint_content(raw_text),
             }
         ]
 
     levels = payload.get("levels")
     if not isinstance(levels, list) or not levels:
+        levels = payload.get("hints")
+
+    if not isinstance(levels, list) or not levels:
         return [
             {
                 "level": 1,
                 "title": "ヒント",
-                "content": raw_text.strip(),
+                "content": _normalize_hint_content(raw_text),
             }
         ]
 
@@ -121,7 +210,7 @@ def _parse_hint_levels(raw_text: str) -> List[Dict[str, Any]]:
             {
                 "level": int(level),
                 "title": str(title) if title is not None else "",
-                "content": str(content),
+                "content": _normalize_hint_content(str(content)),
             }
         )
 
@@ -130,7 +219,7 @@ def _parse_hint_levels(raw_text: str) -> List[Dict[str, Any]]:
         {
             "level": 1,
             "title": "ヒント",
-            "content": raw_text.strip(),
+            "content": _normalize_hint_content(raw_text),
         }
     ]
 
@@ -171,6 +260,7 @@ def generate_hint_logic(
         }}
 
         タイトルは任意で調整しても構いませんが、各レベルの粒度が段階的に深まるようにしてください。
+        ヒント本文内でコードや識別子を示す場合は、インラインなら ``example``、複数行のコードは ```python\n...\n``` のようにバッククォートでマークアップしてください。
         """
     )
 
