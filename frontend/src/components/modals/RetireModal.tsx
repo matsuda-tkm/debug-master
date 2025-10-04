@@ -15,7 +15,6 @@ interface RetireModalProps {
 
 function RetireModal({
   message,
-  explanation,
   onClose,
   challenge,
   userAnswer,
@@ -24,24 +23,35 @@ function RetireModal({
   testResults,
 }: RetireModalProps) {
   const navigate = useNavigate();
-  const [generatedExplanation, setGeneratedExplanation] = useState(explanation || '');
-  const [isLoadingExplanation, setIsLoadingExplanation] = useState(false);
+  const [generatedExplanation, setGeneratedExplanation] = useState('');
+  const [isLoadingExplanation, setIsLoadingExplanation] = useState(true);
   const [explanationError, setExplanationError] = useState('');
   const [hasFetchedExplanation, setHasFetchedExplanation] = useState(false);
 
-  // Retire flow also triggers a fresh explanation just like the success modal.
+  // Fetch retire-specific explanation; ignore any pre-fetched summary to avoid flicker.
   useEffect(() => {
     let isCancelled = false;
 
+    if (hasFetchedExplanation) {
+      return () => {
+        isCancelled = true;
+      };
+    }
+
     const hasContext = Boolean(
       (challenge?.instructions && challenge.instructions.trim()) ||
-      (challenge?.examples && challenge.examples.trim()) ||
-      (aiGeneratedCode && aiGeneratedCode.trim()) ||
-      (lastFailingCode && lastFailingCode.trim()) ||
-      (userAnswer && userAnswer.trim())
+        (challenge?.examples && challenge.examples.trim()) ||
+        (aiGeneratedCode && aiGeneratedCode.trim()) ||
+        (lastFailingCode && lastFailingCode.trim()) ||
+        (userAnswer && userAnswer.trim())
     );
 
-    if (hasFetchedExplanation || !hasContext) {
+    if (!hasContext) {
+      if (!isCancelled) {
+        setExplanationError('解説に必要な情報が不足しています。');
+        setIsLoadingExplanation(false);
+        setHasFetchedExplanation(true);
+      }
       return () => {
         isCancelled = true;
       };
@@ -79,22 +89,17 @@ function RetireModal({
         }
 
         if (!isCancelled) {
-          const merged = parts.join('\n\n');
-          setGeneratedExplanation((prev) => {
-            if (merged) {
-              return merged;
-            }
-            if (prev) {
-              return prev;
-            }
-            return explanation || '';
-          });
+          if (parts.length > 0) {
+            setGeneratedExplanation(parts.join('\n\n'));
+          } else {
+            setGeneratedExplanation('');
+            setExplanationError('解説の生成に失敗しました。');
+          }
         }
       } catch (error: unknown) {
         if (!isCancelled) {
-          setExplanationError(
-            error instanceof Error ? error.message : '解説の生成に失敗しました。'
-          );
+          setGeneratedExplanation('');
+          setExplanationError(error instanceof Error ? error.message : '解説の生成に失敗しました。');
         }
       } finally {
         if (!isCancelled) {
@@ -109,15 +114,7 @@ function RetireModal({
     return () => {
       isCancelled = true;
     };
-  }, [
-    aiGeneratedCode,
-    challenge,
-    explanation,
-    hasFetchedExplanation,
-    lastFailingCode,
-    testResults,
-    userAnswer,
-  ]);
+  }, [aiGeneratedCode, challenge, hasFetchedExplanation, lastFailingCode, testResults, userAnswer]);
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
@@ -134,20 +131,20 @@ function RetireModal({
         <div className="text-center mt-6 sm:mt-8">
           <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4 animate-wiggle">🎉 {message} 🎉</h2>
 
-          {(generatedExplanation || explanation) && (
-            <div className="mt-4 bg-slate-50 p-4 rounded-lg text-left">
-              <h3 className="text-lg font-semibold text-slate-800 mb-2">バグの説明:</h3>
-              <div className="text-slate-700 whitespace-pre-wrap text-sm">
-                {generatedExplanation || explanation}
-              </div>
-            </div>
-          )}
-
           {isLoadingExplanation && (
             <div className="mt-4 text-sm text-slate-600">解説を生成しています...</div>
           )}
 
-          {explanationError && (
+          {!isLoadingExplanation && generatedExplanation && (
+            <div className="mt-4 bg-slate-50 p-4 rounded-lg text-left">
+              <h3 className="text-lg font-semibold text-slate-800 mb-2">バグの説明:</h3>
+              <div className="text-slate-700 whitespace-pre-wrap text-sm">
+                {generatedExplanation}
+              </div>
+            </div>
+          )}
+
+          {!isLoadingExplanation && explanationError && (
             <div className="mt-4 text-sm text-pink-700 bg-pink-50 border border-pink-200 rounded px-3 py-2">
               {explanationError}
             </div>
@@ -176,3 +173,4 @@ function RetireModal({
 }
 
 export default RetireModal;
+
