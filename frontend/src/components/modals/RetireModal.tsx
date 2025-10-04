@@ -82,11 +82,14 @@ function RetireModal({
         }
 
         const parts: string[] = [];
-        if (typeof data?.reason === 'string' && data.reason.trim()) {
-          parts.push(`修正理由:\n${data.reason.trim()}`);
+        if (typeof data?.answer_code === 'string' && data.answer_code.trim()) {
+          parts.push(`## 正解コード\n\`\`\`python\n${data.answer_code.trim()}\n\`\`\``);
         }
-        if (typeof data?.explain_diff === 'string' && data.explain_diff.trim()) {
-          parts.push(`変更点:\n${data.explain_diff.trim()}`);
+        if (typeof data?.explanation === 'string' && data.explanation.trim()) {
+          parts.push(`## 解説\n${data.explanation.trim()}`);
+        }
+        if (typeof data?.advice === 'string' && data.advice.trim()) {
+          parts.push(`## アドバイス\n${data.advice.trim()}`);
         }
 
         if (!isCancelled) {

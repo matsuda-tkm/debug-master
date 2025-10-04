@@ -111,9 +111,9 @@ Input:
 
 Output JSON schema:
 {
-  "reason": string,        // 学習者がつまずいた主な理由、理解しきれていなかった考え方
-  "error_location": string, // エラーや問題が起きた可能性が高い箇所の説明（関数名・行・構文など）
-  "explain_diff": string   // 今後見直すべきポイントや改善のヒント（短く・箇条書き推奨）
+  "answer_code": string,  // AI生成コードを正しく修正したコード
+  "explanation": string, // 解説
+  "advice": string  // 学習者へのアドバイス
 }
 
 Constraints:
