@@ -352,6 +352,8 @@ function ChallengeEditor() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState('');
   const [explanation, setExplanation] = useState('');
+  const [aiGeneratedCode, setAiGeneratedCode] = useState('');
+  const [lastFailingCode, setLastFailingCode] = useState('');
   const [hintLevels, setHintLevels] = useState<HintLevel[]>([]);
   const [unlockedHintLevel, setUnlockedHintLevel] = useState(0);
   const [isHintOpen, setIsHintOpen] = useState(false);
@@ -1121,6 +1123,18 @@ function ChallengeEditor() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 flex flex-col relative overflow-hidden">
+      {showSuccessModal && (
+        <SuccessModal
+          message="おめでとう！バグ修正に成功 🎉"
+          explanation={explanation}
+          challenge={challenge}
+          userAnswer={code}
+          lastFailingCode={lastFailingCode}
+          aiGeneratedCode={aiGeneratedCode}
+          testResults={testResults}
+          onClose={() => setShowSuccessModal(false)}
+        />
+      )}
       {/* Floating character */}
       <div className="fixed bottom-6 right-6 z-40">
         <button
