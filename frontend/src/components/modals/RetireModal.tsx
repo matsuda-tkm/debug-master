@@ -1,6 +1,6 @@
+import { ChevronRight} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, PartyPopper, SettingsIcon as Confetti } from 'lucide-react';
 import Markdown from '../Markdown';
 
 interface RetireModalProps {
@@ -123,17 +123,8 @@ function RetireModal({
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
       <div className="bg-white rounded-xl shadow-2xl p-6 sm:p-8 w-full mx-4 my-6 relative animate-success max-w-3xl md:max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-          <div className="relative">
-            <Confetti className="w-12 h-12 text-yellow-400 animate-bounce animate-rainbow" />
-            <PartyPopper
-              className="w-12 h-12 text-pink-500 absolute top-0 left-0 animate-sparkle"
-            />
-          </div>
-        </div>
-
         <div className="text-center mt-6 sm:mt-8">
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4 animate-wiggle">🎉 {message} 🎉</h2>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-purple-600 bg-clip-text text-transparent mb-4">☕️ {message} ☕️</h2>
 
           {isLoadingExplanation && (
             <div className="mt-4 text-sm text-slate-600">解説を生成しています...</div>
@@ -141,7 +132,6 @@ function RetireModal({
 
           {!isLoadingExplanation && generatedExplanation && (
             <div className="mt-4 bg-slate-50 p-4 rounded-lg text-left">
-              <h3 className="text-lg font-semibold text-slate-800 mb-2">バグの説明:</h3>
               <Markdown content={generatedExplanation} className="text-slate-700 text-sm space-y-2" />
             </div>
           )}

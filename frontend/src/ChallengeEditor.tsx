@@ -1384,7 +1384,7 @@ function ChallengeEditor() {
       )}
       {showRetireModal && (
         <RetireModal
-          message="リタイアしますか？"
+          message="課題の解答と解説"
           explanation={explanation}
           challenge={challenge}
           userAnswer={code}

@@ -1,146 +1,134 @@
-import React from 'react';
+import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import remarkGfm from 'remark-gfm';
 
 type MarkdownProps = {
   content: string | undefined | null;
   className?: string;
 };
 
-// Very small, safe Markdown renderer (subset):
-// - Headings (# .. ######)
-// - Bullet lists (- , *)
-// - Code fence ``` ... ```
-// - Inline code `code`
-// - Bold **strong** and italic *em*
-// - Paragraphs and line breaks
-// Escapes HTML first, then injects our limited tags.
 export default function Markdown({ content, className }: MarkdownProps) {
   const text = content ?? '';
 
-  const escapeHtml = (s: string) =>
-    s
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-
-  // Convert inline markdown within a single line of already-escaped HTML
-  const renderInline = (line: string) => {
-    // Inline code
-    let html = line.replace(/`([^`]+)`/g, (_m, p1) => `<code class="px-1 py-0.5 bg-slate-100 rounded">${p1}</code>`);
-    // Bold
-    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    // Italic (single *) - avoid interfering with bold
-    html = html.replace(/(^|[^*])\*([^*]+)\*(?!\*)/g, (_m, p1, p2) => `${p1}<em>${p2}</em>`);
-    return html;
-  };
-
-  const lines = text.split(/\r?\n/);
-  const out: React.ReactNode[] = [];
-  let i = 0;
-  let listBuffer: string[] = [];
-  let paraBuffer: string[] = [];
-  let inCode = false;
-  let codeBuffer: string[] = [];
-
-  const flushList = () => {
-    if (!listBuffer.length) return;
-    out.push(
-      <ul key={`ul-${out.length}`} className="list-disc pl-6 my-2">
-        {listBuffer.map((item, idx) => (
-          <li key={idx} dangerouslySetInnerHTML={{ __html: renderInline(escapeHtml(item)) }} />
-        ))}
-      </ul>
-    );
-    listBuffer = [];
-  };
-
-  const flushPara = () => {
-    if (!paraBuffer.length) return;
-    const joined = paraBuffer.join(' ');
-    out.push(
-      <p key={`p-${out.length}`} className="my-2" dangerouslySetInnerHTML={{ __html: renderInline(escapeHtml(joined)) }} />
-    );
-    paraBuffer = [];
-  };
-
-  const flushCode = () => {
-    if (!codeBuffer.length) return;
-    out.push(
-      <pre key={`pre-${out.length}`} className="my-3 p-3 bg-slate-900 text-slate-100 rounded overflow-auto text-sm"><code>{codeBuffer.join('\n')}</code></pre>
-    );
-    codeBuffer = [];
-  };
-
-  while (i < lines.length) {
-    const raw = lines[i];
-    if (raw.trim().startsWith('```')) {
-      if (inCode) {
-        // closing fence
-        inCode = false;
-        flushCode();
-      } else {
-        // opening fence
-        flushPara();
-        flushList();
-        inCode = true;
-      }
-      i++;
-      continue;
-    }
-
-    if (inCode) {
-      codeBuffer.push(raw);
-      i++;
-      continue;
-    }
-
-    const mHeading = raw.match(/^(#{1,6})\s+(.*)$/);
-    if (mHeading) {
-      flushPara();
-      flushList();
-      const level = Math.min(6, mHeading[1].length);
-      const inner = renderInline(escapeHtml(mHeading[2]));
-      const Tag = `h${level}` as keyof JSX.IntrinsicElements;
-      out.push(
-        <Tag key={`h-${out.length}`} className={`mt-3 mb-1 font-bold ${level <= 2 ? 'text-lg' : level === 3 ? 'text-base' : 'text-sm'}`}
-            dangerouslySetInnerHTML={{ __html: inner }} />
-      );
-      i++;
-      continue;
-    }
-
-    const mList = raw.match(/^\s*[-*]\s+(.*)$/);
-    if (mList) {
-      flushPara();
-      listBuffer.push(mList[1]);
-      i++;
-      // If next line isn't a list, we'll flush later
-      // handled by next iterations
-      const next = lines[i] ?? '';
-      if (!/^\s*[-*]\s+/.test(next)) {
-        flushList();
-      }
-      continue;
-    }
-
-    if (raw.trim() === '') {
-      flushPara();
-      flushList();
-      i++;
-      continue;
-    }
-
-    // Paragraph text
-    paraBuffer.push(raw.trim());
-    i++;
-  }
-
-  // Flush any remaining buffers
-  flushPara();
-  flushList();
-  if (inCode) flushCode();
-
-  return <div className={className}>{out}</div>;
+  return (
+    <div className={className}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          // コードブロックのカスタムレンダリング
+          code({ node, className, children, ...props }: any) {
+            const match = /language-(\w+)/.exec(className || '');
+            const language = match ? match[1] : '';
+            const isInline = !match;
+            
+            if (!isInline && language) {
+              return (
+                <SyntaxHighlighter
+                  style={oneDark as any}
+                  language={language}
+                  PreTag="div"
+                  className="my-3 rounded overflow-auto text-sm"
+                  {...props}
+                >
+                  {String(children).replace(/\n$/, '')}
+                </SyntaxHighlighter>
+              );
+            }
+            
+            // インラインコード
+            return (
+              <code className="px-1 py-0.5 bg-slate-100 rounded text-sm" {...props}>
+                {children}
+              </code>
+            );
+          },
+          
+          // 見出しのスタイリング
+          h1: ({ children }) => (
+            <h1 className="mt-3 mb-1 font-bold text-lg">{children}</h1>
+          ),
+          h2: ({ children }) => (
+            <h2 className="mt-3 mb-1 font-bold text-lg">{children}</h2>
+          ),
+          h3: ({ children }) => (
+            <h3 className="mt-3 mb-1 font-bold text-base">{children}</h3>
+          ),
+          h4: ({ children }) => (
+            <h4 className="mt-3 mb-1 font-bold text-sm">{children}</h4>
+          ),
+          h5: ({ children }) => (
+            <h5 className="mt-3 mb-1 font-bold text-sm">{children}</h5>
+          ),
+          h6: ({ children }) => (
+            <h6 className="mt-3 mb-1 font-bold text-sm">{children}</h6>
+          ),
+          
+          // 段落のスタイリング
+          p: ({ children }) => (
+            <p className="my-2">{children}</p>
+          ),
+          
+          // リストのスタイリング
+          ul: ({ children }) => (
+            <ul className="list-disc pl-6 my-2">{children}</ul>
+          ),
+          ol: ({ children }) => (
+            <ol className="list-decimal pl-6 my-2">{children}</ol>
+          ),
+          li: ({ children }) => (
+            <li className="my-1">{children}</li>
+          ),
+          
+          // テーブルのスタイリング
+          table: ({ children }) => (
+            <div className="overflow-x-auto my-3">
+              <table className="min-w-full border-collapse border border-gray-300">
+                {children}
+              </table>
+            </div>
+          ),
+          thead: ({ children }) => (
+            <thead className="bg-gray-50">{children}</thead>
+          ),
+          tbody: ({ children }) => (
+            <tbody>{children}</tbody>
+          ),
+          tr: ({ children }) => (
+            <tr className="border-b border-gray-200">{children}</tr>
+          ),
+          th: ({ children }) => (
+            <th className="border border-gray-300 px-3 py-2 text-left font-semibold">
+              {children}
+            </th>
+          ),
+          td: ({ children }) => (
+            <td className="border border-gray-300 px-3 py-2">{children}</td>
+          ),
+          
+          // ブロッククォートのスタイリング
+          blockquote: ({ children }) => (
+            <blockquote className="border-l-4 border-gray-300 pl-4 my-3 italic text-gray-600">
+              {children}
+            </blockquote>
+          ),
+          
+          // リンクのスタイリング
+          a: ({ href, children }) => (
+            <a 
+              href={href} 
+              className="text-blue-600 hover:text-blue-800 underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {children}
+            </a>
+          ),
+        }}
+      >
+        {text}
+      </ReactMarkdown>
+    </div>
+  );
 }
 
