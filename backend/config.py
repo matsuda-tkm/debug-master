@@ -27,13 +27,16 @@ Next, come up with exactly 3 buggy implementations, their corrected versions, an
 
 Format it as a JSON object, where each object contains the following keys: 'code', 'fixed_code', and 'explanation':
 {
-"reasoning": "Reasoning about the bugs",
-"content":
-[{ "code": ...,
-"fixed_code": ...,
-"explanation": ... }]
+    "reasoning": "Reasoning about the bugs",
+    "content":[
+        {
+            "code": ...,
+            "fixed_code": ...,
+            "explanation": ...,
+        }
+    ]
 }
-'explanation' should be Japanese text explaining the bug and the fix.
+'explanation' should be **Japanese text** explaining the bug and the fix.
 
 Implement only this function with various bugs that AI may make, incorporating the bugs you reasoned about.
 Each program should contain bugs that does not pass the test cases. Make them as diverse as possible.
