@@ -1,29 +1,30 @@
-import { useState, useEffect, useMemo, useRef, useCallback, type ReactNode } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import {
-  Code2,
-  Bug,
-  BookOpen,
-  ChevronRight,
-  ThumbsUp,
-  Terminal,
-  PlayCircle,
-  XCircle,
-  CheckCircle,
-  PartyPopper,
-  SettingsIcon as Confetti,
-  Wand2,
-  Lightbulb,
-  X
-} from 'lucide-react';
-import { challengeService } from './services/challengeService';
-import Markdown from './components/Markdown';
-import { Challenge } from './types/challenge';
-import CodeMirror from '@uiw/react-codemirror';
 import { python } from '@codemirror/lang-python';
-import { oneDark } from '@codemirror/theme-one-dark';
 import { indentUnit } from '@codemirror/language';
+import { oneDark } from '@codemirror/theme-one-dark';
+import CodeMirror from '@uiw/react-codemirror';
+import {
+  BookOpen,
+  Bug,
+  CheckCircle,
+  ChevronRight,
+  Code2,
+  SettingsIcon as Confetti,
+  Lightbulb,
+  PartyPopper,
+  PlayCircle,
+  Terminal,
+  ThumbsUp,
+  Wand2,
+  X,
+  XCircle
+} from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import Markdown from './components/Markdown';
+import RetireConfirmationModal from './components/modals/RetireConfirmationModal';
 import RetireModal from './components/modals/RetireModal';
+import { challengeService } from './services/challengeService';
+import { Challenge } from './types/challenge';
 
 
 type HintLevel = {
@@ -366,6 +367,7 @@ function ChallengeEditor() {
     const [visibleHintLevel, setVisibleHintLevel] = useState<number | null>(null);
     const [isHintContentVisible, setIsHintContentVisible] = useState(false);
     const [showRetireModal, setShowRetireModal] = useState(false);
+    const [showRetireConfirmationModal, setShowRetireConfirmationModal] = useState(false);
     
   const hintDialogRef = useRef<HTMLDivElement | null>(null);
   const hintHeadingRef = useRef<HTMLHeadingElement | null>(null);
@@ -1131,8 +1133,13 @@ function ChallengeEditor() {
     setShowVideoModal(true);
   };
 
-  const handleOpenRetire = () => setShowRetireModal(true);
+  const handleOpenRetire = () => setShowRetireConfirmationModal(true);
   const handleCloseRetire = () => setShowRetireModal(false);
+  const handleConfirmRetire = () => {
+    setShowRetireConfirmationModal(false);
+    setShowRetireModal(true);
+  };
+  const handleCancelRetire = () => setShowRetireConfirmationModal(false);
 
   if (loading) {
     return (
@@ -1380,6 +1387,12 @@ function ChallengeEditor() {
         <VideoModal
           videoSrc={currentVideo}
           onClose={() => setShowVideoModal(false)}
+        />
+      )}
+      {showRetireConfirmationModal && (
+        <RetireConfirmationModal
+          onConfirm={handleConfirmRetire}
+          onCancel={handleCancelRetire}
         />
       )}
       {showRetireModal && (
