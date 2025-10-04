@@ -130,9 +130,7 @@ function SuccessModal({
           {explanation && (
             <div className="mt-4 bg-slate-50 p-4 rounded-lg text-left">
               <h3 className="text-lg font-semibold text-slate-800 mb-2">バグの説明（AI生成の要約）</h3>
-              <div className="text-slate-700 whitespace-pre-wrap text-sm">
-                {explanation}
-              </div>
+              <Markdown content={explanation} className="text-slate-700 text-sm space-y-2" />
             </div>
           )}
 

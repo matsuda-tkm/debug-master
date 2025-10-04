@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, PartyPopper, SettingsIcon as Confetti } from 'lucide-react';
+import Markdown from '../Markdown';
 
 interface RetireModalProps {
   message: string;
@@ -138,9 +139,7 @@ function RetireModal({
           {!isLoadingExplanation && generatedExplanation && (
             <div className="mt-4 bg-slate-50 p-4 rounded-lg text-left">
               <h3 className="text-lg font-semibold text-slate-800 mb-2">バグの説明:</h3>
-              <div className="text-slate-700 whitespace-pre-wrap text-sm">
-                {generatedExplanation}
-              </div>
+              <Markdown content={generatedExplanation} className="text-slate-700 text-sm space-y-2" />
             </div>
           )}
 
@@ -173,4 +172,3 @@ function RetireModal({
 }
 
 export default RetireModal;
-
