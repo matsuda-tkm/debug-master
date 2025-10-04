@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Code2,
   Bug,
-  Trophy,
   BookOpen,
   ChevronRight,
   ThumbsUp,
@@ -14,7 +13,6 @@ import {
   PartyPopper,
   SettingsIcon as Confetti,
   Wand2,
-  Lightbulb
 } from 'lucide-react';
 import { challengeService } from './services/challengeService';
 import Markdown from './components/Markdown';
@@ -24,8 +22,27 @@ import { python } from '@codemirror/lang-python';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { indentUnit } from '@codemirror/language';
 
+interface SuccessModalProps {
+  message: string;
+  explanation: string;
+  onClose: () => void;
+  challenge: Challenge;
+  userAnswer: string;
+  lastFailingCode: string;
+  aiGeneratedCode: string;
+  testResults: any;
+}
 
-function SuccessModal({ message, explanation, onClose, challenge, userAnswer, lastFailingCode, aiGeneratedCode, testResults }) {
+function SuccessModal({
+  message,
+  explanation,
+  onClose,
+  challenge,
+  userAnswer,
+  lastFailingCode,
+  aiGeneratedCode,
+  testResults
+}: SuccessModalProps) {
   const navigate = useNavigate();
   const [openDetail, setOpenDetail] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
