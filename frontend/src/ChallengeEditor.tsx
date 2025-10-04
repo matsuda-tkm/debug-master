@@ -145,6 +145,7 @@ function ChallengeEditor() {
   const [currentVideo, setCurrentVideo] = useState('');
   const [currentStep, setCurrentStep] = useState(1);
   const [visibleHintLevel, setVisibleHintLevel] = useState<number | null>(null);
+  const [isHintContentVisible, setIsHintContentVisible] = useState(false);
 
   const hintDialogRef = useRef<HTMLDivElement | null>(null);
   const hintHeadingRef = useRef<HTMLHeadingElement | null>(null);
@@ -253,7 +254,8 @@ function ChallengeEditor() {
           nodes.push(
             <code
               key={`${keyPrefix}-code-${index}`}
-              className="mx-1 rounded bg-slate-900/80 px-1.5 py-0.5 font-mono text-xs text-white"
+              className="mx-1 rounded bg-slate-900/80 px-1.5 py-0.5 font-mono text-xs text-white break-words"
+              style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
             >
               {segment.slice(trimLength, -trimLength)}
             </code>
@@ -298,9 +300,13 @@ function ChallengeEditor() {
       nodes.push(
         <pre
           key={`block-${blockIndex}`}
-          className="my-3 overflow-x-auto rounded-lg bg-slate-900/90 p-3 text-xs text-slate-100 whitespace-pre"
+          className="my-3 max-h-48 overflow-y-auto rounded-lg bg-slate-900/90 p-3 text-xs text-slate-100 whitespace-pre-wrap break-words"
+          style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
         >
-          <code className={language ? `language-${language.toLowerCase()}` : undefined}>
+          <code
+            className={language ? `language-${language.toLowerCase()}` : undefined}
+            style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+          >
             {normalizedCode}
           </code>
         </pre>
@@ -318,110 +324,171 @@ function ChallengeEditor() {
     return nodes.length ? nodes : null;
   }, [activeHint?.content, renderInlineSegments]);
 
+  useEffect(() => {
+    if (isLoadingHints || !activeHint?.content) {
+      setIsHintContentVisible(false);
+      return;
+    }
+
+    setIsHintContentVisible(false);
+    const timeoutId = window.setTimeout(() => {
+      setIsHintContentVisible(true);
+    }, 10);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      setIsHintContentVisible(false);
+    };
+  }, [activeHint?.content, activeHint?.level, isLoadingHints]);
+
   const closeHint = useCallback(() => {
     setIsHintOpen(false);
     setIsFinalHintConfirmVisible(false);
   }, []);
 
-  const loadHints = useCallback(async () => {
-    if (!challenge) {
-      return false;
-    }
-    if (hintLevels.length) {
-      return true;
-    }
+  const loadHints = useCallback(
+    async (
+      options: {
+        force?: boolean;
+        resetProgress?: boolean;
+        targetLevel?: number;
+      } = {}
+    ) => {
+      const { force = false, resetProgress = false, targetLevel } = options;
 
-    setIsLoadingHints(true);
-    setHintError('');
-
-    try {
-      const response = await fetch('http://localhost:8000/api/generate-hint', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code,
-          instructions: challenge.instructions,
-          examples: challenge.examples,
-          testResults,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        const message =
-          typeof data?.error === 'string'
-            ? data.error
-            : typeof data?.detail === 'string'
-            ? data.detail
-            : 'ヒントの生成中にエラーが発生しました。';
-        setHintError(message);
+      if (!challenge) {
         return false;
       }
+      if (!force && hintLevels.length) {
+        return true;
+      }
 
-      const rawHints = Array.isArray(data?.hints) ? data.hints : [];
-      const sanitizedHints = rawHints
-        .map((item: any) => {
-          const levelValue = Number(item?.level);
-          if (!Number.isFinite(levelValue)) {
-            return null;
-          }
-          const contentValue =
-            typeof item?.content === 'string' ? item.content.trim() : '';
-          if (!contentValue) {
-            return null;
-          }
-          const titleValue =
-            typeof item?.title === 'string' && item.title.trim().length > 0
-              ? item.title.trim()
-              : undefined;
-          return {
-            level: levelValue,
-            title: titleValue,
-            content: contentValue,
-          } as HintLevel;
-        })
-        .filter((item): item is HintLevel => Boolean(item));
+      setIsLoadingHints(true);
+      setHintError('');
 
-      const seen = new Set<number>();
-      const uniqueHints = sanitizedHints.filter((item) => {
-        if (seen.has(item.level)) {
+      try {
+        const response = await fetch('http://localhost:8000/api/generate-hint', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code,
+            instructions: challenge.instructions,
+            examples: challenge.examples,
+            testResults,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          const message =
+            typeof data?.error === 'string'
+              ? data.error
+              : typeof data?.detail === 'string'
+              ? data.detail
+              : 'ヒントの生成中にエラーが発生しました。';
+          setHintError(message);
           return false;
         }
-        seen.add(item.level);
-        return item.level >= 1 && item.level <= HINT_LEVEL_COUNT;
-      });
 
-      const preparedHints = uniqueHints.sort((a, b) => a.level - b.level);
+        const rawHints = Array.isArray(data?.hints) ? data.hints : [];
+        const sanitizedHints = rawHints
+          .map((item: any) => {
+            const levelValue = Number(item?.level);
+            if (!Number.isFinite(levelValue)) {
+              return null;
+            }
+            const contentValue =
+              typeof item?.content === 'string' ? item.content.trim() : '';
+            if (!contentValue) {
+              return null;
+            }
+            const titleValue =
+              typeof item?.title === 'string' && item.title.trim().length > 0
+                ? item.title.trim()
+                : undefined;
+            return {
+              level: levelValue,
+              title: titleValue,
+              content: contentValue,
+            } as HintLevel;
+          })
+          .filter((item): item is HintLevel => Boolean(item));
 
-      if (!preparedHints.length) {
-        setHintError('ヒントが取得できませんでした。');
+        const seen = new Set<number>();
+        const uniqueHints = sanitizedHints.filter((item) => {
+          if (seen.has(item.level)) {
+            return false;
+          }
+          seen.add(item.level);
+          return item.level >= 1 && item.level <= HINT_LEVEL_COUNT;
+        });
+
+        const preparedHints = uniqueHints.sort((a, b) => a.level - b.level);
+
+        if (!preparedHints.length) {
+          setHintError('ヒントが取得できませんでした。');
+          return false;
+        }
+
+        if (
+          typeof targetLevel === 'number' &&
+          hintLevels.length > 0 &&
+          !resetProgress
+        ) {
+          const targetHint = preparedHints.find(
+            (item) => item.level === targetLevel
+          );
+
+          if (!targetHint) {
+            setHintError('指定レベルのヒントが取得できませんでした。');
+            return false;
+          }
+
+          setHintLevels((prev) => {
+            const filtered = prev.filter((item) => item.level !== targetLevel);
+            return [...filtered, targetHint].sort((a, b) => a.level - b.level);
+          });
+          setUnlockedHintLevel((prev) =>
+            prev < targetLevel ? targetLevel : prev
+          );
+          setVisibleHintLevel(targetLevel);
+
+          return true;
+        }
+
+        const firstLevel = preparedHints[0]?.level ?? 1;
+
+        setHintLevels(preparedHints);
+        setUnlockedHintLevel((prev) => {
+          if (!resetProgress && prev > 0) {
+            return prev;
+          }
+          return firstLevel;
+        });
+        setVisibleHintLevel((prev) => {
+          const canKeepCurrent =
+            !resetProgress &&
+            prev !== null &&
+            preparedHints.some((item) => item.level === prev);
+
+          if (canKeepCurrent) {
+            return prev;
+          }
+          return firstLevel;
+        });
+
+        return true;
+      } catch (error) {
+        console.error('Error generating hint:', error);
+        setHintError('ヒント生成サービスへの接続に失敗しました。');
         return false;
+      } finally {
+        setIsLoadingHints(false);
       }
-
-      setHintLevels(preparedHints);
-      setUnlockedHintLevel((prev) => {
-        if (prev > 0) {
-          return prev;
-        }
-        return preparedHints[0]?.level ?? 1;
-      });
-      setVisibleHintLevel((prev) => {
-        if (prev && preparedHints.some((item) => item.level === prev)) {
-          return prev;
-        }
-        return preparedHints[0]?.level ?? null;
-      });
-
-      return true;
-    } catch (error) {
-      console.error('Error generating hint:', error);
-      setHintError('ヒント生成サービスへの接続に失敗しました。');
-      return false;
-    } finally {
-      setIsLoadingHints(false);
-    }
-  }, [challenge, hintLevels.length, code, testResults]);
+    },
+    [challenge, hintLevels.length, code, testResults]
+  );
 
   const handleHintButtonClick = async () => {
     if (!challenge) {
@@ -455,6 +522,35 @@ function ChallengeEditor() {
     setIsFinalHintConfirmVisible(false);
     setIsHintOpen(true);
   };
+
+  const handleResetHints = useCallback(async () => {
+    if (!challenge || !activeHint) {
+      return;
+    }
+
+    setHintError('');
+    setIsFinalHintConfirmVisible(false);
+
+    if (hintStorageKey && typeof window !== 'undefined') {
+      try {
+        window.localStorage.removeItem(hintStorageKey);
+      } catch (error) {
+        console.error('Failed to clear hint cache:', error);
+      }
+    }
+
+    const hintsLoaded = await loadHints({
+      force: true,
+      resetProgress: false,
+      targetLevel: activeHint.level,
+    });
+
+    if (!hintsLoaded) {
+      return;
+    }
+
+    setIsHintOpen(true);
+  }, [challenge, activeHint, hintStorageKey, loadHints]);
 
   const handleRequestAdditionalHint = () => {
     if (!nextHintLevel) {
@@ -824,11 +920,14 @@ function ChallengeEditor() {
           <img
             src="/images/character.png"
             alt="プログラミング助手"
-            className="relative z-10 w-full h-full object-contain animate-float group-hover:animate-wiggle group-hover:scale-110 transition-transform duration-300 drop-shadow-lg"
+            className={`relative z-10 w-full h-full object-contain animate-float group-hover:animate-wiggle group-hover:scale-110 transition-transform duration-300 drop-shadow-lg ${
+              isLoadingHints ? 'opacity-60 blur-sm' : ''
+            }`}
           />
           {isLoadingHints && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center">
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 rounded-full bg-slate-900/40">
               <div className="w-10 h-10 border-4 border-pink-400 border-t-transparent rounded-full animate-spin" />
+              <span className="text-xs font-semibold text-white drop-shadow">生成中...</span>
             </div>
           )}
           <div className="absolute -top-1 -right-1 z-30">
@@ -940,7 +1039,7 @@ function ChallengeEditor() {
                       aria-labelledby="hint-popover-title"
                       aria-describedby="hint-popover-description"
                       id="hint-popover"
-                      className="relative z-10 w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl md:p-8"
+                      className="relative z-10 w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl md:p-8 max-h-[85vh] overflow-y-auto"
                     >
                       <div className="flex justify-end">
                         <button
@@ -962,22 +1061,46 @@ function ChallengeEditor() {
                         </div>
                         <div className="relative flex-1 rounded-2xl bg-indigo-50 p-5 md:p-6">
                           <div className="absolute -left-3 top-1/2 hidden h-6 w-6 -translate-y-1/2 rotate-45 bg-indigo-50 md:block" />
-                          <div className="flex flex-col gap-4">
-                            <div className="flex flex-wrap items-center justify-between gap-3 text-indigo-900">
-                              <div className="flex items-center gap-2">
-                                <Lightbulb className="h-5 w-5" />
+                            <div className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-3 text-indigo-900 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="flex items-center gap-2 min-w-0 sm:flex-1">
+                                <Lightbulb className="h-5 w-5 flex-shrink-0" />
                                 <h2
                                   id="hint-popover-title"
                                   ref={hintHeadingRef}
                                   tabIndex={-1}
-                                  className="text-lg font-bold"
+                                  className="text-lg font-bold whitespace-normal break-words leading-snug"
+                                  style={{ overflowWrap: 'anywhere' }}
                                 >
                                   レベル {activeHint.level}: {activeHintTitle}
                                 </h2>
                               </div>
-                              <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-indigo-500">
-                                レベル {activeHint.level} / {highestHintLevel}
-                              </span>
+                              <div className="flex flex-shrink-0 items-center gap-2 whitespace-nowrap">
+                                <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-indigo-500 whitespace-nowrap">
+                                  レベル {activeHint.level} / {highestHintLevel}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={handleResetHints}
+                                  disabled={isLoadingHints}
+                                  className={`inline-flex items-center gap-2 rounded-lg border border-indigo-300 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition whitespace-nowrap ${
+                                    isLoadingHints
+                                      ? 'cursor-not-allowed opacity-70'
+                                      : 'hover:bg-indigo-100'
+                                  }`}
+                                >
+                                  {isLoadingHints ? (
+                                    <>
+                                      <span className="inline-flex h-3 w-3 items-center justify-center">
+                                        <span className="h-3 w-3 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
+                                      </span>
+                                      生成中...
+                                    </>
+                                  ) : (
+                                    'ヒントを再生成'
+                                  )}
+                                </button>
+                              </div>
                             </div>
                             {unlockedHintLevels.length > 1 && (
                               <div className="flex flex-wrap gap-2" role="list">
@@ -1003,9 +1126,29 @@ function ChallengeEditor() {
                             )}
                             <div
                               id="hint-popover-description"
-                              className="mt-4 rounded-xl bg-white/80 p-4 text-sm leading-relaxed text-slate-700 whitespace-pre-wrap"
+                              className="mt-4 rounded-xl bg-white/80 p-4 text-sm leading-relaxed text-slate-700 whitespace-pre-wrap break-words max-h-[50vh] overflow-y-auto overflow-x-hidden"
+                              style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
                             >
-                              {renderedHintContent ?? activeHint?.content}
+                              {isLoadingHints ? (
+                                <div className="space-y-3">
+                                  <div className="h-3 w-3/4 rounded bg-slate-200/80 animate-pulse" />
+                                  <div className="h-3 w-full rounded bg-slate-200/70 animate-pulse" />
+                                  <div className="h-3 w-5/6 rounded bg-slate-200/60 animate-pulse" />
+                                </div>
+                              ) : (
+                                <div
+                                  key={activeHint ? `${activeHint.level}-${activeHint.content}` : 'empty'}
+                                  className="break-words w-full"
+                                  style={{
+                                    opacity: isHintContentVisible ? 1 : 0,
+                                    transition: 'opacity 150ms ease-out',
+                                    overflowWrap: 'anywhere',
+                                    wordBreak: 'break-word',
+                                  }}
+                                >
+                                  {renderedHintContent ?? activeHint?.content}
+                                </div>
+                              )}
                             </div>
                           </div>
 
