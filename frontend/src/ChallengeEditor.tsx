@@ -971,6 +971,31 @@ function ChallengeEditor() {
   }, [isHintOpen, closeHint, normalizedUnlockedLevel, visibleHintLevel, isFinalHintConfirmVisible]);
 
   useEffect(() => {
+    if (typeof document === 'undefined') {
+      return undefined;
+    }
+
+    if (!isHintOpen) {
+      return undefined;
+    }
+
+    const { body } = document;
+    const previousOverflow = body.style.overflow;
+    const previousPaddingRight = body.style.paddingRight;
+    const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+    if (scrollBarWidth > 0) {
+      body.style.paddingRight = `${scrollBarWidth}px`;
+    }
+    body.style.overflow = 'hidden';
+
+    return () => {
+      body.style.overflow = previousOverflow;
+      body.style.paddingRight = previousPaddingRight;
+    };
+  }, [isHintOpen]);
+
+  useEffect(() => {
     if (!nextHintLevel) {
       setIsFinalHintConfirmVisible(false);
     }
@@ -1135,6 +1160,180 @@ function ChallengeEditor() {
           onClose={() => setShowSuccessModal(false)}
         />
       )}
+      {isHintOpen && activeHint && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center px-4 py-8">
+          <div
+            className="absolute inset-0 bg-black/80"
+            onClick={closeHint}
+            aria-hidden="true"
+          />
+          <div
+            ref={hintDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="hint-popover-title"
+            aria-describedby="hint-popover-description"
+            id="hint-popover"
+            className="relative z-10 w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl md:p-8 max-h-[85vh] overflow-y-auto"
+          >
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={closeHint}
+                className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500 text-white shadow transition hover:bg-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+                aria-label="ヒントを閉じる"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mt-2 flex flex-col gap-6 md:mt-4 md:flex-row">
+              <div className="mx-auto w-40 flex-shrink-0 md:mx-0 md:w-48">
+                <img
+                  src="/images/character.png"
+                  alt="プログラミング助手"
+                  className="h-full w-full object-contain"
+                />
+              </div>
+              <div className="relative flex-1 rounded-2xl bg-indigo-50 p-5 md:p-6">
+                <div className="absolute -left-3 top-1/2 hidden h-6 w-6 -translate-y-1/2 rotate-45 bg-indigo-50 md:block" />
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-3 text-indigo-900 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-2 min-w-0 sm:flex-1">
+                      <Lightbulb className="h-5 w-5 flex-shrink-0" />
+                      <h2
+                        id="hint-popover-title"
+                        ref={hintHeadingRef}
+                        tabIndex={-1}
+                        className="text-lg font-bold whitespace-normal break-words leading-snug"
+                        style={{ overflowWrap: 'anywhere' }}
+                      >
+                        レベル {activeHint.level}: {activeHintTitle}
+                      </h2>
+                    </div>
+                    <div className="flex flex-shrink-0 items-center gap-2 whitespace-nowrap">
+                      <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-indigo-500 whitespace-nowrap">
+                        レベル {activeHint.level} / {highestHintLevel}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleResetHints}
+                        disabled={isLoadingHints}
+                        className={`inline-flex items-center gap-2 rounded-lg border border-indigo-300 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition whitespace-nowrap ${
+                          isLoadingHints
+                            ? 'cursor-not-allowed opacity-70'
+                            : 'hover:bg-indigo-100'
+                        }`}
+                      >
+                        {isLoadingHints ? (
+                          <>
+                            <span className="inline-flex h-3 w-3 items-center justify-center">
+                              <span className="h-3 w-3 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
+                            </span>
+                            生成中...
+                          </>
+                        ) : (
+                          'ヒントを再生成'
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  {unlockedHintLevels.length > 1 && (
+                    <div className="flex flex-wrap gap-2" role="list">
+                      {unlockedHintLevels.map((hintLevel) => {
+                        const isActive = hintLevel.level === activeHint.level;
+                        return (
+                          <button
+                            key={hintLevel.level}
+                            type="button"
+                            onClick={() => setVisibleHintLevel(hintLevel.level)}
+                            className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                              isActive
+                                ? 'border-indigo-500 bg-white text-indigo-700 shadow'
+                                : 'border-transparent bg-indigo-200/70 text-indigo-700 hover:bg-indigo-200'
+                            }`}
+                            aria-current={isActive ? 'true' : undefined}
+                          >
+                            レベル {hintLevel.level}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <div
+                    id="hint-popover-description"
+                    className="mt-4 rounded-xl bg-white/80 p-4 text-sm leading-relaxed text-slate-700 whitespace-pre-wrap break-words max-h-[50vh] overflow-y-auto overflow-x-hidden"
+                    style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+                  >
+                    {isLoadingHints ? (
+                      <div className="space-y-3">
+                        <div className="h-3 w-3/4 rounded bg-slate-200/80 animate-pulse" />
+                        <div className="h-3 w-full rounded bg-slate-200/70 animate-pulse" />
+                        <div className="h-3 w-5/6 rounded bg-slate-200/60 animate-pulse" />
+                      </div>
+                    ) : (
+                      <div
+                        key={activeHint ? `${activeHint.level}-${activeHint.content}` : 'empty'}
+                        className="break-words w-full"
+                        style={{
+                          opacity: isHintContentVisible ? 1 : 0,
+                          transition: 'opacity 150ms ease-out',
+                          overflowWrap: 'anywhere',
+                          wordBreak: 'break-word',
+                        }}
+                      >
+                        {renderedHintContent ?? activeHint?.content}
+                      </div>
+                    )}
+                  </div>
+
+                  {isFinalHintConfirmVisible ? (
+                    <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                      <p className="font-semibold mb-2">最終ヒントはほぼ答えです。</p>
+                      <p className="mb-3">本当に表示しますか？</p>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                        <button
+                          type="button"
+                          onClick={handleCancelFinalHint}
+                          className="rounded-lg border border-amber-300 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-100"
+                        >
+                          やめる
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleConfirmFinalHint}
+                          ref={finalHintConfirmButtonRef}
+                          className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-600 whitespace-nowrap"
+                        >
+                          最終ヒントを表示
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="text-xs text-indigo-700 sm:max-w-[240px] sm:flex-shrink-0">
+                        {nextHintLevel
+                          ? `さらに詳しいヒントがレベル${nextHintLevel}で利用できます。`
+                          : 'これ以上のヒントはありません。'}
+                      </div>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                        {nextHintLevel && (
+                          <button
+                            type="button"
+                            onClick={handleRequestAdditionalHint}
+                            className="rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 px-4 py-2 text-sm font-semibold text-white transition hover:from-indigo-600 hover:to-purple-600 whitespace-nowrap"
+                          >
+                            {nextHintLevel === highestHintLevel ? '最終ヒントを表示' : 'さらにヒント'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Floating character */}
       <div className="fixed bottom-6 right-6 z-40">
         <button
@@ -1257,180 +1456,6 @@ function ChallengeEditor() {
                   </pre>
                 </div>
 
-                {isHintOpen && activeHint && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-                    <div
-                      className="absolute inset-0 bg-black/50"
-                      onClick={closeHint}
-                      aria-hidden="true"
-                    />
-                    <div
-                      ref={hintDialogRef}
-                      role="dialog"
-                      aria-modal="true"
-                      aria-labelledby="hint-popover-title"
-                      aria-describedby="hint-popover-description"
-                      id="hint-popover"
-                      className="relative z-10 w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl md:p-8 max-h-[85vh] overflow-y-auto"
-                    >
-                      <div className="flex justify-end">
-                        <button
-                          type="button"
-                          onClick={closeHint}
-                          className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500 text-white shadow transition hover:bg-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
-                          aria-label="ヒントを閉じる"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                      <div className="mt-2 flex flex-col gap-6 md:mt-4 md:flex-row">
-                        <div className="mx-auto w-40 flex-shrink-0 md:mx-0 md:w-48">
-                          <img
-                            src="/images/character.png"
-                            alt="プログラミング助手"
-                            className="h-full w-full object-contain"
-                          />
-                        </div>
-                        <div className="relative flex-1 rounded-2xl bg-indigo-50 p-5 md:p-6">
-                          <div className="absolute -left-3 top-1/2 hidden h-6 w-6 -translate-y-1/2 rotate-45 bg-indigo-50 md:block" />
-                            <div className="flex flex-col gap-4">
-                            <div className="flex flex-col gap-3 text-indigo-900 sm:flex-row sm:items-center sm:justify-between">
-                              <div className="flex items-center gap-2 min-w-0 sm:flex-1">
-                                <Lightbulb className="h-5 w-5 flex-shrink-0" />
-                                <h2
-                                  id="hint-popover-title"
-                                  ref={hintHeadingRef}
-                                  tabIndex={-1}
-                                  className="text-lg font-bold whitespace-normal break-words leading-snug"
-                                  style={{ overflowWrap: 'anywhere' }}
-                                >
-                                  レベル {activeHint.level}: {activeHintTitle}
-                                </h2>
-                              </div>
-                              <div className="flex flex-shrink-0 items-center gap-2 whitespace-nowrap">
-                                <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-indigo-500 whitespace-nowrap">
-                                  レベル {activeHint.level} / {highestHintLevel}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={handleResetHints}
-                                  disabled={isLoadingHints}
-                                  className={`inline-flex items-center gap-2 rounded-lg border border-indigo-300 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition whitespace-nowrap ${
-                                    isLoadingHints
-                                      ? 'cursor-not-allowed opacity-70'
-                                      : 'hover:bg-indigo-100'
-                                  }`}
-                                >
-                                  {isLoadingHints ? (
-                                    <>
-                                      <span className="inline-flex h-3 w-3 items-center justify-center">
-                                        <span className="h-3 w-3 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
-                                      </span>
-                                      生成中...
-                                    </>
-                                  ) : (
-                                    'ヒントを再生成'
-                                  )}
-                                </button>
-                              </div>
-                            </div>
-                            {unlockedHintLevels.length > 1 && (
-                              <div className="flex flex-wrap gap-2" role="list">
-                                {unlockedHintLevels.map((hintLevel) => {
-                                  const isActive = hintLevel.level === activeHint.level;
-                                  return (
-                                    <button
-                                      key={hintLevel.level}
-                                      type="button"
-                                      onClick={() => setVisibleHintLevel(hintLevel.level)}
-                                      className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
-                                        isActive
-                                          ? 'border-indigo-500 bg-white text-indigo-700 shadow'
-                                          : 'border-transparent bg-indigo-200/70 text-indigo-700 hover:bg-indigo-200'
-                                      }`}
-                                      aria-current={isActive ? 'true' : undefined}
-                                    >
-                                      レベル {hintLevel.level}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            )}
-                            <div
-                              id="hint-popover-description"
-                              className="mt-4 rounded-xl bg-white/80 p-4 text-sm leading-relaxed text-slate-700 whitespace-pre-wrap break-words max-h-[50vh] overflow-y-auto overflow-x-hidden"
-                              style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
-                            >
-                              {isLoadingHints ? (
-                                <div className="space-y-3">
-                                  <div className="h-3 w-3/4 rounded bg-slate-200/80 animate-pulse" />
-                                  <div className="h-3 w-full rounded bg-slate-200/70 animate-pulse" />
-                                  <div className="h-3 w-5/6 rounded bg-slate-200/60 animate-pulse" />
-                                </div>
-                              ) : (
-                                <div
-                                  key={activeHint ? `${activeHint.level}-${activeHint.content}` : 'empty'}
-                                  className="break-words w-full"
-                                  style={{
-                                    opacity: isHintContentVisible ? 1 : 0,
-                                    transition: 'opacity 150ms ease-out',
-                                    overflowWrap: 'anywhere',
-                                    wordBreak: 'break-word',
-                                  }}
-                                >
-                                  {renderedHintContent ?? activeHint?.content}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {isFinalHintConfirmVisible ? (
-                            <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                              <p className="font-semibold mb-2">最終ヒントはほぼ答えです。</p>
-                              <p className="mb-3">本当に表示しますか？</p>
-                              <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-                                <button
-                                  type="button"
-                                  onClick={handleCancelFinalHint}
-                                  className="rounded-lg border border-amber-300 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-100"
-                                >
-                                  やめる
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={handleConfirmFinalHint}
-                                  ref={finalHintConfirmButtonRef}
-                                  className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-600 whitespace-nowrap"
-                                >
-                                  最終ヒントを表示
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                              <div className="text-xs text-indigo-700 sm:max-w-[240px] sm:flex-shrink-0">
-                                {nextHintLevel
-                                  ? `さらに詳しいヒントがレベル${nextHintLevel}で利用できます。`
-                                  : 'これ以上のヒントはありません。'}
-                              </div>
-                              <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-                                {nextHintLevel && (
-                                  <button
-                                    type="button"
-                                    onClick={handleRequestAdditionalHint}
-                                    className="rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 px-4 py-2 text-sm font-semibold text-white transition hover:from-indigo-600 hover:to-purple-600 whitespace-nowrap"
-                                  >
-                                    {nextHintLevel === highestHintLevel ? '最終ヒントを表示' : 'さらにヒント'}
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
             
