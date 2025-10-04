@@ -63,8 +63,8 @@ function SuccessModal({ message, explanation, onClose, challenge, userAnswer, la
     generate();
   }, [challenge, lastFailingCode, aiGeneratedCode, testResults, userAnswer]);
 
-  // Simple line-based diff (LCS)
-  const diffLines = (before: string, after: string) => {
+  // 全体コードを表示しつつ、差分をハイライトするための簡易LCS。
+  const diffWithIndex = (before: string, after: string) => {
     const a = before.split('\n');
     const b = after.split('\n');
     const n = a.length, m = b.length;
@@ -74,31 +74,22 @@ function SuccessModal({ message, explanation, onClose, challenge, userAnswer, la
         dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
       }
     }
-    const res: { type: 'unchanged' | 'removed' | 'added'; text: string }[] = [];
+    type Op = { type: 'unchanged' | 'removed' | 'added'; text: string; aIndex?: number; bIndex?: number };
+    const res: Op[] = [];
     let i = 0, j = 0;
     while (i < n && j < m) {
       if (a[i] === b[j]) {
-        res.push({ type: 'unchanged', text: a[i] }); i++; j++;
+        res.push({ type: 'unchanged', text: a[i], aIndex: i, bIndex: j }); i++; j++;
       } else if (dp[i + 1][j] >= dp[i][j + 1]) {
-        res.push({ type: 'removed', text: a[i] }); i++;
+        res.push({ type: 'removed', text: a[i], aIndex: i }); i++;
       } else {
-        res.push({ type: 'added', text: b[j] }); j++;
+        res.push({ type: 'added', text: b[j], bIndex: j }); j++;
       }
     }
-    while (i < n) { res.push({ type: 'removed', text: a[i++] }); }
-    while (j < m) { res.push({ type: 'added', text: b[j++] }); }
-    return res;
+    while (i < n) { res.push({ type: 'removed', text: a[i], aIndex: i }); i++; }
+    while (j < m) { res.push({ type: 'added', text: b[j], bIndex: j }); j++; }
+    return { ops: res, a, b };
   };
-  const truncate = (s: string, n = 80) => (s?.length > n ? s.slice(0, n) + '…' : s);
-  const baseForDiff = aiGeneratedCode || '';
-  const addedRemovedCount = (() => {
-    if (!aiGeneratedCode) return { added: 0, removed: 0 };
-    const d = diffLines(baseForDiff, userAnswer || '');
-    return {
-      added: d.filter((x) => x.type === 'added').length,
-      removed: d.filter((x) => x.type === 'removed').length,
-    };
-  })();
   const keyPoint1 = detail?.reason || '...';
   const keyPoint2 = detail?.explain_diff || '...';
 
@@ -155,55 +146,63 @@ function SuccessModal({ message, explanation, onClose, challenge, userAnswer, la
                 )}
                 {detail && (
                   <>
-                    {/* コードのちがい（小さな見本） */}
+                    {/* コード（全体 + 差分ハイライト） */}
                     <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
                       <div className="bg-slate-800 px-4 py-2 text-slate-200 text-sm font-bold flex items-center justify-between">
-                        <span>コードのちがい</span>
+                        <span>コード（全体 + 差分）</span>
                         <button className="text-slate-200 text-xs underline" onClick={() => setShowDiff((v) => !v)}>
                           {showDiff ? 'とじる' : 'ひらく'}
                         </button>
                       </div>
                       {showDiff && (
-                        <pre className="max-h-56 overflow-auto p-3 text-xs font-mono leading-5">
-                          {aiGeneratedCode ? (
-                            diffLines(baseForDiff, userAnswer).filter((d) => d.type !== 'unchanged').map((d, i) => (
-                              <div key={i} className={
-                                d.type === 'added' ? 'text-emerald-700 bg-emerald-50' :
-                                d.type === 'removed' ? 'text-rose-700 bg-rose-50' : 'text-slate-800'
-                              }>
-                                {d.type === 'added' ? '+ ' : '- '}
-                                {d.text}
-                              </div>
-                            ))
-                          ) : (
-                            <span className="text-slate-600">AI生成コードがありません。先に「AIでコード作成」を使ってください。</span>
-                          )}
-                        </pre>
+                        <div className="max-h-56 overflow-auto text-xs font-mono leading-5 bg-slate-50">
+                          {(() => {
+                            const baseForDiff = (aiGeneratedCode || lastFailingCode || '').toString();
+                            const after = (userAnswer || '').toString();
+                            if (!after) {
+                              return <div className="p-3 text-slate-600">コードがありません。</div>;
+                            }
+                            if (!baseForDiff) {
+                              return (
+                                <>
+                                  <div className="px-3 py-2 text-[11px] text-slate-600 border-b border-slate-200">
+                                    比較対象がありません（AI生成/失敗コードが未取得）。全体コードのみ表示します。
+                                  </div>
+                                  <pre className="p-3 text-slate-800">
+                                    {after.split('\n').map((line: string, i: number) => (
+                                      <div key={i}>{line}</div>
+                                    ))}
+                                  </pre>
+                                </>
+                              );
+                            }
+                            const { ops, b } = diffWithIndex(baseForDiff, after);
+                            const afterStatuses: ('unchanged' | 'added')[] = Array.from({ length: b.length }, () => 'unchanged');
+                            ops.forEach(op => {
+                              if (op.type === 'added' && op.bIndex !== undefined) afterStatuses[op.bIndex] = 'added';
+                            });
+                            return (
+                              <>
+                                <div className="px-3 py-2 text-[11px] text-slate-600 border-b border-slate-200">
+                                  緑色でハイライトされた行は、比較対象（AI生成 または 失敗コード）からの差分です。
+                                </div>
+                                <pre className="p-3 text-slate-800">
+                                  {b.map((line: string, i: number) => (
+                                    <div
+                                      key={i}
+                                      className={afterStatuses[i] === 'added' ? 'bg-emerald-50 text-emerald-700' : ''}
+                                    >
+                                      {line || '\u00A0'}
+                                    </div>
+                                  ))}
+                                </pre>
+                              </>
+                            );
+                          })()}
+                        </div>
                       )}
-                      <div className="px-3 py-2 text-[11px] text-slate-600 border-t border-slate-200">+{addedRemovedCount.added} / -{addedRemovedCount.removed}</div>
                     </div>
 
-                    {/* 動作例（2件まで） */}
-                    <div className="rounded-lg border border-slate-200 overflow-hidden">
-                      <div className="bg-slate-800 px-4 py-2 text-slate-200 text-sm font-bold flex items-center gap-2">
-                        <Terminal className="w-4 h-4 text-slate-400" />
-                        <span>動作例</span>
-                      </div>
-                      <div className="bg-slate-50 p-3 text-xs font-mono">
-                        {(testResults?.slice(0, 2) || []).length ? (
-                          testResults.slice(0, 2).map((r: any, idx: number) => (
-                            <div key={idx} className="mb-2">
-                              <div className={`font-bold ${r.status === 'success' ? 'text-green-700' : 'text-red-700'}`}>
-                                &gt; テスト {r.testCase ?? r.testCaseNumber ?? idx + 1} {r.status === 'success' ? '✅' : '❌'}
-                              </div>
-                              <div className="whitespace-pre-wrap text-slate-700">{truncate(r.message, 180)}</div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-slate-600">テスト結果が見つかりません。</div>
-                        )}
-                      </div>
-                    </div>
                   </>
                 )}
               </div>
