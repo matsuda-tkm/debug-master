@@ -136,13 +136,18 @@ def generate_code(payload: dict[str, Any] = Body(...)) -> JSONResponse:
 
 
 @app.post("/api/generate-hint")
-def generate_hint(payload: dict[str, Any] = Body(...)) -> dict[str, str]:
+def generate_hint(payload: dict[str, Any] = Body(...)) -> JSONResponse:
     code: str = payload.get("code", "")
     instructions: str = payload.get("instructions", "")
     examples: str = payload.get("examples", "")
     test_results: list[dict[str, Any]] = payload.get("testResults", [])
-    hint: str = generate_hint_logic(code, instructions, examples, test_results)
-    return {"hint": hint}
+
+    try:
+        hints = generate_hint_logic(code, instructions, examples, test_results)
+    except Exception as exc:  # pragma: no cover - defensive handling
+        raise HTTPException(status_code=500, detail=f"Failed to generate hints: {exc}")
+
+    return JSONResponse(content={"hints": hints})
 
 
 @app.post("/api/generate-explanation")
