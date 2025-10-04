@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, PartyPopper, SettingsIcon as Confetti } from 'lucide-react';
+import Markdown from '../Markdown';
 
 interface SuccessModalProps {
   message: string;
@@ -30,9 +31,7 @@ function SuccessModal({ message, explanation, onClose, challenge, userAnswer }: 
           {explanation && (
             <div className="mt-4 bg-slate-50 p-4 rounded-lg text-left">
               <h3 className="text-lg font-semibold text-slate-800 mb-2">バグの説明:</h3>
-              <div className="text-slate-700 whitespace-pre-wrap text-sm">
-                {explanation}
-              </div>
+              <Markdown content={explanation} className="text-slate-700 text-sm space-y-2" />
             </div>
           )}
 
