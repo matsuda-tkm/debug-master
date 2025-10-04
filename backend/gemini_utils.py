@@ -350,19 +350,23 @@ def generate_retire_explanation_logic(
 ) -> Dict[str, Any]:
     test_results_text = _summarize_test_results(test_results)
     prompt = f"""
-課題:
+課題の説明:
 {instructions}
 
 例:
 {examples}
 
-Before (参考コード):
+AI生成コード（学習者が修正の出発点としたコード）:
+```python
 {before_code}
+```
 
-After (学習者の最新コード):
+学習者の最新コード（学習者が修正を試みた後のコード）:
+```python
 {after_code}
+```
 
-テスト結果サマリ:
+テスト結果:
 {test_results_text}
 """
     response = client.models.generate_content(
