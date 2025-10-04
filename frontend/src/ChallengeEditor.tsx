@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, type ReactNode } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Code2,
@@ -13,6 +13,8 @@ import {
   PartyPopper,
   SettingsIcon as Confetti,
   Wand2,
+  Lightbulb,
+  X
 } from 'lucide-react';
 import { challengeService } from './services/challengeService';
 import Markdown from './components/Markdown';
@@ -23,6 +25,21 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { indentUnit } from '@codemirror/language';
 import RetireModal from './components/modals/RetireModal';
 
+
+type HintLevel = {
+  level: number;
+  title?: string;
+  content: string;
+};
+
+const DEFAULT_HINT_TITLES: Record<number, string> = {
+  1: '方向性のヒント',
+  2: 'キーワードのヒント',
+  3: '解法の骨子',
+  4: '最終ヒント',
+};
+
+const HINT_LEVEL_COUNT = 4;
 
 interface SuccessModalProps {
   message: string;
@@ -325,9 +342,502 @@ function ChallengeEditor() {
   const { themeId } = useParams();
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [loading, setLoading] = useState(true);
+  const [code, setCode] = useState(`def main(numbers):
+    # Write your solution here
+    pass
+  `);
+  const [isRunning, setIsRunning] = useState(false);
+  const [testResults, setTestResults] = useState([]);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState('');
+  const [explanation, setExplanation] = useState('');
+  const [aiGeneratedCode, setAiGeneratedCode] = useState('');
+  const [lastFailingCode, setLastFailingCode] = useState('');
+  const [hintLevels, setHintLevels] = useState<HintLevel[]>([]);
+  const [unlockedHintLevel, setUnlockedHintLevel] = useState(0);
+  const [isHintOpen, setIsHintOpen] = useState(false);
+  const [isLoadingHints, setIsLoadingHints] = useState(false);
+  const [hintError, setHintError] = useState('');
+  const [isFinalHintConfirmVisible, setIsFinalHintConfirmVisible] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [currentVideo, setCurrentVideo] = useState('');
+  const [currentStep, setCurrentStep] = useState(1);
+  const [visibleHintLevel, setVisibleHintLevel] = useState<number | null>(null);
+  const [isHintContentVisible, setIsHintContentVisible] = useState(false);
+
+  const hintDialogRef = useRef<HTMLDivElement | null>(null);
+  const hintHeadingRef = useRef<HTMLHeadingElement | null>(null);
+  const prevFocusedElementRef = useRef<HTMLElement | null>(null);
+  const finalHintConfirmButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  const hintStorageKey = useMemo(
+    () => (challenge ? `hint-progress-${challenge.id}` : null),
+    [challenge?.id]
+  );
+
+  const sortedHintLevels = useMemo(() => {
+    if (!hintLevels.length) {
+      return [];
+    }
+    return [...hintLevels].sort((a, b) => a.level - b.level);
+  }, [hintLevels]);
+
+  const highestHintLevelEntry =
+    sortedHintLevels.length > 0
+      ? sortedHintLevels[sortedHintLevels.length - 1]
+      : undefined;
+  const highestHintLevel = highestHintLevelEntry
+    ? highestHintLevelEntry.level
+    : HINT_LEVEL_COUNT;
+  const displayedHintLevelCount = Math.min(highestHintLevel, HINT_LEVEL_COUNT);
+
+  const normalizedUnlockedLevel = useMemo(() => {
+    if (!sortedHintLevels.length) {
+      return 0;
+    }
+    if (unlockedHintLevel <= 0) {
+      return sortedHintLevels[0].level;
+    }
+    return Math.min(unlockedHintLevel, highestHintLevel);
+  }, [sortedHintLevels, unlockedHintLevel, highestHintLevel]);
+
+  const unlockedHintLevels = useMemo(() => {
+    if (!sortedHintLevels.length) {
+      return [];
+    }
+    return sortedHintLevels.filter((item) => item.level <= normalizedUnlockedLevel);
+  }, [sortedHintLevels, normalizedUnlockedLevel]);
+
+  const activeHint = useMemo(() => {
+    if (!sortedHintLevels.length) {
+      return undefined;
+    }
+    const targetLevel = visibleHintLevel ?? normalizedUnlockedLevel;
+    const found = sortedHintLevels.find((item) => item.level === targetLevel);
+    if (found) {
+      return found;
+    }
+    return sortedHintLevels[0];
+  }, [sortedHintLevels, normalizedUnlockedLevel, visibleHintLevel]);
+
+  const nextHintLevel = useMemo(() => {
+    if (!sortedHintLevels.length) {
+      return null;
+    }
+    const next = sortedHintLevels.find((item) => item.level > normalizedUnlockedLevel);
+    return next ? next.level : null;
+  }, [sortedHintLevels, normalizedUnlockedLevel]);
+
+  const normalizedHintTitle = useMemo(() => {
+    if (!activeHint?.title) {
+      return '';
+    }
+
+    const trimmed = activeHint.title.trim();
+    if (!trimmed) {
+      return '';
+    }
+
+    const cleaned = trimmed
+      .replace(/^(?:ヒント|hint)\s*\d+\s*[:：-]?\s*/i, '')
+      .trim();
+
+    return cleaned.length > 0 ? cleaned : '';
+  }, [activeHint?.title]);
+
+  const activeHintTitle = activeHint
+    ? normalizedHintTitle || DEFAULT_HINT_TITLES[activeHint.level] || 'ヒント'
+    : 'ヒント';
+  const hintButtonLabel = isHintOpen ? 'ヒントを閉じる' : 'ヒントを開く';
+
+  const renderInlineSegments = useCallback(
+    (text: string, keyPrefix = 'inline'): ReactNode[] => {
+      if (!text) {
+        return [];
+      }
+
+      const segments = text.split(/(``[^`]+``|`[^`]+`)/g);
+      const nodes: ReactNode[] = [];
+
+      segments.forEach((segment, index) => {
+        if (!segment) {
+          return;
+        }
+
+        const isDoubleTick = segment.startsWith('``') && segment.endsWith('``') && segment.length > 4;
+        const isSingleTick = segment.startsWith('`') && segment.endsWith('`') && segment.length > 2;
+
+        if (isDoubleTick || isSingleTick) {
+          const trimLength = isDoubleTick ? 2 : 1;
+          nodes.push(
+            <code
+              key={`${keyPrefix}-code-${index}`}
+              className="mx-1 rounded bg-slate-900/80 px-1.5 py-0.5 font-mono text-xs text-white break-words"
+              style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+            >
+              {segment.slice(trimLength, -trimLength)}
+            </code>
+          );
+        } else {
+          nodes.push(
+            <span key={`${keyPrefix}-text-${index}`}>{segment}</span>
+          );
+        }
+      });
+
+      return nodes;
+    },
+    []
+  );
+
+  const renderedHintContent = useMemo(() => {
+    if (!activeHint?.content) {
+      return null;
+    }
+
+    const content = activeHint.content;
+    const nodes: ReactNode[] = [];
+    const blockRegex = /```([a-zA-Z0-9_-]+)?\n?([\s\S]*?)```/g;
+
+    let lastIndex = 0;
+    let blockIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = blockRegex.exec(content)) !== null) {
+      const [fullMatch, language = '', codeBody = ''] = match;
+      const matchStart = match.index;
+
+      if (matchStart > lastIndex) {
+        const precedingText = content.slice(lastIndex, matchStart);
+        nodes.push(...renderInlineSegments(precedingText, `pre-${blockIndex}`));
+      }
+
+      const trimmedCode = codeBody.startsWith('\n') ? codeBody.slice(1) : codeBody;
+      const normalizedCode = trimmedCode.replace(/\s+$/, '');
+
+      nodes.push(
+        <pre
+          key={`block-${blockIndex}`}
+          className="my-3 max-h-48 overflow-y-auto rounded-lg bg-slate-900/90 p-3 text-xs text-slate-100 whitespace-pre-wrap break-words"
+          style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+        >
+          <code
+            className={language ? `language-${language.toLowerCase()}` : undefined}
+            style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+          >
+            {normalizedCode}
+          </code>
+        </pre>
+      );
+
+      lastIndex = matchStart + fullMatch.length;
+      blockIndex += 1;
+    }
+
+    if (lastIndex < content.length) {
+      const remainingText = content.slice(lastIndex);
+      nodes.push(...renderInlineSegments(remainingText, `post-${blockIndex}`));
+    }
+
+    return nodes.length ? nodes : null;
+  }, [activeHint?.content, renderInlineSegments]);
 
   useEffect(() => {
-    const loadChallenge = async () => {
+    if (isLoadingHints || !activeHint?.content) {
+      setIsHintContentVisible(false);
+      return;
+    }
+
+    setIsHintContentVisible(false);
+    const timeoutId = window.setTimeout(() => {
+      setIsHintContentVisible(true);
+    }, 10);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      setIsHintContentVisible(false);
+    };
+  }, [activeHint?.content, activeHint?.level, isLoadingHints]);
+
+  const closeHint = useCallback(() => {
+    setIsHintOpen(false);
+    setIsFinalHintConfirmVisible(false);
+  }, []);
+
+  const loadHints = useCallback(
+    async (
+      options: {
+        force?: boolean;
+        resetProgress?: boolean;
+        targetLevel?: number;
+      } = {}
+    ) => {
+      const { force = false, resetProgress = false, targetLevel } = options;
+
+      if (!challenge) {
+        return false;
+      }
+      if (!force && hintLevels.length) {
+        return true;
+      }
+
+      setIsLoadingHints(true);
+      setHintError('');
+
+      try {
+        const response = await fetch('http://localhost:8000/api/generate-hint', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code,
+            instructions: challenge.instructions,
+            examples: challenge.examples,
+            testResults,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          const message =
+            typeof data?.error === 'string'
+              ? data.error
+              : typeof data?.detail === 'string'
+              ? data.detail
+              : 'ヒントの生成中にエラーが発生しました。';
+          setHintError(message);
+          return false;
+        }
+
+        const rawHints = Array.isArray(data?.hints) ? data.hints : [];
+        const sanitizedHints = rawHints
+          .map((item: any) => {
+            const levelValue = Number(item?.level);
+            if (!Number.isFinite(levelValue)) {
+              return null;
+            }
+            const contentValue =
+              typeof item?.content === 'string' ? item.content.trim() : '';
+            if (!contentValue) {
+              return null;
+            }
+            const titleValue =
+              typeof item?.title === 'string' && item.title.trim().length > 0
+                ? item.title.trim()
+                : undefined;
+            return {
+              level: levelValue,
+              title: titleValue,
+              content: contentValue,
+            } as HintLevel;
+          })
+          .filter((item): item is HintLevel => Boolean(item));
+
+        const seen = new Set<number>();
+        const uniqueHints = sanitizedHints.filter((item) => {
+          if (seen.has(item.level)) {
+            return false;
+          }
+          seen.add(item.level);
+          return item.level >= 1 && item.level <= HINT_LEVEL_COUNT;
+        });
+
+        const preparedHints = uniqueHints.sort((a, b) => a.level - b.level);
+
+        if (!preparedHints.length) {
+          setHintError('ヒントが取得できませんでした。');
+          return false;
+        }
+
+        if (
+          typeof targetLevel === 'number' &&
+          hintLevels.length > 0 &&
+          !resetProgress
+        ) {
+          const targetHint = preparedHints.find(
+            (item) => item.level === targetLevel
+          );
+
+          if (!targetHint) {
+            setHintError('指定レベルのヒントが取得できませんでした。');
+            return false;
+          }
+
+          setHintLevels((prev) => {
+            const filtered = prev.filter((item) => item.level !== targetLevel);
+            return [...filtered, targetHint].sort((a, b) => a.level - b.level);
+          });
+          setUnlockedHintLevel((prev) =>
+            prev < targetLevel ? targetLevel : prev
+          );
+          setVisibleHintLevel(targetLevel);
+
+          return true;
+        }
+
+        const firstLevel = preparedHints[0]?.level ?? 1;
+
+        setHintLevels(preparedHints);
+        setUnlockedHintLevel((prev) => {
+          if (!resetProgress && prev > 0) {
+            return prev;
+          }
+          return firstLevel;
+        });
+        setVisibleHintLevel((prev) => {
+          const canKeepCurrent =
+            !resetProgress &&
+            prev !== null &&
+            preparedHints.some((item) => item.level === prev);
+
+          if (canKeepCurrent) {
+            return prev;
+          }
+          return firstLevel;
+        });
+
+        return true;
+      } catch (error) {
+        console.error('Error generating hint:', error);
+        setHintError('ヒント生成サービスへの接続に失敗しました。');
+        return false;
+      } finally {
+        setIsLoadingHints(false);
+      }
+    },
+    [challenge, hintLevels.length, code, testResults]
+  );
+
+  const handleHintButtonClick = async () => {
+    if (!challenge) {
+      return;
+    }
+
+    if (isHintOpen) {
+      closeHint();
+      return;
+    }
+
+    setHintError('');
+
+    if (typeof document !== 'undefined') {
+      const activeElement = document.activeElement;
+      prevFocusedElementRef.current =
+        activeElement instanceof HTMLElement ? activeElement : null;
+    }
+
+    const hintsLoaded = await loadHints();
+
+    if (!hintsLoaded) {
+      prevFocusedElementRef.current = null;
+      return;
+    }
+
+    if (unlockedHintLevel <= 0 && sortedHintLevels.length) {
+      setUnlockedHintLevel(sortedHintLevels[0].level);
+    }
+
+    setIsFinalHintConfirmVisible(false);
+    setIsHintOpen(true);
+  };
+
+  const handleResetHints = useCallback(async () => {
+    if (!challenge) {
+      return;
+    }
+
+    setHintError('');
+    setIsFinalHintConfirmVisible(false);
+
+    const lowestLevel = sortedHintLevels[0]?.level ?? 1;
+    const firstHint = sortedHintLevels.find((item) => item.level === lowestLevel);
+
+    setHintLevels(firstHint ? [firstHint] : []);
+    setUnlockedHintLevel(firstHint ? lowestLevel : 1);
+    setVisibleHintLevel(firstHint ? lowestLevel : 1);
+
+    if (hintStorageKey && typeof window !== 'undefined') {
+      try {
+        window.localStorage.removeItem(hintStorageKey);
+      } catch (error) {
+        console.error('Failed to clear hint cache:', error);
+      }
+    }
+
+    const hintsLoaded = await loadHints({
+      force: true,
+      resetProgress: true,
+    });
+
+    if (!hintsLoaded) {
+      return;
+    }
+
+    setIsHintOpen(true);
+  }, [challenge, hintStorageKey, loadHints, sortedHintLevels]);
+
+  const handleRequestAdditionalHint = () => {
+    if (!nextHintLevel) {
+      return;
+    }
+
+    if (
+      nextHintLevel === highestHintLevel &&
+      nextHintLevel >= HINT_LEVEL_COUNT
+    ) {
+      setIsFinalHintConfirmVisible(true);
+      return;
+    }
+
+    setUnlockedHintLevel((prev) =>
+      nextHintLevel > prev ? nextHintLevel : prev
+    );
+    setVisibleHintLevel(nextHintLevel);
+  };
+
+  const handleConfirmFinalHint = () => {
+    if (!nextHintLevel) {
+      setIsFinalHintConfirmVisible(false);
+      return;
+    }
+
+    setUnlockedHintLevel((prev) =>
+      nextHintLevel > prev ? nextHintLevel : prev
+    );
+    setVisibleHintLevel(nextHintLevel);
+    setIsFinalHintConfirmVisible(false);
+  };
+
+  const handleCancelFinalHint = () => {
+    setIsFinalHintConfirmVisible(false);
+    if (hintHeadingRef.current) {
+      hintHeadingRef.current.focus();
+    }
+  };
+
+  useEffect(() => {
+    if (!sortedHintLevels.length) {
+      setVisibleHintLevel(null);
+      return;
+    }
+
+    if (normalizedUnlockedLevel > 0) {
+      setVisibleHintLevel((prev) => {
+        if (
+          prev &&
+          prev <= normalizedUnlockedLevel &&
+          sortedHintLevels.some((item) => item.level === prev)
+        ) {
+          return prev;
+        }
+        return normalizedUnlockedLevel;
+      });
+    }
+  }, [sortedHintLevels, normalizedUnlockedLevel]);
+
+  useEffect(() => {
+    const loadChallengeData = async () => {
       if (!themeId) {
         navigate('/');
         return;
@@ -345,7 +855,7 @@ function ChallengeEditor() {
       }
     };
 
-    loadChallenge();
+    loadChallengeData();
   }, [themeId, navigate]);
 
   const [code, setCode] = useState(`def main(numbers):
@@ -368,6 +878,154 @@ function ChallengeEditor() {
   const [currentVideo, setCurrentVideo] = useState('');
   const [currentStep, setCurrentStep] = useState(1);
   const [showRetireModal, setShowRetireModal] = useState(false);
+  useEffect(() => {
+    if (!hintStorageKey) {
+      setHintLevels([]);
+      setUnlockedHintLevel(0);
+      return;
+    }
+    if (typeof window === 'undefined') {
+      return;
+    }
+    try {
+      const stored = window.localStorage.getItem(hintStorageKey);
+      if (!stored) {
+        setHintLevels([]);
+        setUnlockedHintLevel(0);
+        return;
+      }
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed?.hints)) {
+        setHintLevels(parsed.hints as HintLevel[]);
+      } else {
+        setHintLevels([]);
+      }
+      setUnlockedHintLevel(
+        typeof parsed?.unlockedLevel === 'number' ? parsed.unlockedLevel : 0
+      );
+    } catch (error) {
+      console.error('Failed to restore hint progress:', error);
+      setHintLevels([]);
+      setUnlockedHintLevel(0);
+    }
+  }, [hintStorageKey]);
+
+  useEffect(() => {
+    if (!hintStorageKey || typeof window === 'undefined') {
+      return;
+    }
+    try {
+      const payload = JSON.stringify({
+        unlockedLevel: unlockedHintLevel,
+        hints: hintLevels,
+      });
+      window.localStorage.setItem(hintStorageKey, payload);
+    } catch (error) {
+      console.error('Failed to persist hint progress:', error);
+    }
+  }, [hintStorageKey, hintLevels, unlockedHintLevel]);
+
+  useEffect(() => {
+    if (!isHintOpen && prevFocusedElementRef.current) {
+      prevFocusedElementRef.current.focus();
+      prevFocusedElementRef.current = null;
+    }
+  }, [isHintOpen]);
+
+  useEffect(() => {
+    if (!isHintOpen) {
+      return;
+    }
+
+    const dialogEl = hintDialogRef.current;
+    if (!dialogEl) {
+      return;
+    }
+
+    if (isFinalHintConfirmVisible) {
+      finalHintConfirmButtonRef.current?.focus();
+    } else if (hintHeadingRef.current) {
+      hintHeadingRef.current.focus();
+    }
+
+    const focusableSelectors =
+      'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeHint();
+        return;
+      }
+
+      if (event.key !== 'Tab') {
+        return;
+      }
+
+      const focusable = Array.from(
+        dialogEl.querySelectorAll<HTMLElement>(focusableSelectors)
+      ).filter((element) => !element.hasAttribute('disabled'));
+
+      if (!focusable.length) {
+        event.preventDefault();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const current = document.activeElement as HTMLElement | null;
+
+      if (event.shiftKey) {
+        if (!current || current === first) {
+          event.preventDefault();
+          last.focus();
+        }
+        return;
+      }
+
+      if (!current || current === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isHintOpen, closeHint, normalizedUnlockedLevel, visibleHintLevel, isFinalHintConfirmVisible]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return undefined;
+    }
+
+    if (!isHintOpen) {
+      return undefined;
+    }
+
+    const { body } = document;
+    const previousOverflow = body.style.overflow;
+    const previousPaddingRight = body.style.paddingRight;
+    const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+    if (scrollBarWidth > 0) {
+      body.style.paddingRight = `${scrollBarWidth}px`;
+    }
+    body.style.overflow = 'hidden';
+
+    return () => {
+      body.style.overflow = previousOverflow;
+      body.style.paddingRight = previousPaddingRight;
+    };
+  }, [isHintOpen]);
+
+  useEffect(() => {
+    if (!nextHintLevel) {
+      setIsFinalHintConfirmVisible(false);
+    }
+  }, [nextHintLevel]);
 
   const handleGenerateCode = async () => {
     setIsGenerating(true);
@@ -487,40 +1145,6 @@ function ChallengeEditor() {
     return testResults.filter((result) => result.status === 'success').length;
   };
   
-  const handleShowHint = async () => {
-    setIsLoadingHint(true);
-    setHintError('');
-    
-    try {
-      const response = await fetch('http://localhost:8000/api/generate-hint', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code,
-          instructions: challenge.instructions,
-          examples: challenge.examples,
-          testResults,
-        }),
-      });
-      console.log('Generated hint response:', response);
-      
-      const data = await response.json();
-      
-      if (!response.ok || data.error) {
-        setHintError(data.error || 'ヒントの生成中にエラーが発生しました。');
-        return;
-      }
-      
-      setHint(data.hint);
-      setShowHintModal(true);
-    } catch (error) {
-      console.error('Error generating hint:', error);
-      setHintError('ヒント生成サービスへの接続に失敗しました。');
-    } finally {
-      setIsLoadingHint(false);
-    }
-  };
-  
   const handleShowVideo = (videoSrc) => {
     setCurrentVideo(videoSrc);
     setShowVideoModal(true);
@@ -553,30 +1177,6 @@ function ChallengeEditor() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 flex flex-col relative overflow-hidden">
-      {/* Floating character */}
-      <div className="fixed bottom-6 right-6 z-40">
-        <div 
-          className="relative w-24 h-24 group cursor-pointer"
-          onClick={handleShowHint}
-          style={{ pointerEvents: isLoadingHint ? 'none' : 'auto' }}
-        >
-          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-pink-400/50 via-purple-400/40 to-indigo-400/20 opacity-0 blur-md transition duration-200 group-hover:opacity-100" />
-          <div className="absolute inset-0 rounded-full border-2 border-transparent group-hover:border-pink-300 transition duration-200" />
-          <img 
-            src="/images/character.png" 
-            alt="プログラミング助手" 
-            className="relative z-10 w-full h-full object-contain animate-float group-hover:animate-wiggle group-hover:scale-110 transition-transform duration-300 drop-shadow-lg"
-          />
-          {isLoadingHint && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center">
-              <div className="w-10 h-10 border-4 border-pink-400 border-t-transparent rounded-full animate-spin" />
-            </div>
-          )}
-          <div className="absolute -top-1 -right-1 z-30">
-            <div className="w-4 h-4 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full animate-sparkle"></div>
-          </div>
-        </div>
-      </div>
       {showSuccessModal && (
         <SuccessModal
           message="おめでとう！バグ修正に成功 🎉"
@@ -589,12 +1189,212 @@ function ChallengeEditor() {
           onClose={() => setShowSuccessModal(false)}
         />
       )}
-      {showHintModal && (
-        <HintModal
-          hint={hint}
-          onClose={() => setShowHintModal(false)}
-        />
+      {isHintOpen && activeHint && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center px-4 py-8">
+          <div
+            className="absolute inset-0 bg-black/80"
+            onClick={closeHint}
+            aria-hidden="true"
+          />
+          <div
+            ref={hintDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="hint-popover-title"
+            aria-describedby="hint-popover-description"
+            id="hint-popover"
+            className="relative z-10 w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl md:p-8 max-h-[85vh] overflow-y-auto"
+          >
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={closeHint}
+                className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500 text-white shadow transition hover:bg-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+                aria-label="ヒントを閉じる"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mt-2 flex flex-col gap-6 md:mt-4 md:flex-row">
+              <div className="mx-auto w-40 flex-shrink-0 md:mx-0 md:w-48">
+                <img
+                  src="/images/character.png"
+                  alt="プログラミング助手"
+                  className="h-full w-full object-contain"
+                />
+              </div>
+              <div className="relative flex-1 rounded-2xl bg-indigo-50 p-5 md:p-6">
+                <div className="absolute -left-3 top-1/2 hidden h-6 w-6 -translate-y-1/2 rotate-45 bg-indigo-50 md:block" />
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-3 text-indigo-900 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-2 min-w-0 sm:flex-1">
+                      <Lightbulb className="h-5 w-5 flex-shrink-0" />
+                      <h2
+                        id="hint-popover-title"
+                        ref={hintHeadingRef}
+                        tabIndex={-1}
+                        className="text-lg font-bold whitespace-normal break-words leading-snug"
+                        style={{ overflowWrap: 'anywhere' }}
+                      >
+                        レベル {activeHint.level}: {activeHintTitle}
+                      </h2>
+                    </div>
+                    <div className="flex flex-shrink-0 items-center gap-2 whitespace-nowrap">
+                      <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-indigo-500 whitespace-nowrap">
+                        レベル {activeHint.level} / {highestHintLevel}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleResetHints}
+                        disabled={isLoadingHints}
+                        className={`inline-flex items-center gap-2 rounded-lg border border-indigo-300 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition whitespace-nowrap ${
+                          isLoadingHints
+                            ? 'cursor-not-allowed opacity-70'
+                            : 'hover:bg-indigo-100'
+                        }`}
+                      >
+                        {isLoadingHints ? (
+                          <>
+                            <span className="inline-flex h-3 w-3 items-center justify-center">
+                              <span className="h-3 w-3 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
+                            </span>
+                            生成中...
+                          </>
+                        ) : (
+                          'ヒントを再生成'
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  {unlockedHintLevels.length > 1 && (
+                    <div className="flex flex-wrap gap-2" role="list">
+                      {unlockedHintLevels.map((hintLevel) => {
+                        const isActive = hintLevel.level === activeHint.level;
+                        return (
+                          <button
+                            key={hintLevel.level}
+                            type="button"
+                            onClick={() => setVisibleHintLevel(hintLevel.level)}
+                            className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                              isActive
+                                ? 'border-indigo-500 bg-white text-indigo-700 shadow'
+                                : 'border-transparent bg-indigo-200/70 text-indigo-700 hover:bg-indigo-200'
+                            }`}
+                            aria-current={isActive ? 'true' : undefined}
+                          >
+                            レベル {hintLevel.level}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <div
+                    id="hint-popover-description"
+                    className="mt-4 rounded-xl bg-white/80 p-4 text-sm leading-relaxed text-slate-700 whitespace-pre-wrap break-words max-h-[50vh] overflow-y-auto overflow-x-hidden"
+                    style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+                  >
+                    {isLoadingHints ? (
+                      <div className="space-y-3">
+                        <div className="h-3 w-3/4 rounded bg-slate-200/80 animate-pulse" />
+                        <div className="h-3 w-full rounded bg-slate-200/70 animate-pulse" />
+                        <div className="h-3 w-5/6 rounded bg-slate-200/60 animate-pulse" />
+                      </div>
+                    ) : (
+                      <div
+                        key={activeHint ? `${activeHint.level}-${activeHint.content}` : 'empty'}
+                        className="break-words w-full"
+                        style={{
+                          opacity: isHintContentVisible ? 1 : 0,
+                          transition: 'opacity 150ms ease-out',
+                          overflowWrap: 'anywhere',
+                          wordBreak: 'break-word',
+                        }}
+                      >
+                        {renderedHintContent ?? activeHint?.content}
+                      </div>
+                    )}
+                  </div>
+
+                  {isFinalHintConfirmVisible ? (
+                    <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                      <p className="font-semibold mb-2">最終ヒントはほぼ答えです。</p>
+                      <p className="mb-3">本当に表示しますか？</p>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                        <button
+                          type="button"
+                          onClick={handleCancelFinalHint}
+                          className="rounded-lg border border-amber-300 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-100"
+                        >
+                          やめる
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleConfirmFinalHint}
+                          ref={finalHintConfirmButtonRef}
+                          className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-600 whitespace-nowrap"
+                        >
+                          最終ヒントを表示
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="text-xs text-indigo-700 sm:max-w-[240px] sm:flex-shrink-0">
+                        {nextHintLevel
+                          ? `さらに詳しいヒントがレベル${nextHintLevel}で利用できます。`
+                          : 'これ以上のヒントはありません。'}
+                      </div>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                        {nextHintLevel && (
+                          <button
+                            type="button"
+                            onClick={handleRequestAdditionalHint}
+                            className="rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 px-4 py-2 text-sm font-semibold text-white transition hover:from-indigo-600 hover:to-purple-600 whitespace-nowrap"
+                          >
+                            {nextHintLevel === highestHintLevel ? '最終ヒントを表示' : 'さらにヒント'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
+      {/* Floating character */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <button
+          type="button"
+          onClick={handleHintButtonClick}
+          disabled={isLoadingHints}
+          aria-expanded={isHintOpen}
+          aria-controls="hint-popover"
+          aria-label={hintButtonLabel}
+          className="group relative w-24 h-24 rounded-full outline-none transition-transform duration-300 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent disabled:cursor-not-allowed"
+        >
+          <span className="sr-only">{hintButtonLabel}</span>
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-pink-400/50 via-purple-400/40 to-indigo-400/20 opacity-0 blur-md transition duration-200 group-hover:opacity-100" />
+          <div className="absolute inset-0 rounded-full border-2 border-transparent group-hover:border-pink-300 transition duration-200" />
+          <img
+            src="/images/character.png"
+            alt="プログラミング助手"
+            className={`relative z-10 w-full h-full object-contain animate-float group-hover:animate-wiggle group-hover:scale-110 transition-transform duration-300 drop-shadow-lg ${
+              isLoadingHints ? 'opacity-60 blur-sm' : ''
+            }`}
+          />
+          {isLoadingHints && (
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 rounded-full bg-slate-900/40">
+              <div className="w-10 h-10 border-4 border-pink-400 border-t-transparent rounded-full animate-spin" />
+              <span className="text-xs font-semibold text-white drop-shadow">生成中...</span>
+            </div>
+          )}
+          <div className="absolute -top-1 -right-1 z-30">
+            <div className="w-4 h-4 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full animate-sparkle"></div>
+          </div>
+        </button>
+      </div>
       {showVideoModal && (
         <VideoModal
           videoSrc={currentVideo}
@@ -677,12 +1477,13 @@ function ChallengeEditor() {
           <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* 問題説明 */}
             <div className="lg:col-span-2">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200 shadow-lg">
-                <h2 className="text-xl font-bold text-blue-800 mb-4 flex items-center gap-2">
+              <div className="relative bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200 shadow-lg">
+                <h2 className="text-xl font-bold text-blue-800 flex items-center gap-2">
                   <BookOpen className="w-6 h-6" />
                   今日のミッション
                 </h2>
-                <div className="text-blue-900 font-medium leading-relaxed">
+
+                <div className="mt-4 text-blue-900 font-medium leading-relaxed">
                   <pre className="font-sans whitespace-pre-wrap">{challenge.instructions}</pre>
                 </div>
                 
@@ -695,6 +1496,7 @@ function ChallengeEditor() {
                     {challenge.examples}
                   </pre>
                 </div>
+
               </div>
             </div>
             
@@ -714,14 +1516,22 @@ function ChallengeEditor() {
                 </div>
               )}
               
-              {/* ヒントキャラクター */}
-              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 border-2 border-yellow-200 text-center">
-                <h3 className="text-lg font-bold text-orange-800 mb-3">🤔 困ったときは...</h3>
-                <p className="text-orange-700 font-medium mt-2">右下のキャラクターをクリックしてヒントをもらおう！</p>
+              {/* ヒント活用ガイド */}
+              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl p-4 border-2 border-indigo-200">
+                <h3 className="text-lg font-bold text-indigo-800 mb-2">🧭 ヒントの使い方</h3>
+                <p className="text-indigo-700 text-sm leading-relaxed">
+                  右下のキャラクターをクリックするとレベル1〜{displayedHintLevelCount}まで段階的にヒントを確認できます。
+                </p>
+                <p className="mt-2 text-indigo-600 text-xs leading-relaxed">
+                  最終ヒントはほぼ答えなので、表示前に確認ダイアログが出ます。
+                </p>
+                <p className="mt-2 text-indigo-600 text-xs leading-relaxed">
+                  内容が合わないときはリセットボタンからヒントを再生成してみましょう。
+                </p>
                 {hintError && (
-                  <div className="mt-2 text-pink-600 text-sm font-bold bg-pink-50 px-3 py-1 rounded-lg border border-pink-200">
+                  <p className="mt-3 rounded-lg border border-pink-200 bg-pink-50 px-3 py-2 text-xs font-semibold text-pink-600">
                     😅 {hintError}
-                  </div>
+                  </p>
                 )}
               </div>
             </div>
