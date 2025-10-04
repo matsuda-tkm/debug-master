@@ -14,7 +14,7 @@ function SuccessModal({ message, explanation, onClose, challenge, userAnswer }: 
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
-      <div className="bg-white rounded-xl shadow-2xl p-8 max-w-lg w-full mx-4 relative overflow-hidden animate-success">
+      <div className="bg-white rounded-xl shadow-2xl p-6 sm:p-8 w-full mx-4 my-6 relative animate-success max-w-3xl md:max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
           <div className="relative">
             <Confetti className="w-12 h-12 text-yellow-400 animate-bounce animate-rainbow" />
@@ -24,7 +24,7 @@ function SuccessModal({ message, explanation, onClose, challenge, userAnswer }: 
           </div>
         </div>
 
-        <div className="text-center mt-8">
+        <div className="text-center mt-6 sm:mt-8">
           <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4 animate-wiggle">🎉 {message} 🎉</h2>
 
           {explanation && (

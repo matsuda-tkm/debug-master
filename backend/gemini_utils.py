@@ -108,3 +108,59 @@ def generate_hint_logic(
         ),
     )
     return response.text  # type: ignore
+
+
+def _summarize_test_results(test_results: List[Dict[str, Any]]) -> str:
+    text = ""
+    for i, result in enumerate(test_results):
+        status = "成功" if result.get("status") == "success" else "失敗"
+        message = result.get("message", "")
+        if not isinstance(message, str):
+            message = str(message)
+        text += f"テストケース {i + 1}: {status}\nメッセージ: {message}\n\n"
+    return text
+
+
+def generate_explanation_logic(
+    before_code: str,
+    after_code: str,
+    instructions: str,
+    examples: str,
+    test_results: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    test_results_text = _summarize_test_results(test_results)
+    prompt = f"""
+課題:
+{instructions}
+
+例:
+{examples}
+
+Before (修正前のコード):
+{before_code}
+
+After (修正後のコード):
+{after_code}
+
+テスト結果サマリ:
+{test_results_text}
+"""
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=[prompt],
+        config=types.GenerateContentConfig(
+            temperature=0.2,
+            system_instruction=config.EXPLANATION_SYSTEM_INSTRUCTION,
+            response_mime_type="application/json",
+        ),
+    )
+    # Ensure valid JSON
+    try:
+        return json.loads(response.text)  # type: ignore[arg-type]
+    except Exception as e:
+        # Fallback: wrap raw text
+        return {
+            "reason": "解説の生成に失敗しました。",
+            "explain_diff": "解説の生成に失敗しました。",
+            "raw": getattr(response, "text", str(e)),
+        }
