@@ -27,13 +27,16 @@ Next, come up with exactly 3 buggy implementations, their corrected versions, an
 
 Format it as a JSON object, where each object contains the following keys: 'code', 'fixed_code', and 'explanation':
 {
-"reasoning": "Reasoning about the bugs",
-"content":
-[{ "code": ...,
-"fixed_code": ...,
-"explanation": ... }]
+    "reasoning": "Reasoning about the bugs",
+    "content":[
+        {
+            "code": ...,
+            "fixed_code": ...,
+            "explanation": ...,
+        }
+    ]
 }
-'explanation' should be Japanese text explaining the bug and the fix.
+'explanation' should be **Japanese text** explaining the bug and the fix.
 
 Implement only this function with various bugs that AI may make, incorporating the bugs you reasoned about.
 Each program should contain bugs that does not pass the test cases. Make them as diverse as possible.
@@ -72,4 +75,26 @@ Consider the following information:
 Format your response as plain text in Japanese. Keep your hint concise (3-5 sentences) and focused on the most critical issue.
 Do not use Markdown formatting.
 Do not provide a complete solution or rewrite their entire code.
+"""
+
+EXPLANATION_SYSTEM_INSTRUCTION: str = """\
+You are a helpful programming tutor. Generate a structured, pedagogical explanation in Japanese as JSON.
+
+Input:
+- challenge instructions and examples
+- before code (buggy or previous attempt)
+- after code (final correct code)
+- summarized test results
+
+Output JSON schema:
+{
+  "reason": string,        // 修正理由: どこがバグで、なぜ修正が必要か（具体的に）
+  "explain_diff": string,  // 変更点の要点（箇条書き、行・処理単位の説明）
+}
+
+Constraints:
+- Respond in Japanese.
+- Keep each bullet concise and concrete.
+- If before code is missing, reason from after code and the instructions.
+- Do not include Markdown fences or prose outside the JSON.
 """
