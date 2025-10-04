@@ -743,12 +743,19 @@ function ChallengeEditor() {
   };
 
   const handleResetHints = useCallback(async () => {
-    if (!challenge || !activeHint) {
+    if (!challenge) {
       return;
     }
 
     setHintError('');
     setIsFinalHintConfirmVisible(false);
+
+    const lowestLevel = sortedHintLevels[0]?.level ?? 1;
+    const firstHint = sortedHintLevels.find((item) => item.level === lowestLevel);
+
+    setHintLevels(firstHint ? [firstHint] : []);
+    setUnlockedHintLevel(firstHint ? lowestLevel : 1);
+    setVisibleHintLevel(firstHint ? lowestLevel : 1);
 
     if (hintStorageKey && typeof window !== 'undefined') {
       try {
@@ -760,8 +767,7 @@ function ChallengeEditor() {
 
     const hintsLoaded = await loadHints({
       force: true,
-      resetProgress: false,
-      targetLevel: activeHint.level,
+      resetProgress: true,
     });
 
     if (!hintsLoaded) {
@@ -769,7 +775,7 @@ function ChallengeEditor() {
     }
 
     setIsHintOpen(true);
-  }, [challenge, activeHint, hintStorageKey, loadHints]);
+  }, [challenge, hintStorageKey, loadHints, sortedHintLevels]);
 
   const handleRequestAdditionalHint = () => {
     if (!nextHintLevel) {
