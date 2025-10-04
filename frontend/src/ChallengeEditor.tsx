@@ -345,27 +345,28 @@ function ChallengeEditor() {
   const [code, setCode] = useState(`def main(numbers):
     # Write your solution here
     pass
-  `);
-  const [isRunning, setIsRunning] = useState(false);
-  const [testResults, setTestResults] = useState([]);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationError, setGenerationError] = useState('');
-  const [explanation, setExplanation] = useState('');
-  const [aiGeneratedCode, setAiGeneratedCode] = useState('');
-  const [lastFailingCode, setLastFailingCode] = useState('');
-  const [hintLevels, setHintLevels] = useState<HintLevel[]>([]);
-  const [unlockedHintLevel, setUnlockedHintLevel] = useState(0);
-  const [isHintOpen, setIsHintOpen] = useState(false);
-  const [isLoadingHints, setIsLoadingHints] = useState(false);
-  const [hintError, setHintError] = useState('');
-  const [isFinalHintConfirmVisible, setIsFinalHintConfirmVisible] = useState(false);
-  const [showVideoModal, setShowVideoModal] = useState(false);
-  const [currentVideo, setCurrentVideo] = useState('');
-  const [currentStep, setCurrentStep] = useState(1);
-  const [visibleHintLevel, setVisibleHintLevel] = useState<number | null>(null);
-  const [isHintContentVisible, setIsHintContentVisible] = useState(false);
-
+    `);
+    const [isRunning, setIsRunning] = useState(false);
+    const [testResults, setTestResults] = useState([]);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [generationError, setGenerationError] = useState('');
+    const [explanation, setExplanation] = useState('');
+    const [aiGeneratedCode, setAiGeneratedCode] = useState<string | null>(null);
+    const [lastFailingCode, setLastFailingCode] = useState<string | null>(null);
+    const [hintLevels, setHintLevels] = useState<HintLevel[]>([]);
+    const [unlockedHintLevel, setUnlockedHintLevel] = useState(0);
+    const [isHintOpen, setIsHintOpen] = useState(false);
+    const [isLoadingHints, setIsLoadingHints] = useState(false);
+    const [hintError, setHintError] = useState('');
+    const [isFinalHintConfirmVisible, setIsFinalHintConfirmVisible] = useState(false);
+    const [showVideoModal, setShowVideoModal] = useState(false);  
+    const [currentVideo, setCurrentVideo] = useState('');
+    const [currentStep, setCurrentStep] = useState(1);
+    const [visibleHintLevel, setVisibleHintLevel] = useState<number | null>(null);
+    const [isHintContentVisible, setIsHintContentVisible] = useState(false);
+    const [showRetireModal, setShowRetireModal] = useState(false);
+    
   const hintDialogRef = useRef<HTMLDivElement | null>(null);
   const hintHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const prevFocusedElementRef = useRef<HTMLElement | null>(null);
@@ -601,11 +602,11 @@ function ChallengeEditor() {
 
         if (!response.ok) {
           const message =
-            typeof data?.error === 'string'
-              ? data.error
-              : typeof data?.detail === 'string'
-              ? data.detail
-              : 'ヒントの生成中にエラーが発生しました。';
+          typeof data?.error === 'string'
+          ? data.error
+          : typeof data?.detail === 'string'
+          ? data.detail
+          : 'ヒントの生成中にエラーが発生しました。';
           setHintError(message);
           return false;
         }
@@ -858,26 +859,6 @@ function ChallengeEditor() {
     loadChallengeData();
   }, [themeId, navigate]);
 
-  const [code, setCode] = useState(`def main(numbers):
-    # Write your solution here
-    pass
-  `);
-  const [isRunning, setIsRunning] = useState(false);
-  const [testResults, setTestResults] = useState([]);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationError, setGenerationError] = useState('');
-  const [explanation, setExplanation] = useState('');
-  const [lastFailingCode, setLastFailingCode] = useState<string | null>(null);
-  const [aiGeneratedCode, setAiGeneratedCode] = useState<string | null>(null);
-  const [showHintModal, setShowHintModal] = useState(false);
-  const [hint, setHint] = useState('');
-  const [isLoadingHint, setIsLoadingHint] = useState(false);
-  const [hintError, setHintError] = useState('');
-  const [showVideoModal, setShowVideoModal] = useState(false);
-  const [currentVideo, setCurrentVideo] = useState('');
-  const [currentStep, setCurrentStep] = useState(1);
-  const [showRetireModal, setShowRetireModal] = useState(false);
   useEffect(() => {
     if (!hintStorageKey) {
       setHintLevels([]);
