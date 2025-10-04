@@ -11,6 +11,7 @@ from gemini_utils import (
     generate_code_logic,
     generate_hint_logic,
     generate_explanation_logic,
+    generate_retire_explanation_logic,
 )
 from starlette.responses import JSONResponse, StreamingResponse
 
@@ -154,6 +155,22 @@ def generate_explanation(payload: dict[str, Any] = Body(...)) -> JSONResponse:
     test_results: list[dict[str, Any]] = payload.get("testResults", [])
     try:
         explanation = generate_explanation_logic(
+            before_code, after_code, instructions, examples, test_results
+        )
+        return JSONResponse(content=explanation)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@app.post("/api/generate-retire-explanation")
+def generate_retire_explanation(payload: dict[str, Any] = Body(...)) -> JSONResponse:
+    before_code: str = payload.get("beforeCode", "")
+    after_code: str = payload.get("afterCode", "")
+    instructions: str = payload.get("instructions", "")
+    examples: str = payload.get("examples", "")
+    test_results: list[dict[str, Any]] = payload.get("testResults", [])
+    try:
+        explanation = generate_retire_explanation_logic(
             before_code, after_code, instructions, examples, test_results
         )
         return JSONResponse(content=explanation)

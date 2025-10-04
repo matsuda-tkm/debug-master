@@ -164,3 +164,46 @@ After (修正後のコード):
             "explain_diff": "解説の生成に失敗しました。",
             "raw": getattr(response, "text", str(e)),
         }
+
+
+def generate_retire_explanation_logic(
+    before_code: str,
+    after_code: str,
+    instructions: str,
+    examples: str,
+    test_results: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    test_results_text = _summarize_test_results(test_results)
+    prompt = f"""
+課題:
+{instructions}
+
+例:
+{examples}
+
+Before (参考コード):
+{before_code}
+
+After (学習者の最新コード):
+{after_code}
+
+テスト結果サマリ:
+{test_results_text}
+"""
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=[prompt],
+        config=types.GenerateContentConfig(
+            temperature=0.15,
+            system_instruction=config.RETIRE_SYSTEM_INSTRUCTION,
+            response_mime_type="application/json",
+        ),
+    )
+    try:
+        return json.loads(response.text)  # type: ignore[arg-type]
+    except Exception as e:
+        return {
+            "reason": "リタイア解説の生成に失敗しました。",
+            "explain_diff": "リタイア解説の生成に失敗しました。",
+            "raw": getattr(response, "text", str(e)),
+        }

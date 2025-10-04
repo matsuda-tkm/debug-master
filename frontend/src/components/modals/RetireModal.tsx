@@ -52,7 +52,7 @@ function RetireModal({
         setIsLoadingExplanation(true);
         setExplanationError('');
 
-        const response = await fetch('http://localhost:8000/api/generate-explanation', {
+        const response = await fetch('http://localhost:8000/api/generate-retire-explanation', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
