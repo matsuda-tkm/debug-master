@@ -1,28 +1,31 @@
-import { useState, useEffect, useMemo, useRef, useCallback, type ReactNode } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import {
-  Code2,
-  Bug,
-  BookOpen,
-  ChevronRight,
-  ThumbsUp,
-  Terminal,
-  PlayCircle,
-  XCircle,
-  CheckCircle,
-  PartyPopper,
-  SettingsIcon as Confetti,
-  Wand2,
-  Lightbulb,
-  X
-} from 'lucide-react';
-import { challengeService } from './services/challengeService';
-import Markdown from './components/Markdown';
-import { Challenge } from './types/challenge';
-import CodeMirror from '@uiw/react-codemirror';
 import { python } from '@codemirror/lang-python';
-import { oneDark } from '@codemirror/theme-one-dark';
 import { indentUnit } from '@codemirror/language';
+import { oneDark } from '@codemirror/theme-one-dark';
+import CodeMirror from '@uiw/react-codemirror';
+import {
+  BookOpen,
+  Bug,
+  CheckCircle,
+  ChevronRight,
+  Code2,
+  SettingsIcon as Confetti,
+  Lightbulb,
+  PartyPopper,
+  PlayCircle,
+  Terminal,
+  ThumbsUp,
+  Wand2,
+  X,
+  XCircle
+} from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import Markdown from './components/Markdown';
+import RetireConfirmationModal from './components/modals/RetireConfirmationModal';
+import RetireModal from './components/modals/RetireModal';
+import { challengeService } from './services/challengeService';
+import { Challenge } from './types/challenge';
+
 
 type HintLevel = {
   level: number;
@@ -145,9 +148,7 @@ function SuccessModal({
           {explanation && (
             <div className="mt-4 bg-slate-50 p-4 rounded-lg text-left">
               <h3 className="text-lg font-semibold text-slate-800 mb-2">バグの説明（AI生成の要約）</h3>
-              <div className="text-slate-700 whitespace-pre-wrap text-sm">
-                {explanation}
-              </div>
+              <Markdown content={explanation} className="text-slate-700 text-sm space-y-2" />
             </div>
           )}
 
@@ -345,27 +346,29 @@ function ChallengeEditor() {
   const [code, setCode] = useState(`def main(numbers):
     # Write your solution here
     pass
-  `);
-  const [isRunning, setIsRunning] = useState(false);
-  const [testResults, setTestResults] = useState([]);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationError, setGenerationError] = useState('');
-  const [explanation, setExplanation] = useState('');
-  const [aiGeneratedCode, setAiGeneratedCode] = useState('');
-  const [lastFailingCode, setLastFailingCode] = useState('');
-  const [hintLevels, setHintLevels] = useState<HintLevel[]>([]);
-  const [unlockedHintLevel, setUnlockedHintLevel] = useState(0);
-  const [isHintOpen, setIsHintOpen] = useState(false);
-  const [isLoadingHints, setIsLoadingHints] = useState(false);
-  const [hintError, setHintError] = useState('');
-  const [isFinalHintConfirmVisible, setIsFinalHintConfirmVisible] = useState(false);
-  const [showVideoModal, setShowVideoModal] = useState(false);
-  const [currentVideo, setCurrentVideo] = useState('');
-  const [currentStep, setCurrentStep] = useState(1);
-  const [visibleHintLevel, setVisibleHintLevel] = useState<number | null>(null);
-  const [isHintContentVisible, setIsHintContentVisible] = useState(false);
-
+    `);
+    const [isRunning, setIsRunning] = useState(false);
+    const [testResults, setTestResults] = useState([]);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [generationError, setGenerationError] = useState('');
+    const [explanation, setExplanation] = useState('');
+    const [aiGeneratedCode, setAiGeneratedCode] = useState<string | null>(null);
+    const [lastFailingCode, setLastFailingCode] = useState<string | null>(null);
+    const [hintLevels, setHintLevels] = useState<HintLevel[]>([]);
+    const [unlockedHintLevel, setUnlockedHintLevel] = useState(0);
+    const [isHintOpen, setIsHintOpen] = useState(false);
+    const [isLoadingHints, setIsLoadingHints] = useState(false);
+    const [hintError, setHintError] = useState('');
+    const [isFinalHintConfirmVisible, setIsFinalHintConfirmVisible] = useState(false);
+    const [showVideoModal, setShowVideoModal] = useState(false);  
+    const [currentVideo, setCurrentVideo] = useState('');
+    const [currentStep, setCurrentStep] = useState(1);
+    const [visibleHintLevel, setVisibleHintLevel] = useState<number | null>(null);
+    const [isHintContentVisible, setIsHintContentVisible] = useState(false);
+    const [showRetireModal, setShowRetireModal] = useState(false);
+    const [showRetireConfirmationModal, setShowRetireConfirmationModal] = useState(false);
+    
   const hintDialogRef = useRef<HTMLDivElement | null>(null);
   const hintHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const prevFocusedElementRef = useRef<HTMLElement | null>(null);
@@ -601,11 +604,11 @@ function ChallengeEditor() {
 
         if (!response.ok) {
           const message =
-            typeof data?.error === 'string'
-              ? data.error
-              : typeof data?.detail === 'string'
-              ? data.detail
-              : 'ヒントの生成中にエラーが発生しました。';
+          typeof data?.error === 'string'
+          ? data.error
+          : typeof data?.detail === 'string'
+          ? data.detail
+          : 'ヒントの生成中にエラーが発生しました。';
           setHintError(message);
           return false;
         }
@@ -1130,6 +1133,14 @@ function ChallengeEditor() {
     setShowVideoModal(true);
   };
 
+  const handleOpenRetire = () => setShowRetireConfirmationModal(true);
+  const handleCloseRetire = () => setShowRetireModal(false);
+  const handleConfirmRetire = () => {
+    setShowRetireConfirmationModal(false);
+    setShowRetireModal(true);
+  };
+  const handleCancelRetire = () => setShowRetireConfirmationModal(false);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 flex items-center justify-center">
@@ -1378,6 +1389,24 @@ function ChallengeEditor() {
           onClose={() => setShowVideoModal(false)}
         />
       )}
+      {showRetireConfirmationModal && (
+        <RetireConfirmationModal
+          onConfirm={handleConfirmRetire}
+          onCancel={handleCancelRetire}
+        />
+      )}
+      {showRetireModal && (
+        <RetireModal
+          message="課題の解答と解説"
+          explanation={explanation}
+          challenge={challenge}
+          userAnswer={code}
+          lastFailingCode={lastFailingCode}
+          aiGeneratedCode={aiGeneratedCode}
+          testResults={testResults}
+          onClose={handleCloseRetire}
+        />
+      )}
 
       <header className="bg-white/80 backdrop-blur-sm border-b border-purple-200 shadow-sm">
         <div className="container mx-auto px-4 py-2 flex items-center justify-between">
@@ -1561,27 +1590,37 @@ function ChallengeEditor() {
                   <Terminal className="w-5 h-5 text-slate-400" />
                   <span className="text-slate-200 font-bold">🧪 テスト結果</span>
                 </div>
-                <button
-                  onClick={handleRunCode}
-                  disabled={isRunning}
-                  className={`flex items-center gap-2 px-4 py-2 rounded font-bold ${
-                    isRunning
-                      ? 'bg-slate-700 text-slate-400'
-                      : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white transform hover:scale-105'
-                  } text-sm transition-all`}
-                >
-                  {isRunning ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                      実行中...
-                    </>
-                  ) : (
-                    <>
-                      <PlayCircle className="w-4 h-4" />
-                      テスト実行
-                    </>
-                  )}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleRunCode}
+                    disabled={isRunning}
+                    className={`flex items-center gap-2 px-4 py-2 rounded font-bold ${
+                      isRunning
+                        ? 'bg-slate-700 text-slate-400'
+                        : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white transform hover:scale-105'
+                    } text-sm transition-all`}
+                  >
+                    {isRunning ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                        実行中...
+                      </>
+                    ) : (
+                      <>
+                        <PlayCircle className="w-4 h-4" />
+                        テスト実行
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={handleOpenRetire}
+                    className="flex items-center gap-2 px-4 py-2 rounded font-bold bg-gradient-to-r from-slate-500 to-gray-500 hover:from-slate-600 hover:to-gray-600 text-white text-sm transition-all"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    リタイア
+                  </button>
+                </div>
               </div>
               <div className="flex-1 p-4 overflow-auto">
                 {testResults.map((result, index) => (
