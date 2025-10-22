@@ -1,7 +1,3 @@
-import { python } from '@codemirror/lang-python';
-import { indentUnit } from '@codemirror/language';
-import { oneDark } from '@codemirror/theme-one-dark';
-import CodeMirror from '@uiw/react-codemirror';
 import {
   BookOpen,
   Bug,
@@ -18,7 +14,7 @@ import {
   X,
   XCircle
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Markdown from './components/Markdown';
 import RetireConfirmationModal from './components/modals/RetireConfirmationModal';
@@ -31,6 +27,22 @@ type HintLevel = {
   level: number;
   title?: string;
   content: string;
+};
+
+type ScratchBlockGroup = {
+  title: string;
+  description: string;
+  color: string;
+  accent: string;
+  blocks: string[];
+};
+
+type WorkspaceBlock = {
+  id: string;
+  label: string;
+  color: string;
+  accent: string;
+  groupTitle: string;
 };
 
 const DEFAULT_HINT_TITLES: Record<number, string> = {
@@ -347,27 +359,31 @@ function ChallengeEditor() {
     # Write your solution here
     pass
     `);
-    const [isRunning, setIsRunning] = useState(false);
-    const [testResults, setTestResults] = useState([]);
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [generationError, setGenerationError] = useState('');
-    const [explanation, setExplanation] = useState('');
-    const [aiGeneratedCode, setAiGeneratedCode] = useState<string | null>(null);
-    const [lastFailingCode, setLastFailingCode] = useState<string | null>(null);
-    const [hintLevels, setHintLevels] = useState<HintLevel[]>([]);
-    const [unlockedHintLevel, setUnlockedHintLevel] = useState(0);
-    const [isHintOpen, setIsHintOpen] = useState(false);
-    const [isLoadingHints, setIsLoadingHints] = useState(false);
-    const [hintError, setHintError] = useState('');
-    const [isFinalHintConfirmVisible, setIsFinalHintConfirmVisible] = useState(false);
-    const [showVideoModal, setShowVideoModal] = useState(false);  
-    const [currentVideo, setCurrentVideo] = useState('');
-    const [currentStep, setCurrentStep] = useState(1);
-    const [visibleHintLevel, setVisibleHintLevel] = useState<number | null>(null);
-    const [isHintContentVisible, setIsHintContentVisible] = useState(false);
-    const [showRetireModal, setShowRetireModal] = useState(false);
-    const [showRetireConfirmationModal, setShowRetireConfirmationModal] = useState(false);
+  const [testResults, setTestResults] = useState([]);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState('');
+  const [explanation, setExplanation] = useState('');
+  const [aiGeneratedCode, setAiGeneratedCode] = useState<string | null>(null);
+  const [lastFailingCode, setLastFailingCode] = useState<string | null>(null);
+  const [hintLevels, setHintLevels] = useState<HintLevel[]>([]);
+  const [unlockedHintLevel, setUnlockedHintLevel] = useState(0);
+  const [isHintOpen, setIsHintOpen] = useState(false);
+  const [isLoadingHints, setIsLoadingHints] = useState(false);
+  const [hintError, setHintError] = useState('');
+  const [isFinalHintConfirmVisible, setIsFinalHintConfirmVisible] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);  
+  const [currentVideo, setCurrentVideo] = useState('');
+  const [currentStep, setCurrentStep] = useState(1);
+  const [visibleHintLevel, setVisibleHintLevel] = useState<number | null>(null);
+  const [isHintContentVisible, setIsHintContentVisible] = useState(false);
+  const [showRetireModal, setShowRetireModal] = useState(false);
+  const [showRetireConfirmationModal, setShowRetireConfirmationModal] = useState(false);
+  const [workspaceBlocks, setWorkspaceBlocks] = useState<WorkspaceBlock[]>([]);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [hoveredBlockId, setHoveredBlockId] = useState<string | null>(null);
+  const [isDraggingBlock, setIsDraggingBlock] = useState(false);
+  const nextBlockIdRef = useRef(1);
     
   const hintDialogRef = useRef<HTMLDivElement | null>(null);
   const hintHeadingRef = useRef<HTMLHeadingElement | null>(null);
@@ -423,6 +439,222 @@ function ChallengeEditor() {
     }
     return sortedHintLevels[0];
   }, [sortedHintLevels, normalizedUnlockedLevel, visibleHintLevel]);
+
+  const scratchBlockGroups = useMemo<ScratchBlockGroup[]>(
+    () => [
+      {
+        title: 'モーション',
+        description: 'スプライトの動きをコントロールするブロック',
+        color: '#4C97FF',
+        accent: '#3373CC',
+        blocks: ['10歩うごかす', '15度まわす', 'x座標を0にする'],
+      },
+      {
+        title: '見た目',
+        description: 'スプライトの見た目やセリフを変えるブロック',
+        color: '#9966FF',
+        accent: '#774DCB',
+        blocks: ['こんにちは！と言う', 'コスチュームを次にする', '大きさを10ずつ変える'],
+      },
+      {
+        title: 'イベント',
+        description: 'イベントのきっかけを作るブロック',
+        color: '#FFBF00',
+        accent: '#CC9900',
+        blocks: ['⚑ が押されたとき', 'スプライトがクリックされたとき', '背景が変わったとき'],
+      },
+      {
+        title: '制御',
+        description: '繰り返しや条件分岐のブロック',
+        color: '#FFAB19',
+        accent: '#D98900',
+        blocks: ['ずっと', 'もし～なら', '1秒待つ'],
+      },
+    ],
+    []
+  );
+
+  const handlePaletteDragStart = useCallback(
+    (event: DragEvent<HTMLDivElement>, group: ScratchBlockGroup, label: string) => {
+      event.dataTransfer.effectAllowed = 'copy';
+      const payload = {
+        type: 'palette' as const,
+        block: {
+          label,
+          color: group.color,
+          accent: group.accent,
+          groupTitle: group.title,
+        },
+      };
+      event.dataTransfer.setData('application/json', JSON.stringify(payload));
+      setDragOverIndex(null);
+      setHoveredBlockId(null);
+      setIsDraggingBlock(true);
+    },
+    []
+  );
+
+  const handleWorkspaceBlockDragStart = useCallback(
+    (event: DragEvent<HTMLDivElement>, blockId: string) => {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData(
+        'application/json',
+        JSON.stringify({
+          type: 'workspace' as const,
+          blockId,
+        })
+      );
+      setDragOverIndex(null);
+      setHoveredBlockId(null);
+      setIsDraggingBlock(true);
+    },
+    []
+  );
+
+  const handleWorkspaceDragOver = useCallback(
+    (event: DragEvent<HTMLDivElement>, index?: number) => {
+      event.preventDefault();
+      const effectAllowed = event.dataTransfer?.effectAllowed ?? '';
+      if (effectAllowed.includes('copy') && !effectAllowed.includes('move')) {
+        event.dataTransfer.dropEffect = 'copy';
+      } else {
+        event.dataTransfer.dropEffect = 'move';
+      }
+      if (typeof index === 'number') {
+        setDragOverIndex(index);
+      }
+    },
+    []
+  );
+
+  const handleWorkspaceDragLeave = useCallback((event: DragEvent<HTMLDivElement>) => {
+    const related = event.relatedTarget as Node | null;
+    if (related && event.currentTarget.contains(related)) {
+      return;
+    }
+    setDragOverIndex(null);
+    setHoveredBlockId(null);
+  }, []);
+
+  const cleanupDragState = useCallback(() => {
+    setDragOverIndex(null);
+    setHoveredBlockId(null);
+    setIsDraggingBlock(false);
+  }, []);
+
+  const handleWorkspaceDrop = useCallback(
+    (event: DragEvent<HTMLDivElement>, index?: number) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const raw = event.dataTransfer?.getData('application/json');
+      cleanupDragState();
+      if (!raw) {
+        return;
+      }
+
+      let data: { type: 'palette'; block: Omit<WorkspaceBlock, 'id'> } | { type: 'workspace'; blockId: string };
+      try {
+        data = JSON.parse(raw);
+      } catch (error) {
+        console.error('Failed to parse drag data', error);
+        return;
+      }
+
+      if (data.type === 'palette') {
+        const newBlock: WorkspaceBlock = {
+          id: `block-${nextBlockIdRef.current++}`,
+          label: data.block.label,
+          color: data.block.color,
+          accent: data.block.accent,
+          groupTitle: data.block.groupTitle,
+        };
+        setWorkspaceBlocks((prev) => {
+          const next = [...prev];
+          const targetIndex =
+            typeof index === 'number'
+              ? Math.max(0, Math.min(index, prev.length))
+              : prev.length;
+          next.splice(targetIndex, 0, newBlock);
+          return next;
+        });
+        return;
+      }
+
+      if (data.type === 'workspace') {
+        const blockId = data.blockId;
+        if (!blockId) {
+          return;
+        }
+        setWorkspaceBlocks((prev) => {
+          const currentIndex = prev.findIndex((item) => item.id === blockId);
+          if (currentIndex === -1) {
+            return prev;
+          }
+          const maxIndex = prev.length;
+          const desiredIndex =
+            typeof index === 'number' ? Math.max(0, Math.min(index, maxIndex)) : maxIndex;
+          const adjustedIndex = desiredIndex > currentIndex ? desiredIndex - 1 : desiredIndex;
+          if (adjustedIndex === currentIndex) {
+            return prev;
+          }
+          const next = [...prev];
+          const [moved] = next.splice(currentIndex, 1);
+          next.splice(adjustedIndex, 0, moved);
+          return next;
+        });
+      }
+    },
+    [cleanupDragState]
+  );
+
+  const handleDropZoneDragEnter = useCallback(
+    (event: DragEvent<HTMLDivElement>, index: number) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setHoveredBlockId(null);
+      setDragOverIndex(index);
+    },
+    []
+  );
+
+  const handleDropZoneDragOver = useCallback(
+    (event: DragEvent<HTMLDivElement>, index: number) => {
+      event.stopPropagation();
+      handleWorkspaceDragOver(event, index);
+    },
+    [handleWorkspaceDragOver]
+  );
+
+  const handleDropOnZone = useCallback(
+    (event: DragEvent<HTMLDivElement>, index?: number) => {
+      event.stopPropagation();
+      handleWorkspaceDrop(event, index);
+    },
+    [handleWorkspaceDrop]
+  );
+
+  const renderDropZone = (index: number) => {
+    const isActive = dragOverIndex === index;
+    const isEdgeZone = index === 0 || index === workspaceBlocks.length;
+    const restingHeightClass = isEdgeZone ? 'h-4' : 'h-6';
+    const heightClass = restingHeightClass;
+    return (
+      <div
+        key={`workspace-dropzone-${index}`}
+        onDragEnter={(event) => handleDropZoneDragEnter(event, index)}
+        onDragOver={(event) => handleDropZoneDragOver(event, index)}
+        onDragLeave={(event) => handleWorkspaceDragLeave(event)}
+        onDrop={(event) => handleDropOnZone(event, index)}
+        className={`workspace-dropzone my-1 ${heightClass} rounded-xl border-2 border-dashed transition-all duration-150 ${
+          isActive
+            ? 'is-active border-sky-400 bg-sky-100/80 opacity-100 scale-[1.01]'
+            : isDraggingBlock
+              ? 'border-slate-300/60 bg-slate-100/40 opacity-80'
+              : 'border-transparent opacity-0 scale-95'
+        }`}
+      />
+    );
+  };
 
   const nextHintLevel = useMemo(() => {
     if (!sortedHintLevels.length) {
@@ -1010,6 +1242,11 @@ function ChallengeEditor() {
     }
   }, [nextHintLevel]);
 
+  useEffect(() => {
+    setWorkspaceBlocks([]);
+    cleanupDragState();
+  }, [challenge?.id, cleanupDragState]);
+
   const handleGenerateCode = async () => {
     setIsGenerating(true);
     setGenerationError('');
@@ -1049,70 +1286,9 @@ function ChallengeEditor() {
     }
   };
 
-  const handleRunCode = async () => {
-    if (!challenge) return;
-    setIsRunning(true);
-    setTestResults([]);
-    setCurrentStep(3);
-
-    try {
-      const response = await fetch('http://localhost:8000/api/run-python', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code,
-          testCases: challenge.testCases,
-        }),
-      });
-
-      const reader = response.body?.getReader();
-      if (!reader) return;
-
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let anyFailure = false;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-
-        for (let i = 0; i < lines.length - 1; i++) {
-          const line = lines[i].trim();
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.status && data.status !== 'success') {
-                anyFailure = true;
-              }
-              setTestResults((prev) => [...prev, data]);
-            } catch (e) {
-              console.error('Failed to parse SSE data:', e);
-            }
-          }
-        }
-        buffer = lines[lines.length - 1];
-      }
-      // After stream ends, remember the current code as failing snapshot if any test failed
-      if (anyFailure) {
-        setLastFailingCode(code);
-      }
-    } catch (error) {
-      console.error('Error running code:', error);
-      setTestResults([
-        {
-          testCase: 1,
-          status: 'error',
-          message:
-            'Failed to connect to Python server. Please make sure the server is running.',
-        },
-      ]);
-    } finally {
-      setIsRunning(false);
-    }
-  };
+  const handleRunCode = useCallback(() => {
+    window.alert('Scratch版ではテスト実行は利用できません。見た目のみをお楽しみください。');
+  }, []);
 
   const handleSubmitSolution = () => {
     const allTestsPassed = testResults.every(
@@ -1558,7 +1734,7 @@ function ChallengeEditor() {
               )}
             </div>
             <div className="text-sm text-green-600 bg-green-50 px-3 py-2 rounded-lg border border-green-200">
-              💡 AIにコードを生成してもらってから、エディタで編集してテストを実行しよう！
+              💡 パレットからブロックをドラッグして、ワークスペースでつなげてみよう！
             </div>
           </div>
         </div>
@@ -1570,16 +1746,209 @@ function ChallengeEditor() {
             <div className="flex flex-col">
               <div className="bg-slate-800 px-4 py-3 flex items-center gap-2 border-b border-slate-700">
                 <Code2 className="w-5 h-5 text-slate-400" />
-                <span className="text-slate-200 font-bold">💻 コードエディタ</span>
+                <span className="text-slate-200 font-bold">🧱 スクラッチエディタ</span>
+                <span className="ml-auto text-xs text-slate-400 uppercase tracking-wide">Mock</span>
               </div>
-              <div className="flex-1 bg-slate-900">
-                <CodeMirror
-                  value={code}
-                  height="100%"
-                  extensions={[python(), oneDark, indentUnit.of('    ')]}
-                  onChange={(value) => setCode(value)}
-                  className="w-full h-full font-mono text-sm"
-                />
+              <div className="flex-1 bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
+                <div className="h-full flex flex-col lg:flex-row">
+                  <div className="lg:w-5/12 xl:w-4/12 border-b border-slate-200 lg:border-b-0 lg:border-r border-slate-200 bg-white/80 backdrop-blur-sm">
+                    <div className="px-4 py-3 bg-[#4C97FF] text-white flex items-center justify-between">
+                      <span className="font-semibold tracking-wide">ステージプレビュー</span>
+                      <span className="text-[10px] uppercase bg-white/20 px-2 py-1 rounded-full">Scratch</span>
+                    </div>
+                    <div className="p-4 space-y-4">
+                      <div className="rounded-xl bg-[#eaf3ff] border border-[#4C97FF]/40 p-4 shadow-inner">
+                        <div className="aspect-video bg-white rounded-lg shadow-md flex items-center justify-center">
+                          <div className="w-16 h-16 rounded-full bg-[#ffab19] flex items-center justify-center text-white text-3xl">🐱</div>
+                        </div>
+                        <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-slate-600">
+                          <div className="bg-white rounded-lg border border-slate-200 p-2 shadow-sm">
+                            <p className="font-semibold text-slate-800">スプライト</p>
+                            <p>スプライト1</p>
+                          </div>
+                          <div className="bg-white rounded-lg border border-slate-200 p-2 shadow-sm">
+                            <p className="font-semibold text-slate-800">背景</p>
+                            <p>青い空</p>
+                          </div>
+                          <div className="bg-white rounded-lg border border-slate-200 p-2 shadow-sm">
+                            <p className="font-semibold text-slate-800">座標</p>
+                            <p>x: 20 / y: -10</p>
+                          </div>
+                          <div className="bg-white rounded-lg border border-slate-200 p-2 shadow-sm">
+                            <p className="font-semibold text-slate-800">大きさ</p>
+                            <p>100%</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-lg bg-white border border-slate-200 text-xs text-slate-500 leading-relaxed">
+                        Scratch版はデザインモックです。ブロックはドラッグで接続できますが実行はできません。
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-auto p-4 lg:p-6 space-y-6">
+                    <section className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur-sm shadow-sm">
+                      <div className="px-4 py-3 border-b border-slate-200 bg-slate-100/70 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Lightbulb className="w-4 h-4 text-amber-500" />
+                          <span className="font-bold text-slate-700">ブロックパレット</span>
+                        </div>
+                        <span className="text-xs text-slate-500">ドラッグしてワークスペースに追加</span>
+                      </div>
+                      <div className="p-4 space-y-4">
+                        {scratchBlockGroups.map((group) => (
+                          <div
+                            key={group.title}
+                            className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm space-y-3"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-lg"
+                                style={{ background: `linear-gradient(135deg, ${group.color} 0%, ${group.accent} 100%)` }}
+                              >
+                                {group.title[0]}
+                              </div>
+                              <div>
+                                <p className="text-base font-bold text-slate-800">{group.title}</p>
+                                <p className="text-xs text-slate-500">{group.description}</p>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              {group.blocks.map((block, blockIndex) => (
+                                <div
+                                  key={`${group.title}-${blockIndex}`}
+                                  draggable
+                                  onDragStart={(event) => handlePaletteDragStart(event, group, block)}
+                                  onDragEnd={cleanupDragState}
+                                  className="relative px-5 py-3 rounded-2xl text-sm text-white font-semibold shadow-md cursor-grab active:cursor-grabbing select-none transition-transform duration-150 hover:scale-[1.02]"
+                                  style={{ background: `linear-gradient(135deg, ${group.color} 0%, ${group.accent} 100%)` }}
+                                >
+                                  <span className="absolute left-2 top-1/2 -translate-y-1/2 w-[10px] h-[10px] rounded-full bg-white/30" />
+                                  <span className="tracking-wide">{block}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className="rounded-2xl border border-slate-200 bg-white/90 backdrop-blur-sm shadow-sm flex flex-col min-h-[320px]">
+                      <div className="px-4 py-3 border-b border-slate-200 bg-slate-100/70 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Code2 className="w-4 h-4 text-slate-500" />
+                          <span className="font-bold text-slate-700">ブロックワークスペース</span>
+                        </div>
+                        <span className="text-xs text-slate-500">ドラッグで並べ替え可能</span>
+                      </div>
+                      <div
+                        className={`flex-1 overflow-auto p-4 space-y-2 transition-colors duration-200 ${
+                          dragOverIndex !== null
+                            ? 'bg-sky-50/60'
+                            : isDraggingBlock
+                              ? 'bg-slate-100/60'
+                              : 'bg-white/70'
+                        }`}
+                        onDragOver={(event) => handleWorkspaceDragOver(event, workspaceBlocks.length)}
+                        onDrop={(event) => handleWorkspaceDrop(event)}
+                        onDragLeave={(event) => handleWorkspaceDragLeave(event)}
+                      >
+                        {workspaceBlocks.length === 0 ? (
+                          <div
+                            className={`flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 text-center text-sm transition-all duration-200 ${
+                              dragOverIndex !== null
+                                ? 'border-sky-400 bg-sky-100/40 text-sky-700'
+                                : isDraggingBlock
+                                  ? 'border-slate-300/70 bg-slate-100/40 text-slate-600'
+                                  : 'border-slate-300 bg-white/60 text-slate-500'
+                            }`}
+                            onDragEnter={(event) => handleDropZoneDragEnter(event, 0)}
+                            onDragOver={(event) => handleDropZoneDragOver(event, 0)}
+                            onDragLeave={(event) => handleWorkspaceDragLeave(event)}
+                            onDrop={(event) => handleDropOnZone(event, 0)}
+                          >
+                            <Code2 className="w-6 h-6" />
+                            <div className="font-semibold">ここにブロックをドラッグしてつなげよう</div>
+                            <p className="text-xs opacity-80">
+                              パレットのブロックをドラッグ＆ドロップで追加できます
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-0">
+                            {workspaceBlocks.map((block, index) => {
+                              const isFirstBlock = index === 0;
+                              const isLastBlock = index === workspaceBlocks.length - 1;
+                              const workspaceBackgroundColor =
+                                dragOverIndex !== null ? '#eff6ff' : isDraggingBlock ? '#f1f5f9' : '#ffffff';
+                              const blockGradient = `linear-gradient(135deg, ${block.color} 0%, ${block.accent} 100%)`;
+                              const bottomConnectorGradient = `linear-gradient(180deg, ${block.accent} 0%, rgba(255,255,255,0.85) 55%, ${workspaceBackgroundColor} 100%)`;
+                              const isHovered = hoveredBlockId === block.id;
+                              return (
+                                <Fragment key={block.id}>
+                                  {renderDropZone(index)}
+                                  <div
+                                    draggable
+                                    onDragStart={(event) => handleWorkspaceBlockDragStart(event, block.id)}
+                                    onDragOver={(event) => {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      handleWorkspaceDragOver(event, index + 1);
+                                      setHoveredBlockId(block.id);
+                                    }}
+                                    onDrop={(event) => {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      handleWorkspaceDrop(event, index + 1);
+                                    }}
+                                    onDragLeave={(event) => {
+                                      const related = event.relatedTarget as Node | null;
+                                      if (related && event.currentTarget.contains(related)) {
+                                        return;
+                                      }
+                                      setHoveredBlockId((prev) => (prev === block.id ? null : prev));
+                                    }}
+                                    onDragEnd={cleanupDragState}
+                                    data-has-top-notch={!isFirstBlock}
+                                    data-has-bottom-notch={!isLastBlock}
+                                    data-hovered={isHovered ? 'true' : undefined}
+                                    className={`scratch-block relative rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-lg cursor-grab active:cursor-grabbing select-none transition-all duration-150 hover:scale-[1.01] ${
+                                      isHovered ? 'ring-2 ring-sky-300 ring-offset-2 ring-offset-white shadow-2xl scale-[1.015]' : ''
+                                    }`}
+                                    style={
+                                      {
+                                        background: blockGradient,
+                                        '--scratch-workspace-bg': workspaceBackgroundColor,
+                                      } as CSSProperties
+                                    }
+                                  >
+                                    {!isFirstBlock && (
+                                      <span
+                                        className="scratch-block__connector scratch-block__connector--top"
+                                        aria-hidden
+                                        style={{ background: blockGradient }}
+                                      />
+                                    )}
+                                    <div className="scratch-block__body relative z-[1] pr-8">
+                                      <span className="tracking-wide block">{block.label}</span>
+                                      <span className="text-[10px] uppercase opacity-70">{block.groupTitle}</span>
+                                    </div>
+                                    {!isLastBlock && (
+                                      <span
+                                        className="scratch-block__connector scratch-block__connector--bottom"
+                                        aria-hidden
+                                        style={{ background: bottomConnectorGradient }}
+                                      />
+                                    )}
+                                  </div>
+                                </Fragment>
+                              );
+                            })}
+                            {renderDropZone(workspaceBlocks.length)}
+                          </div>
+                        )}
+                      </div>
+                    </section>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1590,29 +1959,19 @@ function ChallengeEditor() {
                   <Terminal className="w-5 h-5 text-slate-400" />
                   <span className="text-slate-200 font-bold">🧪 テスト結果</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleRunCode}
-                    disabled={isRunning}
-                    className={`flex items-center gap-2 px-4 py-2 rounded font-bold ${
-                      isRunning
-                        ? 'bg-slate-700 text-slate-400'
-                        : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white transform hover:scale-105'
-                    } text-sm transition-all`}
-                  >
-                    {isRunning ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                        実行中...
-                      </>
-                    ) : (
-                      <>
-                        <PlayCircle className="w-4 h-4" />
-                        テスト実行
-                      </>
-                    )}
-                  </button>
-
+                <div className="flex items-center gap-2 flex-wrap justify-end">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleRunCode}
+                      className="flex items-center gap-2 px-4 py-2 rounded font-bold bg-slate-700 text-slate-300 text-sm cursor-not-allowed"
+                    >
+                      <PlayCircle className="w-4 h-4" />
+                      テスト実行（未対応）
+                    </button>
+                    <span className="text-[11px] text-slate-400">
+                      Scratch版ではテスト実行は利用できません
+                    </span>
+                  </div>
                   <button
                     onClick={handleOpenRetire}
                     className="flex items-center gap-2 px-4 py-2 rounded font-bold bg-gradient-to-r from-slate-500 to-gray-500 hover:from-slate-600 hover:to-gray-600 text-white text-sm transition-all"
@@ -1656,8 +2015,8 @@ function ChallengeEditor() {
                 {testResults.length === 0 && (
                   <div className="text-center text-slate-500 py-8">
                     <Terminal className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p className="font-medium">まだテストを実行していません</p>
-                    <p className="text-sm">「テスト実行」ボタンを押してみよう！</p>
+                    <p className="font-medium">Scratch版ではテスト結果は表示されません</p>
+                    <p className="text-sm">ブロック配置のイメージのみを確認できます。</p>
                   </div>
                 )}
               </div>
