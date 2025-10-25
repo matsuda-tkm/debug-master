@@ -1,6 +1,6 @@
 import { Lightbulb, X } from 'lucide-react';
 import { useCallback, useMemo, type ReactNode } from 'react';
-import { HintLevel } from '../../types/challengeEditor';
+import { HintLevel } from '../types/challengeEditor';
 
 interface HintContentRendererProps {
   activeHint: HintLevel | undefined;
@@ -137,9 +137,7 @@ interface HintModalProps {
   activeHintTitle: string;
   highestHintLevel: number;
   unlockedHintLevels: HintLevel[];
-  visibleHintLevel: number | null;
   isLoadingHints: boolean;
-  hintError: string;
   isFinalHintConfirmVisible: boolean;
   nextHintLevel: number | null;
   hintDialogRef: React.RefObject<HTMLDivElement>;
@@ -151,7 +149,6 @@ interface HintModalProps {
   onRequestAdditionalHint: () => void;
   onConfirmFinalHint: () => void;
   onCancelFinalHint: () => void;
-  setIsHintContentVisible: (visible: boolean) => void;
   isHintContentVisible: boolean;
 }
 
@@ -161,9 +158,7 @@ export function HintModal({
   activeHintTitle,
   highestHintLevel,
   unlockedHintLevels,
-  visibleHintLevel,
   isLoadingHints,
-  hintError,
   isFinalHintConfirmVisible,
   nextHintLevel,
   hintDialogRef,
@@ -175,7 +170,6 @@ export function HintModal({
   onRequestAdditionalHint,
   onConfirmFinalHint,
   onCancelFinalHint,
-  setIsHintContentVisible,
   isHintContentVisible,
 }: HintModalProps) {
   if (!isHintOpen || !activeHint) {

@@ -1,4 +1,4 @@
-import { Challenge, TestCase } from '../types/challenge';
+import { Challenge } from '../types/challenge';
 
 const API_BASE_URL = 'http://localhost:8000';
 

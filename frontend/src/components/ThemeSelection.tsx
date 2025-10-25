@@ -1,6 +1,5 @@
-import React from 'react';
+import { ArrowRight, Bug, Heart, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Bug, Trophy, Code2, BookOpen, MessageSquareWarning, ChevronRight, Timer, ThumbsUp, Send, Sparkles, Layout, Eye, Files, ChevronDown, FolderOpen, Terminal, PlayCircle, XCircle, CheckCircle, ArrowRight, Heart, Star } from 'lucide-react';
 import { challengesData } from '../challengesData';
 
 function ThemeSelection() {

@@ -325,9 +325,7 @@ function ChallengeEditor() {
         activeHintTitle={activeHintTitle}
         highestHintLevel={highestHintLevel}
         unlockedHintLevels={unlockedHintLevels}
-        visibleHintLevel={visibleHintLevel}
         isLoadingHints={isLoadingHints}
-        hintError={hintError}
         isFinalHintConfirmVisible={isFinalHintConfirmVisible}
         nextHintLevel={nextHintLevel}
         hintDialogRef={hintDialogRef}
@@ -339,7 +337,6 @@ function ChallengeEditor() {
         onRequestAdditionalHint={handleRequestAdditionalHint}
         onConfirmFinalHint={handleConfirmFinalHint}
         onCancelFinalHint={handleCancelFinalHint}
-        setIsHintContentVisible={setIsHintContentVisible}
         isHintContentVisible={isHintContentVisible}
       />
 
