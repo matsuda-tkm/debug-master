@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { API_ENDPOINTS } from '../config/api';
 import { Challenge } from '../types/challenge';
 import { TestResult } from '../types/challengeEditor';
@@ -22,7 +22,7 @@ export function useCodeGeneration() {
   const [aiGeneratedCode, setAiGeneratedCode] = useState<string | null>(null);
   const [lastFailingCode, setLastFailingCode] = useState<string | null>(null);
 
-  const handleGenerateCode = async (challenge: Challenge | null, setCode: (code: string) => void, setCurrentStep: (step: number) => void) => {
+  const handleGenerateCode = useCallback(async (challenge: Challenge | null, setCode: (code: string) => void, setCurrentStep: (step: number) => void) => {
     setIsGenerating(true);
     setGenerationError('');
     setCurrentStep(2);
@@ -64,7 +64,7 @@ export function useCodeGeneration() {
     } finally {
       setIsGenerating(false);
     }
-  };
+  }, []);
 
   return {
     isGenerating,
