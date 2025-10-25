@@ -9,7 +9,10 @@ export type HintLevel = {
 export type TestResult = {
   testCase: number;
   status: 'success' | 'failure' | 'forbidden' | 'error';
-  message: string;
+  message?: string;
+  input?: any[];
+  expected_output?: string;
+  actual_output?: string;
 };
 
 export interface SuccessModalProps {
