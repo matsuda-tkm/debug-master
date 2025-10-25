@@ -33,6 +33,12 @@ type HintLevel = {
   content: string;
 };
 
+type TestResult = {
+  testCase: number;
+  status: 'success' | 'failure' | 'forbidden' | 'error';
+  message: string;
+};
+
 const DEFAULT_HINT_TITLES: Record<number, string> = {
   1: '方向性のヒント',
   2: 'キーワードのヒント',
@@ -48,9 +54,9 @@ interface SuccessModalProps {
   onClose: () => void;
   challenge: Challenge;
   userAnswer: string;
-  lastFailingCode: string;
-  aiGeneratedCode: string;
-  testResults: any;
+  lastFailingCode: string | null;
+  aiGeneratedCode: string | null;
+  testResults: TestResult[];
 }
 
 function SuccessModal({
@@ -266,48 +272,9 @@ function SuccessModal({
   );
 }
 
-function HintModal({ hint, onClose }) {
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 w-full mx-4 my-6 relative animate-pop-in max-w-3xl md:max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="flex flex-col">
-          <div className="flex items-start gap-4">
-            {/* Character image */}
-            <div className="w-40 h-63 flex-shrink-0">
-              <img 
-                src="/images/character.png" 
-                alt="Debug Master Character" 
-                className="w-full h-full object-contain"
-              />
-            </div>
-            
-            {/* Speech bubble */}
-            <div className="flex-1 bg-indigo-50 rounded-2xl p-5 relative">
-              {/* Speech bubble tail */}
-              <div className="absolute top-1/2 left-0 w-4 h-4 bg-indigo-50 transform translate-y-[-50%] translate-x-[-50%] rotate-45"></div>
-              
-              <h2 className="text-xl font-bold text-indigo-800 mb-3">ヒント</h2>
-              <div className="text-slate-700 whitespace-pre-wrap mb-4">
-                {hint}
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex justify-end mt-4">
-          <button
-            onClick={onClose}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition flex items-center gap-2 text-sm font-medium"
-          >
-            閉じる
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+interface VideoModalProps { videoSrc: string; onClose: () => void }
 
-function VideoModal({ videoSrc, onClose }) {
+function VideoModal({ videoSrc, onClose }: VideoModalProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 w-full mx-4 my-6 relative animate-pop-in max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -348,7 +315,7 @@ function ChallengeEditor() {
     pass
     `);
     const [isRunning, setIsRunning] = useState(false);
-    const [testResults, setTestResults] = useState([]);
+    const [testResults, setTestResults] = useState<TestResult[]>([]);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [generationError, setGenerationError] = useState('');
@@ -635,10 +602,10 @@ function ChallengeEditor() {
               content: contentValue,
             } as HintLevel;
           })
-          .filter((item): item is HintLevel => Boolean(item));
+          .filter((item: HintLevel | null): item is HintLevel => Boolean(item));
 
         const seen = new Set<number>();
-        const uniqueHints = sanitizedHints.filter((item) => {
+        const uniqueHints: HintLevel[] = sanitizedHints.filter((item: HintLevel) => {
           if (seen.has(item.level)) {
             return false;
           }
@@ -646,7 +613,7 @@ function ChallengeEditor() {
           return item.level >= 1 && item.level <= HINT_LEVEL_COUNT;
         });
 
-        const preparedHints = uniqueHints.sort((a, b) => a.level - b.level);
+        const preparedHints = uniqueHints.sort((a: HintLevel, b: HintLevel) => a.level - b.level);
 
         if (!preparedHints.length) {
           setHintError('ヒントが取得できませんでした。');
@@ -659,7 +626,7 @@ function ChallengeEditor() {
           !resetProgress
         ) {
           const targetHint = preparedHints.find(
-            (item) => item.level === targetLevel
+            (item: HintLevel) => item.level === targetLevel
           );
 
           if (!targetHint) {
@@ -668,8 +635,8 @@ function ChallengeEditor() {
           }
 
           setHintLevels((prev) => {
-            const filtered = prev.filter((item) => item.level !== targetLevel);
-            return [...filtered, targetHint].sort((a, b) => a.level - b.level);
+            const filtered = prev.filter((item: HintLevel) => item.level !== targetLevel);
+            return [...filtered, targetHint].sort((a: HintLevel, b: HintLevel) => a.level - b.level);
           });
           setUnlockedHintLevel((prev) =>
             prev < targetLevel ? targetLevel : prev
@@ -692,7 +659,7 @@ function ChallengeEditor() {
           const canKeepCurrent =
             !resetProgress &&
             prev !== null &&
-            preparedHints.some((item) => item.level === prev);
+            preparedHints.some((item: HintLevel) => item.level === prev);
 
           if (canKeepCurrent) {
             return prev;
@@ -1083,7 +1050,7 @@ function ChallengeEditor() {
           const line = lines[i].trim();
           if (line.startsWith('data: ')) {
             try {
-              const data = JSON.parse(line.slice(6));
+              const data = JSON.parse(line.slice(6)) as TestResult;
               if (data.status && data.status !== 'success') {
                 anyFailure = true;
               }
@@ -1128,7 +1095,7 @@ function ChallengeEditor() {
     return testResults.filter((result) => result.status === 'success').length;
   };
   
-  const handleShowVideo = (videoSrc) => {
+  const handleShowVideo = (videoSrc: string) => {
     setCurrentVideo(videoSrc);
     setShowVideoModal(true);
   };
