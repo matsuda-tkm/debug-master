@@ -103,10 +103,10 @@ def generate_code_logic(
     fn_test_code_against_all_cases: Callable[[str, List[Dict[str, Any]]], bool],
 ) -> Dict[str, str]:
     response = client.models.generate_content(
-        model="gemini-2.0-flash",  # Consider making model name a config variable
+        model=config.GEMINI_MODEL_NAME,
         contents=[prompt_str],
         config=types.GenerateContentConfig(
-            temperature=0.5,  # Consider making temperature a config variable
+            temperature=config.GEMINI_TEMPERATURE,
             system_instruction=config.SYSTEM_INSTRUCTION,
             response_mime_type="application/json",
         ),
