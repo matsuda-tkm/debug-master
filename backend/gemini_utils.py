@@ -2,12 +2,11 @@ import json
 import random
 import re
 import textwrap
-from typing import Any, Dict, List, Callable, Optional
-
-from google import genai
-from google.genai import types
+from typing import Any, Callable, Dict, List, Optional
 
 import config
+from google import genai
+from google.genai import types
 
 client = genai.Client(api_key=config.GEMINI_API_KEY)
 
@@ -108,7 +107,7 @@ def generate_code_logic(
         contents=[prompt_str],
         config=types.GenerateContentConfig(
             temperature=0.5,  # Consider making temperature a config variable
-            system_instruction=config.SYSTEM_INSTRUNCTION,
+            system_instruction=config.SYSTEM_INSTRUCTION,
             response_mime_type="application/json",
         ),
     )
