@@ -617,30 +617,108 @@ function ChallengeEditor() {
                 {testResults.map((result, index) => (
                   <div
                     key={index}
-                    className={`mb-3 p-3 rounded-lg border-2 ${
+                    className={`mb-4 rounded-lg border-2 overflow-hidden ${
                       result.status === 'success' 
-                        ? 'bg-green-50 border-green-200' 
-                        : 'bg-red-50 border-red-200'
+                        ? 'bg-green-50 border-green-300' 
+                        : 'bg-red-50 border-red-300'
                     }`}
                   >
-                    <div className="flex items-start gap-2">
+                    <div className={`flex items-center gap-2 px-4 py-2 font-bold ${
+                      result.status === 'success' 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
                       {result.status === 'success' ? (
-                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        <CheckCircle className="w-5 h-5 flex-shrink-0" />
                       ) : (
-                        <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                        <XCircle className="w-5 h-5 flex-shrink-0" />
                       )}
-                      <div className="flex-1">
-                        <div className={`font-bold mb-1 ${
-                          result.status === 'success' ? 'text-green-700' : 'text-red-700'
-                        }`}>
-                          テスト {result.testCase} {result.status === 'success' ? '✅' : '❌'}
+                      <span>テスト {result.testCase} {result.status === 'success' ? '✅' : '❌'}</span>
+                    </div>
+                    
+                    <div className="p-4 space-y-3">
+                      {result.status === 'forbidden' ? (
+                        <div className="text-sm text-red-700 font-medium">
+                          ⚠️ APIキーを抜き取ろうとするコードは許可されていません！
                         </div>
+                      ) : result.message ? (
                         <div className="text-sm text-slate-600 whitespace-pre-wrap">
-                          {result.status === 'forbidden'
-                            ? 'APIキーを抜き取ろうとするコードは許可されていません！'
-                            : result.message}
+                          {result.message}
                         </div>
-                      </div>
+                      ) : (
+                        <>
+                          {/* 入力データ */}
+                          <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="bg-slate-600 text-white px-3 py-1 rounded-md text-xs font-bold">
+                                📥 入力データ
+                              </div>
+                            </div>
+                            <div className="text-sm font-mono bg-white px-3 py-2 rounded border border-slate-200">
+                              {result.input && result.input.length > 0 
+                                ? result.input.map((item, i) => (
+                                    <div key={i} className="text-slate-700">
+                                      {typeof item === 'string' ? `"${item}"` : String(item)}
+                                    </div>
+                                  ))
+                                : <span className="text-slate-400">なし</span>
+                              }
+                            </div>
+                          </div>
+
+                          {/* 期待される出力 */}
+                          <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="bg-indigo-600 text-white px-3 py-1 rounded-md text-xs font-bold">
+                                🎯 正しい答え（期待される出力）
+                              </div>
+                            </div>
+                            <div className="text-sm font-mono bg-white px-3 py-2 rounded border border-indigo-200 text-slate-700">
+                              {result.expected_output || <span className="text-slate-400">なし</span>}
+                            </div>
+                          </div>
+
+                          {/* 実際の出力 */}
+                          <div className={`rounded-lg p-3 border ${
+                            result.status === 'success' 
+                              ? 'bg-emerald-50 border-emerald-200' 
+                              : 'bg-rose-50 border-rose-200'
+                          }`}>
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className={`text-white px-3 py-1 rounded-md text-xs font-bold ${
+                                result.status === 'success' 
+                                  ? 'bg-emerald-600' 
+                                  : 'bg-rose-600'
+                              }`}>
+                                💻 あなたのプログラムの出力
+                              </div>
+                            </div>
+                            <div className={`text-sm font-mono bg-white px-3 py-2 rounded border ${
+                              result.status === 'success' 
+                                ? 'border-emerald-200 text-slate-700' 
+                                : 'border-rose-200 text-slate-700'
+                            }`}>
+                              {result.actual_output || <span className="text-slate-400">出力なし</span>}
+                            </div>
+                          </div>
+
+                          {/* 比較結果の説明 */}
+                          {result.status !== 'success' && (
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                              <div className="flex gap-2">
+                                <span className="text-yellow-600 text-xl">💡</span>
+                                <div className="flex-1">
+                                  <div className="font-bold text-yellow-800 mb-1">ヒント</div>
+                                  <div className="text-sm text-yellow-700">
+                                    「正しい答え」と「あなたのプログラムの出力」を見比べてみましょう。<br/>
+                                    どこが違うかな？スペースや改行も確認してみてね！
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}

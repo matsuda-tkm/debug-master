@@ -5,11 +5,6 @@ from copy import deepcopy
 from typing import Any, Dict, List
 
 
-def _format_test_result_message(input_data_list: List[Any], expected_output: str, actual_output: str) -> str:
-    """テスト結果のメッセージをフォーマットする共通関数"""
-    return f"Input:\n{'\n'.join(map(str, input_data_list))}\n\nExpected output:\n{expected_output}\n\nActual output:\n{actual_output}"
-
-
 def run_single_test_case(code: str, test_case: Dict[str, Any]) -> Dict[str, Any]:
     stdout_capture: io.StringIO = io.StringIO()
     try:
@@ -43,12 +38,14 @@ def run_single_test_case(code: str, test_case: Dict[str, Any]) -> Dict[str, Any]
         expected_output = str(test_case.get("expected")).strip()
         
         # Compare the outputs
-        message = _format_test_result_message(input_data_list, expected_output, actual_output)
         status = "success" if actual_output == expected_output else "error"
         
+        # Return structured data instead of formatted message
         return {
             "status": status,
-            "message": message,
+            "input": input_data_list,
+            "expected_output": expected_output,
+            "actual_output": actual_output,
         }
     except Exception as e:
         return {
