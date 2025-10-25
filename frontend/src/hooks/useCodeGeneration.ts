@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { API_ENDPOINTS } from '../config/api';
 import { Challenge } from '../types/challenge';
 import { TestResult } from '../types/challengeEditor';
 
@@ -15,7 +16,7 @@ export function useCodeGeneration() {
     setCurrentStep(2);
 
     try {
-      const response = await fetch('http://localhost:8000/api/generate-code', {
+      const response = await fetch(API_ENDPOINTS.GENERATE_CODE, {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
@@ -75,7 +76,7 @@ export function useCodeExecution() {
     setCurrentStep(3);
 
     try {
-      const response = await fetch('http://localhost:8000/api/run-python', {
+      const response = await fetch(API_ENDPOINTS.RUN_PYTHON, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

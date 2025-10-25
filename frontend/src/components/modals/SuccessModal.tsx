@@ -1,6 +1,7 @@
 import { ChevronRight, SettingsIcon as Confetti, PartyPopper } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_ENDPOINTS } from '../../config/api';
 import { SuccessModalProps } from '../../types/challengeEditor';
 import Markdown from '../Markdown';
 
@@ -26,7 +27,7 @@ export default function SuccessModal({
       try {
         setLoadingDetail(true);
         setDetailError('');
-        const resp = await fetch('http://localhost:8000/api/generate-explanation', {
+        const resp = await fetch(API_ENDPOINTS.GENERATE_EXPLANATION, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

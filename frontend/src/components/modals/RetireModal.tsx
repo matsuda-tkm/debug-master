@@ -1,6 +1,7 @@
-import { ChevronRight} from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_ENDPOINTS } from '../../config/api';
 import Markdown from '../Markdown';
 
 interface RetireModalProps {
@@ -63,7 +64,7 @@ function RetireModal({
         setIsLoadingExplanation(true);
         setExplanationError('');
 
-        const response = await fetch('http://localhost:8000/api/generate-retire-explanation', {
+        const response = await fetch(API_ENDPOINTS.GENERATE_RETIRE_EXPLANATION, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
