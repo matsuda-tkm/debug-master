@@ -5,7 +5,6 @@
 # ---------------
 
 ARG NODE_VERSION=23
-ARG APP_DIR=app
 
 # -------------------
 # -- BASE IMAGE -----
@@ -13,7 +12,7 @@ ARG APP_DIR=app
 
 FROM node:${NODE_VERSION}-bookworm-slim
 
-WORKDIR /${APP_DIR}
+WORKDIR /app
 
 COPY package.json package-lock.json ./
 

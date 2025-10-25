@@ -1,14 +1,15 @@
-import React, { useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Route, Routes } from 'react-router-dom';
 import ChallengeEditor from './ChallengeEditor';
 import ThemeSelection from './components/ThemeSelection';
+import { API_ENDPOINTS } from './config/api';
 
 
 function App() {
 
     useEffect(() => {
         (async () => {
-            const res = await fetch('http://localhost:8000/api/health');
+            const res = await fetch(API_ENDPOINTS.HEALTH);
             const data = await res.json();
             console.log(data);
         })();

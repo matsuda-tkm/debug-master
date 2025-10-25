@@ -2,12 +2,11 @@ import json
 import random
 import re
 import textwrap
-from typing import Any, Dict, List, Callable, Optional
-
-from google import genai
-from google.genai import types
+from typing import Any, Callable, Dict, List, Optional
 
 import config
+from google import genai
+from google.genai import types
 
 client = genai.Client(api_key=config.GEMINI_API_KEY)
 
@@ -104,11 +103,11 @@ def generate_code_logic(
     fn_test_code_against_all_cases: Callable[[str, List[Dict[str, Any]]], bool],
 ) -> Dict[str, str]:
     response = client.models.generate_content(
-        model="gemini-2.0-flash",  # Consider making model name a config variable
+        model=config.GEMINI_MODEL_NAME,
         contents=[prompt_str],
         config=types.GenerateContentConfig(
-            temperature=0.5,  # Consider making temperature a config variable
-            system_instruction=config.SYSTEM_INSTRUNCTION,
+            temperature=config.GEMINI_TEMPERATURE,
+            system_instruction=config.SYSTEM_INSTRUCTION,
             response_mime_type="application/json",
         ),
     )
