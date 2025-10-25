@@ -1,16 +1,146 @@
 import { useState } from 'react';
+import { Challenge } from '../types/challenge';
+import { TestResult } from '../types/challengeEditor';
 
 export function useCodeGeneration() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState('');
   const [explanation, setExplanation] = useState('');
+  const [aiGeneratedCode, setAiGeneratedCode] = useState<string | null>(null);
+  const [lastFailingCode, setLastFailingCode] = useState<string | null>(null);
+
+  const handleGenerateCode = async (challenge: Challenge | null, setCode: (code: string) => void, setCurrentStep: (step: number) => void) => {
+    setIsGenerating(true);
+    setGenerationError('');
+    setCurrentStep(2);
+
+    try {
+      const response = await fetch('http://localhost:8000/api/generate-code', {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          challenge: challenge?.instructions,
+          testCases: challenge?.testCases,
+          }),
+      });
+
+      const data = await response.json();
+      console.log('Generated code response:', data);
+
+      if (!response.ok || data.error) {
+        setGenerationError(data.error || 'An unknown error occurred.');
+        return;
+      }
+
+      if (data.code) {
+        setCode(data.code);
+        setAiGeneratedCode(data.code);
+      }
+      if (data.explanation) {
+        setExplanation(data.explanation);
+      }
+    } catch (error) {
+      console.error('Error generating code: ', error);
+      setGenerationError('Failed to connect to code generation service.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   return {
     isGenerating,
-    setIsGenerating,
     generationError,
-    setGenerationError,
     explanation,
-    setExplanation,
+    aiGeneratedCode,
+    lastFailingCode,
+    setLastFailingCode,
+    handleGenerateCode,
+  };
+}
+
+export function useCodeExecution() {
+  const [isRunning, setIsRunning] = useState(false);
+  const [testResults, setTestResults] = useState<TestResult[]>([]);
+
+  const handleRunCode = async (
+    code: string,
+    challenge: Challenge | null,
+    setCurrentStep: (step: number) => void,
+    setLastFailingCode: (code: string | null) => void
+  ) => {
+    if (!challenge) return;
+    setIsRunning(true);
+    setTestResults([]);
+    setCurrentStep(3);
+
+    try {
+      const response = await fetch('http://localhost:8000/api/run-python', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          testCases: challenge.testCases,
+        }),
+      });
+
+      const reader = response.body?.getReader();
+      if (!reader) return;
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let anyFailure = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+
+        for (let i = 0; i < lines.length - 1; i++) {
+          const line = lines[i].trim();
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6)) as TestResult;
+              if (data.status && data.status !== 'success') {
+                anyFailure = true;
+              }
+              setTestResults((prev) => [...prev, data]);
+            } catch (e) {
+              console.error('Failed to parse SSE data:', e);
+            }
+          }
+        }
+        buffer = lines[lines.length - 1];
+      }
+      // After stream ends, remember the current code as failing snapshot if any test failed
+      if (anyFailure) {
+        setLastFailingCode(code);
+      }
+    } catch (error) {
+      console.error('Error running code:', error);
+      setTestResults([
+        {
+          testCase: 1,
+          status: 'error',
+          message:
+            'Failed to connect to Python server. Please make sure the server is running.',
+        },
+      ]);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const getPassingTestsCount = () => {
+    return testResults.filter((result) => result.status === 'success').length;
+  };
+
+  return {
+    isRunning,
+    testResults,
+    handleRunCode,
+    getPassingTestsCount,
   };
 }

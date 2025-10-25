@@ -1,12 +1,9 @@
-interface VideoModalProps {
-  videoSrc: string;
-  onClose: () => void;
-}
+import { VideoModalProps } from '../../types/challengeEditor';
 
-function VideoModal({ videoSrc, onClose }: VideoModalProps) {
+export default function VideoModal({ videoSrc, onClose }: VideoModalProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-lg p-6 max-w-4xl w-full mx-4 relative animate-pop-in">
+      <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 w-full mx-4 my-6 relative animate-pop-in max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="flex flex-col">
           <h2 className="text-xl font-bold text-indigo-800 mb-3">問題の意味を動画で理解</h2>
           <div className="relative">
@@ -33,5 +30,3 @@ function VideoModal({ videoSrc, onClose }: VideoModalProps) {
     </div>
   );
 }
-
-export default VideoModal;

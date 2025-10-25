@@ -8,302 +8,23 @@ import {
   CheckCircle,
   ChevronRight,
   Code2,
-  SettingsIcon as Confetti,
-  Lightbulb,
-  PartyPopper,
   PlayCircle,
   Terminal,
   ThumbsUp,
   Wand2,
-  X,
   XCircle
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import Markdown from './components/Markdown';
+import { HintModal } from './components/HintModal';
 import RetireConfirmationModal from './components/modals/RetireConfirmationModal';
 import RetireModal from './components/modals/RetireModal';
+import SuccessModal from './components/modals/SuccessModal';
+import VideoModal from './components/modals/VideoModal';
+import { useCodeExecution, useCodeGeneration } from './hooks/useCodeGeneration';
+import { useHints } from './hooks/useHints';
 import { challengeService } from './services/challengeService';
 import { Challenge } from './types/challenge';
-
-
-type HintLevel = {
-  level: number;
-  title?: string;
-  content: string;
-};
-
-type TestResult = {
-  testCase: number;
-  status: 'success' | 'failure' | 'forbidden' | 'error';
-  message: string;
-};
-
-const DEFAULT_HINT_TITLES: Record<number, string> = {
-  1: '方向性のヒント',
-  2: 'キーワードのヒント',
-  3: '解法の骨子',
-  4: '最終ヒント',
-};
-
-const HINT_LEVEL_COUNT = 4;
-
-interface SuccessModalProps {
-  message: string;
-  explanation: string;
-  onClose: () => void;
-  challenge: Challenge;
-  userAnswer: string;
-  lastFailingCode: string | null;
-  aiGeneratedCode: string | null;
-  testResults: TestResult[];
-}
-
-function SuccessModal({
-  message,
-  explanation,
-  onClose,
-  challenge,
-  userAnswer,
-  lastFailingCode,
-  aiGeneratedCode,
-  testResults
-}: SuccessModalProps) {
-  const navigate = useNavigate();
-  const [openDetail, setOpenDetail] = useState(false);
-  const [loadingDetail, setLoadingDetail] = useState(false);
-  const [detail, setDetail] = useState<any>(null);
-  const [detailError, setDetailError] = useState('');
-  const [showDiff, setShowDiff] = useState(false);
-
-  useEffect(() => {
-    const generate = async () => {
-      try {
-        setLoadingDetail(true);
-        setDetailError('');
-        const resp = await fetch('http://localhost:8000/api/generate-explanation', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            beforeCode: aiGeneratedCode || lastFailingCode || '',
-            afterCode: userAnswer || '',
-            instructions: challenge?.instructions || '',
-            examples: challenge?.examples || '',
-            testResults: testResults || [],
-          }),
-        });
-        const data = await resp.json();
-        if (!resp.ok) {
-          throw new Error(data?.detail || '詳細解説の生成に失敗しました');
-        }
-        setDetail(data);
-      } catch (e: any) {
-        setDetailError(e?.message || '詳細解説の生成に失敗しました');
-      } finally {
-        setLoadingDetail(false);
-      }
-    };
-    generate();
-  }, [challenge, lastFailingCode, aiGeneratedCode, testResults, userAnswer]);
-
-  // 全体コードを表示しつつ、差分をハイライトするための簡易LCS。
-  const diffWithIndex = (before: string, after: string) => {
-    const a = before.split('\n');
-    const b = after.split('\n');
-    const n = a.length, m = b.length;
-    const dp: number[][] = Array.from({ length: n + 1 }, () => Array(m + 1).fill(0));
-    for (let i = n - 1; i >= 0; i--) {
-      for (let j = m - 1; j >= 0; j--) {
-        dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
-      }
-    }
-    type Op = { type: 'unchanged' | 'removed' | 'added'; text: string; aIndex?: number; bIndex?: number };
-    const res: Op[] = [];
-    let i = 0, j = 0;
-    while (i < n && j < m) {
-      if (a[i] === b[j]) {
-        res.push({ type: 'unchanged', text: a[i], aIndex: i, bIndex: j }); i++; j++;
-      } else if (dp[i + 1][j] >= dp[i][j + 1]) {
-        res.push({ type: 'removed', text: a[i], aIndex: i }); i++;
-      } else {
-        res.push({ type: 'added', text: b[j], bIndex: j }); j++;
-      }
-    }
-    while (i < n) { res.push({ type: 'removed', text: a[i], aIndex: i }); i++; }
-    while (j < m) { res.push({ type: 'added', text: b[j], bIndex: j }); j++; }
-    return { ops: res, a, b };
-  };
-  const keyPoint1 = detail?.reason || '...';
-  const keyPoint2 = detail?.explain_diff || '...';
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
-      <div className="bg-white rounded-xl shadow-2xl p-6 sm:p-8 w-full mx-4 my-6 relative animate-success max-w-3xl md:max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-          <div className="relative">
-            <Confetti className="w-12 h-12 text-yellow-400 animate-bounce animate-rainbow" />
-            <PartyPopper
-              className="w-12 h-12 text-pink-500 absolute top-0 left-0 animate-sparkle"
-            />
-          </div>
-        </div>
-
-        <div className="text-center mt-6 sm:mt-8">
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4 animate-wiggle">🎉 {message} 🎉</h2>
-
-          {explanation && (
-            <div className="mt-4 bg-slate-50 p-4 rounded-lg text-left">
-              <h3 className="text-lg font-semibold text-slate-800 mb-2">バグの説明（AI生成の要約）</h3>
-              <Markdown content={explanation} className="text-slate-700 text-sm space-y-2" />
-            </div>
-          )}
-
-          {/* 詳細解説（シンプル版） */}
-          <div className="mt-6 text-left">
-            <button
-              onClick={() => setOpenDetail((v) => !v)}
-              className="w-full flex items-center justify-between bg-indigo-50 hover:bg-indigo-100 px-4 py-3 rounded-lg border border-indigo-200 transition"
-            >
-              <span className="text-indigo-800 font-semibold">🔍 詳細解説</span>
-              <ChevronRight className={`w-5 h-5 text-indigo-600 transition-transform ${openDetail ? 'rotate-90' : ''}`} />
-            </button>
-            {openDetail && (
-              <div className="mt-3 space-y-4">
-                {/* 3つでわかるポイント */}
-                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                  <h4 className="font-semibold text-slate-800 mb-2">なにが問題？</h4>
-                  <Markdown content={keyPoint1} className="text-slate-800 text-sm" />
-                  <br/>
-                  <h4 className="font-semibold text-slate-800 mb-2">どう直した？</h4>
-                  <Markdown content={keyPoint2} className="text-slate-800 text-sm" />
-                  <br/>
-                </div>
-
-                {loadingDetail && (
-                  <div className="text-slate-600 text-sm">生成中...</div>
-                )}
-                {detailError && (
-                  <div className="text-pink-700 bg-pink-50 border border-pink-200 rounded px-3 py-2 text-sm">{detailError}</div>
-                )}
-                {detail && (
-                  <>
-                    {/* コード（全体 + 差分ハイライト） */}
-                    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-                      <div className="bg-slate-800 px-4 py-2 text-slate-200 text-sm font-bold flex items-center justify-between">
-                        <span>コード（全体 + 差分）</span>
-                        <button className="text-slate-200 text-xs underline" onClick={() => setShowDiff((v) => !v)}>
-                          {showDiff ? 'とじる' : 'ひらく'}
-                        </button>
-                      </div>
-                      {showDiff && (
-                        <div className="max-h-56 overflow-auto text-xs font-mono leading-5 bg-slate-50">
-                          {(() => {
-                            const baseForDiff = (aiGeneratedCode || lastFailingCode || '').toString();
-                            const after = (userAnswer || '').toString();
-                            if (!after) {
-                              return <div className="p-3 text-slate-600">コードがありません。</div>;
-                            }
-                            if (!baseForDiff) {
-                              return (
-                                <>
-                                  <div className="px-3 py-2 text-[11px] text-slate-600 border-b border-slate-200">
-                                    比較対象がありません（AI生成/失敗コードが未取得）。全体コードのみ表示します。
-                                  </div>
-                                  <pre className="p-3 text-slate-800">
-                                    {after.split('\n').map((line: string, i: number) => (
-                                      <div key={i}>{line}</div>
-                                    ))}
-                                  </pre>
-                                </>
-                              );
-                            }
-                            const { ops, b } = diffWithIndex(baseForDiff, after);
-                            const afterStatuses: ('unchanged' | 'added')[] = Array.from({ length: b.length }, () => 'unchanged');
-                            ops.forEach(op => {
-                              if (op.type === 'added' && op.bIndex !== undefined) afterStatuses[op.bIndex] = 'added';
-                            });
-                            return (
-                              <>
-                                <div className="px-3 py-2 text-[11px] text-slate-600 border-b border-slate-200">
-                                  緑色でハイライトされた行は、比較対象（AI生成 または 失敗コード）からの差分です。
-                                </div>
-                                <pre className="p-3 text-slate-800">
-                                  {b.map((line: string, i: number) => (
-                                    <div
-                                      key={i}
-                                      className={afterStatuses[i] === 'added' ? 'bg-emerald-50 text-emerald-700' : ''}
-                                    >
-                                      {line || '\u00A0'}
-                                    </div>
-                                  ))}
-                                </pre>
-                              </>
-                            );
-                          })()}
-                        </div>
-                      )}
-                    </div>
-
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-4 mt-8">
-            <button
-              onClick={() => navigate('/')}
-              className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all transform hover:scale-105 flex items-center justify-center gap-2 font-bold shadow-lg"
-            >
-              他の課題にチャレンジする
-              <ChevronRight className="w-5 h-5" />
-            </button>
-            <button
-              onClick={onClose}
-              className="text-slate-600 hover:text-slate-800 transition"
-            >
-              現在の課題を続ける
-            </button>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  );
-}
-
-interface VideoModalProps { videoSrc: string; onClose: () => void }
-
-function VideoModal({ videoSrc, onClose }: VideoModalProps) {
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 w-full mx-4 my-6 relative animate-pop-in max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="flex flex-col">
-          <h2 className="text-xl font-bold text-indigo-800 mb-3">問題の意味を動画で理解</h2>
-          <div className="relative">
-            <video
-              className="w-full rounded shadow"
-              controls
-              autoPlay
-            >
-              <source src={videoSrc} type="video/mp4" />
-              お使いのブラウザは動画タグに対応していません。
-            </video>
-          </div>
-        </div>
-        
-        <div className="flex justify-end mt-4">
-          <button
-            onClick={onClose}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition flex items-center gap-2 text-sm font-medium"
-          >
-            閉じる
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function ChallengeEditor() {
   const navigate = useNavigate();
@@ -314,497 +35,68 @@ function ChallengeEditor() {
     # Write your solution here
     pass
     `);
-    const [isRunning, setIsRunning] = useState(false);
-    const [testResults, setTestResults] = useState<TestResult[]>([]);
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [generationError, setGenerationError] = useState('');
-    const [explanation, setExplanation] = useState('');
-    const [aiGeneratedCode, setAiGeneratedCode] = useState<string | null>(null);
-    const [lastFailingCode, setLastFailingCode] = useState<string | null>(null);
-    const [hintLevels, setHintLevels] = useState<HintLevel[]>([]);
-    const [unlockedHintLevel, setUnlockedHintLevel] = useState(0);
-    const [isHintOpen, setIsHintOpen] = useState(false);
-    const [isLoadingHints, setIsLoadingHints] = useState(false);
-    const [hintError, setHintError] = useState('');
-    const [isFinalHintConfirmVisible, setIsFinalHintConfirmVisible] = useState(false);
-    const [showVideoModal, setShowVideoModal] = useState(false);  
-    const [currentVideo, setCurrentVideo] = useState('');
-    const [currentStep, setCurrentStep] = useState(1);
-    const [visibleHintLevel, setVisibleHintLevel] = useState<number | null>(null);
-    const [isHintContentVisible, setIsHintContentVisible] = useState(false);
-    const [showRetireModal, setShowRetireModal] = useState(false);
-    const [showRetireConfirmationModal, setShowRetireConfirmationModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);  
+  const [currentVideo, setCurrentVideo] = useState('');
+  const [currentStep, setCurrentStep] = useState(1);
+  const [showRetireModal, setShowRetireModal] = useState(false);
+  const [showRetireConfirmationModal, setShowRetireConfirmationModal] = useState(false);
+  
+  // Custom hooks
+  const {
+    isGenerating,
+    generationError,
+    explanation,
+    aiGeneratedCode,
+    lastFailingCode,
+    setLastFailingCode,
+    handleGenerateCode,
+  } = useCodeGeneration();
+
+  const {
+    isRunning,
+    testResults,
+    handleRunCode,
+    getPassingTestsCount,
+  } = useCodeExecution();
+
+  const {
+    // State
+    isHintOpen,
+    isLoadingHints,
+    hintError,
+    isFinalHintConfirmVisible,
+    setIsFinalHintConfirmVisible,
+    visibleHintLevel,
+    isHintContentVisible,
+    setIsHintContentVisible,
     
-  const hintDialogRef = useRef<HTMLDivElement | null>(null);
-  const hintHeadingRef = useRef<HTMLHeadingElement | null>(null);
-  const prevFocusedElementRef = useRef<HTMLElement | null>(null);
-  const finalHintConfirmButtonRef = useRef<HTMLButtonElement | null>(null);
-
-  const hintStorageKey = useMemo(
-    () => (challenge ? `hint-progress-${challenge.id}` : null),
-    [challenge?.id]
-  );
-
-  const sortedHintLevels = useMemo(() => {
-    if (!hintLevels.length) {
-      return [];
-    }
-    return [...hintLevels].sort((a, b) => a.level - b.level);
-  }, [hintLevels]);
-
-  const highestHintLevelEntry =
-    sortedHintLevels.length > 0
-      ? sortedHintLevels[sortedHintLevels.length - 1]
-      : undefined;
-  const highestHintLevel = highestHintLevelEntry
-    ? highestHintLevelEntry.level
-    : HINT_LEVEL_COUNT;
-  const displayedHintLevelCount = Math.min(highestHintLevel, HINT_LEVEL_COUNT);
-
-  const normalizedUnlockedLevel = useMemo(() => {
-    if (!sortedHintLevels.length) {
-      return 0;
-    }
-    if (unlockedHintLevel <= 0) {
-      return sortedHintLevels[0].level;
-    }
-    return Math.min(unlockedHintLevel, highestHintLevel);
-  }, [sortedHintLevels, unlockedHintLevel, highestHintLevel]);
-
-  const unlockedHintLevels = useMemo(() => {
-    if (!sortedHintLevels.length) {
-      return [];
-    }
-    return sortedHintLevels.filter((item) => item.level <= normalizedUnlockedLevel);
-  }, [sortedHintLevels, normalizedUnlockedLevel]);
-
-  const activeHint = useMemo(() => {
-    if (!sortedHintLevels.length) {
-      return undefined;
-    }
-    const targetLevel = visibleHintLevel ?? normalizedUnlockedLevel;
-    const found = sortedHintLevels.find((item) => item.level === targetLevel);
-    if (found) {
-      return found;
-    }
-    return sortedHintLevels[0];
-  }, [sortedHintLevels, normalizedUnlockedLevel, visibleHintLevel]);
-
-  const nextHintLevel = useMemo(() => {
-    if (!sortedHintLevels.length) {
-      return null;
-    }
-    const next = sortedHintLevels.find((item) => item.level > normalizedUnlockedLevel);
-    return next ? next.level : null;
-  }, [sortedHintLevels, normalizedUnlockedLevel]);
-
-  const normalizedHintTitle = useMemo(() => {
-    if (!activeHint?.title) {
-      return '';
-    }
-
-    const trimmed = activeHint.title.trim();
-    if (!trimmed) {
-      return '';
-    }
-
-    const cleaned = trimmed
-      .replace(/^(?:ヒント|hint)\s*\d+\s*[:：-]?\s*/i, '')
-      .trim();
-
-    return cleaned.length > 0 ? cleaned : '';
-  }, [activeHint?.title]);
-
-  const activeHintTitle = activeHint
-    ? normalizedHintTitle || DEFAULT_HINT_TITLES[activeHint.level] || 'ヒント'
-    : 'ヒント';
-  const hintButtonLabel = isHintOpen ? 'ヒントを閉じる' : 'ヒントを開く';
-
-  const renderInlineSegments = useCallback(
-    (text: string, keyPrefix = 'inline'): ReactNode[] => {
-      if (!text) {
-        return [];
-      }
-
-      const segments = text.split(/(``[^`]+``|`[^`]+`)/g);
-      const nodes: ReactNode[] = [];
-
-      segments.forEach((segment, index) => {
-        if (!segment) {
-          return;
-        }
-
-        const isDoubleTick = segment.startsWith('``') && segment.endsWith('``') && segment.length > 4;
-        const isSingleTick = segment.startsWith('`') && segment.endsWith('`') && segment.length > 2;
-
-        if (isDoubleTick || isSingleTick) {
-          const trimLength = isDoubleTick ? 2 : 1;
-          nodes.push(
-            <code
-              key={`${keyPrefix}-code-${index}`}
-              className="mx-1 rounded bg-slate-900/80 px-1.5 py-0.5 font-mono text-xs text-white break-words"
-              style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
-            >
-              {segment.slice(trimLength, -trimLength)}
-            </code>
-          );
-        } else {
-          nodes.push(
-            <span key={`${keyPrefix}-text-${index}`}>{segment}</span>
-          );
-        }
-      });
-
-      return nodes;
-    },
-    []
-  );
-
-  const renderedHintContent = useMemo(() => {
-    if (!activeHint?.content) {
-      return null;
-    }
-
-    const content = activeHint.content;
-    const nodes: ReactNode[] = [];
-    const blockRegex = /```([a-zA-Z0-9_-]+)?\n?([\s\S]*?)```/g;
-
-    let lastIndex = 0;
-    let blockIndex = 0;
-    let match: RegExpExecArray | null;
-
-    while ((match = blockRegex.exec(content)) !== null) {
-      const [fullMatch, language = '', codeBody = ''] = match;
-      const matchStart = match.index;
-
-      if (matchStart > lastIndex) {
-        const precedingText = content.slice(lastIndex, matchStart);
-        nodes.push(...renderInlineSegments(precedingText, `pre-${blockIndex}`));
-      }
-
-      const trimmedCode = codeBody.startsWith('\n') ? codeBody.slice(1) : codeBody;
-      const normalizedCode = trimmedCode.replace(/\s+$/, '');
-
-      nodes.push(
-        <pre
-          key={`block-${blockIndex}`}
-          className="my-3 max-h-48 overflow-y-auto rounded-lg bg-slate-900/90 p-3 text-xs text-slate-100 whitespace-pre-wrap break-words"
-          style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
-        >
-          <code
-            className={language ? `language-${language.toLowerCase()}` : undefined}
-            style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere' }}
-          >
-            {normalizedCode}
-          </code>
-        </pre>
-      );
-
-      lastIndex = matchStart + fullMatch.length;
-      blockIndex += 1;
-    }
-
-    if (lastIndex < content.length) {
-      const remainingText = content.slice(lastIndex);
-      nodes.push(...renderInlineSegments(remainingText, `post-${blockIndex}`));
-    }
-
-    return nodes.length ? nodes : null;
-  }, [activeHint?.content, renderInlineSegments]);
-
-  useEffect(() => {
-    if (isLoadingHints || !activeHint?.content) {
-      setIsHintContentVisible(false);
-      return;
-    }
-
-    setIsHintContentVisible(false);
-    const timeoutId = window.setTimeout(() => {
-      setIsHintContentVisible(true);
-    }, 10);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-      setIsHintContentVisible(false);
-    };
-  }, [activeHint?.content, activeHint?.level, isLoadingHints]);
-
-  const closeHint = useCallback(() => {
-    setIsHintOpen(false);
-    setIsFinalHintConfirmVisible(false);
-  }, []);
-
-  const loadHints = useCallback(
-    async (
-      options: {
-        force?: boolean;
-        resetProgress?: boolean;
-        targetLevel?: number;
-      } = {}
-    ) => {
-      const { force = false, resetProgress = false, targetLevel } = options;
-
-      if (!challenge) {
-        return false;
-      }
-      if (!force && hintLevels.length) {
-        return true;
-      }
-
-      setIsLoadingHints(true);
-      setHintError('');
-
-      try {
-        const response = await fetch('http://localhost:8000/api/generate-hint', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            code,
-            instructions: challenge.instructions,
-            examples: challenge.examples,
-            testResults,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          const message =
-          typeof data?.error === 'string'
-          ? data.error
-          : typeof data?.detail === 'string'
-          ? data.detail
-          : 'ヒントの生成中にエラーが発生しました。';
-          setHintError(message);
-          return false;
-        }
-
-        const rawHints = Array.isArray(data?.hints) ? data.hints : [];
-        const sanitizedHints = rawHints
-          .map((item: any) => {
-            const levelValue = Number(item?.level);
-            if (!Number.isFinite(levelValue)) {
-              return null;
-            }
-            const contentValue =
-              typeof item?.content === 'string' ? item.content.trim() : '';
-            if (!contentValue) {
-              return null;
-            }
-            const titleValue =
-              typeof item?.title === 'string' && item.title.trim().length > 0
-                ? item.title.trim()
-                : undefined;
-            return {
-              level: levelValue,
-              title: titleValue,
-              content: contentValue,
-            } as HintLevel;
-          })
-          .filter((item: HintLevel | null): item is HintLevel => Boolean(item));
-
-        const seen = new Set<number>();
-        const uniqueHints: HintLevel[] = sanitizedHints.filter((item: HintLevel) => {
-          if (seen.has(item.level)) {
-            return false;
-          }
-          seen.add(item.level);
-          return item.level >= 1 && item.level <= HINT_LEVEL_COUNT;
-        });
-
-        const preparedHints = uniqueHints.sort((a: HintLevel, b: HintLevel) => a.level - b.level);
-
-        if (!preparedHints.length) {
-          setHintError('ヒントが取得できませんでした。');
-          return false;
-        }
-
-        if (
-          typeof targetLevel === 'number' &&
-          hintLevels.length > 0 &&
-          !resetProgress
-        ) {
-          const targetHint = preparedHints.find(
-            (item: HintLevel) => item.level === targetLevel
-          );
-
-          if (!targetHint) {
-            setHintError('指定レベルのヒントが取得できませんでした。');
-            return false;
-          }
-
-          setHintLevels((prev) => {
-            const filtered = prev.filter((item: HintLevel) => item.level !== targetLevel);
-            return [...filtered, targetHint].sort((a: HintLevel, b: HintLevel) => a.level - b.level);
-          });
-          setUnlockedHintLevel((prev) =>
-            prev < targetLevel ? targetLevel : prev
-          );
-          setVisibleHintLevel(targetLevel);
-
-          return true;
-        }
-
-        const firstLevel = preparedHints[0]?.level ?? 1;
-
-        setHintLevels(preparedHints);
-        setUnlockedHintLevel((prev) => {
-          if (!resetProgress && prev > 0) {
-            return prev;
-          }
-          return firstLevel;
-        });
-        setVisibleHintLevel((prev) => {
-          const canKeepCurrent =
-            !resetProgress &&
-            prev !== null &&
-            preparedHints.some((item: HintLevel) => item.level === prev);
-
-          if (canKeepCurrent) {
-            return prev;
-          }
-          return firstLevel;
-        });
-
-        return true;
-      } catch (error) {
-        console.error('Error generating hint:', error);
-        setHintError('ヒント生成サービスへの接続に失敗しました。');
-        return false;
-      } finally {
-        setIsLoadingHints(false);
-      }
-    },
-    [challenge, hintLevels.length, code, testResults]
-  );
-
-  const handleHintButtonClick = async () => {
-    if (!challenge) {
-      return;
-    }
-
-    if (isHintOpen) {
-      closeHint();
-      return;
-    }
-
-    setHintError('');
-
-    if (typeof document !== 'undefined') {
-      const activeElement = document.activeElement;
-      prevFocusedElementRef.current =
-        activeElement instanceof HTMLElement ? activeElement : null;
-    }
-
-    const hintsLoaded = await loadHints();
-
-    if (!hintsLoaded) {
-      prevFocusedElementRef.current = null;
-      return;
-    }
-
-    if (unlockedHintLevel <= 0 && sortedHintLevels.length) {
-      setUnlockedHintLevel(sortedHintLevels[0].level);
-    }
-
-    setIsFinalHintConfirmVisible(false);
-    setIsHintOpen(true);
-  };
-
-  const handleResetHints = useCallback(async () => {
-    if (!challenge) {
-      return;
-    }
-
-    setHintError('');
-    setIsFinalHintConfirmVisible(false);
-
-    const lowestLevel = sortedHintLevels[0]?.level ?? 1;
-    const firstHint = sortedHintLevels.find((item) => item.level === lowestLevel);
-
-    setHintLevels(firstHint ? [firstHint] : []);
-    setUnlockedHintLevel(firstHint ? lowestLevel : 1);
-    setVisibleHintLevel(firstHint ? lowestLevel : 1);
-
-    if (hintStorageKey && typeof window !== 'undefined') {
-      try {
-        window.localStorage.removeItem(hintStorageKey);
-      } catch (error) {
-        console.error('Failed to clear hint cache:', error);
-      }
-    }
-
-    const hintsLoaded = await loadHints({
-      force: true,
-      resetProgress: true,
-    });
-
-    if (!hintsLoaded) {
-      return;
-    }
-
-    setIsHintOpen(true);
-  }, [challenge, hintStorageKey, loadHints, sortedHintLevels]);
-
-  const handleRequestAdditionalHint = () => {
-    if (!nextHintLevel) {
-      return;
-    }
-
-    if (
-      nextHintLevel === highestHintLevel &&
-      nextHintLevel >= HINT_LEVEL_COUNT
-    ) {
-      setIsFinalHintConfirmVisible(true);
-      return;
-    }
-
-    setUnlockedHintLevel((prev) =>
-      nextHintLevel > prev ? nextHintLevel : prev
-    );
-    setVisibleHintLevel(nextHintLevel);
-  };
-
-  const handleConfirmFinalHint = () => {
-    if (!nextHintLevel) {
-      setIsFinalHintConfirmVisible(false);
-      return;
-    }
-
-    setUnlockedHintLevel((prev) =>
-      nextHintLevel > prev ? nextHintLevel : prev
-    );
-    setVisibleHintLevel(nextHintLevel);
-    setIsFinalHintConfirmVisible(false);
-  };
-
-  const handleCancelFinalHint = () => {
-    setIsFinalHintConfirmVisible(false);
-    if (hintHeadingRef.current) {
-      hintHeadingRef.current.focus();
-    }
-  };
-
-  useEffect(() => {
-    if (!sortedHintLevels.length) {
-      setVisibleHintLevel(null);
-      return;
-    }
-
-    if (normalizedUnlockedLevel > 0) {
-      setVisibleHintLevel((prev) => {
-        if (
-          prev &&
-          prev <= normalizedUnlockedLevel &&
-          sortedHintLevels.some((item) => item.level === prev)
-        ) {
-          return prev;
-        }
-        return normalizedUnlockedLevel;
-      });
-    }
-  }, [sortedHintLevels, normalizedUnlockedLevel]);
+    // Computed values
+    sortedHintLevels,
+    highestHintLevel,
+    displayedHintLevelCount,
+    normalizedUnlockedLevel,
+    unlockedHintLevels,
+    activeHint,
+    nextHintLevel,
+    activeHintTitle,
+    hintButtonLabel,
+    
+    // Refs
+    hintDialogRef,
+    hintHeadingRef,
+    prevFocusedElementRef,
+    finalHintConfirmButtonRef,
+    
+    // Actions
+    closeHint,
+    handleHintButtonClick,
+    handleResetHints,
+    handleRequestAdditionalHint,
+    handleConfirmFinalHint,
+    handleCancelFinalHint,
+    setVisibleHintLevel,
+  } = useHints(challenge, code, testResults);
 
   useEffect(() => {
     const loadChallengeData = async () => {
@@ -829,51 +121,41 @@ function ChallengeEditor() {
   }, [themeId, navigate]);
 
   useEffect(() => {
-    if (!hintStorageKey) {
-      setHintLevels([]);
-      setUnlockedHintLevel(0);
+    if (isLoadingHints || !activeHint?.content) {
+      setIsHintContentVisible(false);
       return;
     }
-    if (typeof window === 'undefined') {
-      return;
-    }
-    try {
-      const stored = window.localStorage.getItem(hintStorageKey);
-      if (!stored) {
-        setHintLevels([]);
-        setUnlockedHintLevel(0);
-        return;
-      }
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed?.hints)) {
-        setHintLevels(parsed.hints as HintLevel[]);
-      } else {
-        setHintLevels([]);
-      }
-      setUnlockedHintLevel(
-        typeof parsed?.unlockedLevel === 'number' ? parsed.unlockedLevel : 0
-      );
-    } catch (error) {
-      console.error('Failed to restore hint progress:', error);
-      setHintLevels([]);
-      setUnlockedHintLevel(0);
-    }
-  }, [hintStorageKey]);
+
+    setIsHintContentVisible(false);
+    const timeoutId = window.setTimeout(() => {
+      setIsHintContentVisible(true);
+    }, 10);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      setIsHintContentVisible(false);
+    };
+  }, [activeHint?.content, activeHint?.level, isLoadingHints, setIsHintContentVisible]);
 
   useEffect(() => {
-    if (!hintStorageKey || typeof window === 'undefined') {
+    if (!sortedHintLevels.length) {
+      setVisibleHintLevel(null);
       return;
     }
-    try {
-      const payload = JSON.stringify({
-        unlockedLevel: unlockedHintLevel,
-        hints: hintLevels,
+
+    if (normalizedUnlockedLevel > 0) {
+      setVisibleHintLevel((prev) => {
+        if (
+          prev &&
+          prev <= normalizedUnlockedLevel &&
+          sortedHintLevels.some((item) => item.level === prev)
+        ) {
+          return prev;
+        }
+        return normalizedUnlockedLevel;
       });
-      window.localStorage.setItem(hintStorageKey, payload);
-    } catch (error) {
-      console.error('Failed to persist hint progress:', error);
     }
-  }, [hintStorageKey, hintLevels, unlockedHintLevel]);
+  }, [sortedHintLevels, normalizedUnlockedLevel, setVisibleHintLevel]);
 
   useEffect(() => {
     if (!isHintOpen && prevFocusedElementRef.current) {
@@ -977,110 +259,6 @@ function ChallengeEditor() {
     }
   }, [nextHintLevel]);
 
-  const handleGenerateCode = async () => {
-    setIsGenerating(true);
-    setGenerationError('');
-    setCurrentStep(2);
-
-    try {
-      const response = await fetch('http://localhost:8000/api/generate-code', {
-        method: 'POST',
-        mode: 'cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          challenge: challenge?.instructions,
-          testCases: challenge?.testCases,
-          }),
-      });
-
-      const data = await response.json();
-      console.log('Generated code response:', data);
-
-      if (!response.ok || data.error) {
-        setGenerationError(data.error || 'An unknown error occurred.');
-        return;
-      }
-
-      if (data.code) {
-        setCode(data.code);
-        setAiGeneratedCode(data.code);
-      }
-      if (data.explanation) {
-        setExplanation(data.explanation);
-      }
-    } catch (error) {
-      console.error('Error generating code: ', error);
-      setGenerationError('Failed to connect to code generation service.');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleRunCode = async () => {
-    if (!challenge) return;
-    setIsRunning(true);
-    setTestResults([]);
-    setCurrentStep(3);
-
-    try {
-      const response = await fetch('http://localhost:8000/api/run-python', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code,
-          testCases: challenge.testCases,
-        }),
-      });
-
-      const reader = response.body?.getReader();
-      if (!reader) return;
-
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let anyFailure = false;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-
-        for (let i = 0; i < lines.length - 1; i++) {
-          const line = lines[i].trim();
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6)) as TestResult;
-              if (data.status && data.status !== 'success') {
-                anyFailure = true;
-              }
-              setTestResults((prev) => [...prev, data]);
-            } catch (e) {
-              console.error('Failed to parse SSE data:', e);
-            }
-          }
-        }
-        buffer = lines[lines.length - 1];
-      }
-      // After stream ends, remember the current code as failing snapshot if any test failed
-      if (anyFailure) {
-        setLastFailingCode(code);
-      }
-    } catch (error) {
-      console.error('Error running code:', error);
-      setTestResults([
-        {
-          testCase: 1,
-          status: 'error',
-          message:
-            'Failed to connect to Python server. Please make sure the server is running.',
-        },
-      ]);
-    } finally {
-      setIsRunning(false);
-    }
-  };
-
   const handleSubmitSolution = () => {
     const allTestsPassed = testResults.every(
       (result) => result.status === 'success'
@@ -1089,10 +267,6 @@ function ChallengeEditor() {
       setCurrentStep(4);
       setShowSuccessModal(true);
     }
-  };
-
-  const getPassingTestsCount = () => {
-    return testResults.filter((result) => result.status === 'success').length;
   };
   
   const handleShowVideo = (videoSrc: string) => {
@@ -1107,6 +281,13 @@ function ChallengeEditor() {
     setShowRetireModal(true);
   };
   const handleCancelRetire = () => setShowRetireConfirmationModal(false);
+
+  const handleGoHome = () => {
+    const confirmed = window.confirm('本当にホーム画面に戻りますか？\n現在の進行状況は保存されません。');
+    if (confirmed) {
+      navigate('/');
+    }
+  };
 
   if (loading) {
     return (
@@ -1123,13 +304,6 @@ function ChallengeEditor() {
     return null;
   }
 
-  const handleGoHome = () => {
-    const confirmed = window.confirm('本当にホーム画面に戻りますか？\n現在の進行状況は保存されません。');
-    if (confirmed) {
-      navigate('/');
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 flex flex-col relative overflow-hidden">
       {showSuccessModal && (
@@ -1144,180 +318,31 @@ function ChallengeEditor() {
           onClose={() => setShowSuccessModal(false)}
         />
       )}
-      {isHintOpen && activeHint && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center px-4 py-8">
-          <div
-            className="absolute inset-0 bg-black/80"
-            onClick={closeHint}
-            aria-hidden="true"
-          />
-          <div
-            ref={hintDialogRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="hint-popover-title"
-            aria-describedby="hint-popover-description"
-            id="hint-popover"
-            className="relative z-10 w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl md:p-8 max-h-[85vh] overflow-y-auto"
-          >
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={closeHint}
-                className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500 text-white shadow transition hover:bg-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
-                aria-label="ヒントを閉じる"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="mt-2 flex flex-col gap-6 md:mt-4 md:flex-row">
-              <div className="mx-auto w-40 flex-shrink-0 md:mx-0 md:w-48">
-                <img
-                  src="/images/character.png"
-                  alt="プログラミング助手"
-                  className="h-full w-full object-contain"
-                />
-              </div>
-              <div className="relative flex-1 rounded-2xl bg-indigo-50 p-5 md:p-6">
-                <div className="absolute -left-3 top-1/2 hidden h-6 w-6 -translate-y-1/2 rotate-45 bg-indigo-50 md:block" />
-                <div className="flex flex-col gap-4">
-                  <div className="flex flex-col gap-3 text-indigo-900 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-2 min-w-0 sm:flex-1">
-                      <Lightbulb className="h-5 w-5 flex-shrink-0" />
-                      <h2
-                        id="hint-popover-title"
-                        ref={hintHeadingRef}
-                        tabIndex={-1}
-                        className="text-lg font-bold whitespace-normal break-words leading-snug"
-                        style={{ overflowWrap: 'anywhere' }}
-                      >
-                        レベル {activeHint.level}: {activeHintTitle}
-                      </h2>
-                    </div>
-                    <div className="flex flex-shrink-0 items-center gap-2 whitespace-nowrap">
-                      <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-indigo-500 whitespace-nowrap">
-                        レベル {activeHint.level} / {highestHintLevel}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={handleResetHints}
-                        disabled={isLoadingHints}
-                        className={`inline-flex items-center gap-2 rounded-lg border border-indigo-300 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition whitespace-nowrap ${
-                          isLoadingHints
-                            ? 'cursor-not-allowed opacity-70'
-                            : 'hover:bg-indigo-100'
-                        }`}
-                      >
-                        {isLoadingHints ? (
-                          <>
-                            <span className="inline-flex h-3 w-3 items-center justify-center">
-                              <span className="h-3 w-3 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
-                            </span>
-                            生成中...
-                          </>
-                        ) : (
-                          'ヒントを再生成'
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  {unlockedHintLevels.length > 1 && (
-                    <div className="flex flex-wrap gap-2" role="list">
-                      {unlockedHintLevels.map((hintLevel) => {
-                        const isActive = hintLevel.level === activeHint.level;
-                        return (
-                          <button
-                            key={hintLevel.level}
-                            type="button"
-                            onClick={() => setVisibleHintLevel(hintLevel.level)}
-                            className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
-                              isActive
-                                ? 'border-indigo-500 bg-white text-indigo-700 shadow'
-                                : 'border-transparent bg-indigo-200/70 text-indigo-700 hover:bg-indigo-200'
-                            }`}
-                            aria-current={isActive ? 'true' : undefined}
-                          >
-                            レベル {hintLevel.level}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                  <div
-                    id="hint-popover-description"
-                    className="mt-4 rounded-xl bg-white/80 p-4 text-sm leading-relaxed text-slate-700 whitespace-pre-wrap break-words max-h-[50vh] overflow-y-auto overflow-x-hidden"
-                    style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
-                  >
-                    {isLoadingHints ? (
-                      <div className="space-y-3">
-                        <div className="h-3 w-3/4 rounded bg-slate-200/80 animate-pulse" />
-                        <div className="h-3 w-full rounded bg-slate-200/70 animate-pulse" />
-                        <div className="h-3 w-5/6 rounded bg-slate-200/60 animate-pulse" />
-                      </div>
-                    ) : (
-                      <div
-                        key={activeHint ? `${activeHint.level}-${activeHint.content}` : 'empty'}
-                        className="break-words w-full"
-                        style={{
-                          opacity: isHintContentVisible ? 1 : 0,
-                          transition: 'opacity 150ms ease-out',
-                          overflowWrap: 'anywhere',
-                          wordBreak: 'break-word',
-                        }}
-                      >
-                        {renderedHintContent ?? activeHint?.content}
-                      </div>
-                    )}
-                  </div>
+      
+      <HintModal
+        isHintOpen={isHintOpen}
+        activeHint={activeHint}
+        activeHintTitle={activeHintTitle}
+        highestHintLevel={highestHintLevel}
+        unlockedHintLevels={unlockedHintLevels}
+        visibleHintLevel={visibleHintLevel}
+        isLoadingHints={isLoadingHints}
+        hintError={hintError}
+        isFinalHintConfirmVisible={isFinalHintConfirmVisible}
+        nextHintLevel={nextHintLevel}
+        hintDialogRef={hintDialogRef}
+        hintHeadingRef={hintHeadingRef}
+        finalHintConfirmButtonRef={finalHintConfirmButtonRef}
+        onClose={closeHint}
+        onResetHints={handleResetHints}
+        onSetVisibleHintLevel={setVisibleHintLevel}
+        onRequestAdditionalHint={handleRequestAdditionalHint}
+        onConfirmFinalHint={handleConfirmFinalHint}
+        onCancelFinalHint={handleCancelFinalHint}
+        setIsHintContentVisible={setIsHintContentVisible}
+        isHintContentVisible={isHintContentVisible}
+      />
 
-                  {isFinalHintConfirmVisible ? (
-                    <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                      <p className="font-semibold mb-2">最終ヒントはほぼ答えです。</p>
-                      <p className="mb-3">本当に表示しますか？</p>
-                      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-                        <button
-                          type="button"
-                          onClick={handleCancelFinalHint}
-                          className="rounded-lg border border-amber-300 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-100"
-                        >
-                          やめる
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleConfirmFinalHint}
-                          ref={finalHintConfirmButtonRef}
-                          className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-600 whitespace-nowrap"
-                        >
-                          最終ヒントを表示
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="text-xs text-indigo-700 sm:max-w-[240px] sm:flex-shrink-0">
-                        {nextHintLevel
-                          ? `さらに詳しいヒントがレベル${nextHintLevel}で利用できます。`
-                          : 'これ以上のヒントはありません。'}
-                      </div>
-                      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-                        {nextHintLevel && (
-                          <button
-                            type="button"
-                            onClick={handleRequestAdditionalHint}
-                            className="rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 px-4 py-2 text-sm font-semibold text-white transition hover:from-indigo-600 hover:to-purple-600 whitespace-nowrap"
-                          >
-                            {nextHintLevel === highestHintLevel ? '最終ヒントを表示' : 'さらにヒント'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       {/* Floating character */}
       <div className="fixed bottom-6 right-6 z-40">
         <button
@@ -1350,6 +375,7 @@ function ChallengeEditor() {
           </div>
         </button>
       </div>
+      
       {showVideoModal && (
         <VideoModal
           videoSrc={currentVideo}
@@ -1504,7 +530,7 @@ function ChallengeEditor() {
           <div className="max-w-6xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
-                onClick={handleGenerateCode}
+                onClick={() => handleGenerateCode(challenge, setCode, setCurrentStep)}
                 disabled={isGenerating}
                 className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:from-green-600 hover:to-emerald-600 transition-all transform hover:scale-105 shadow-lg font-bold"
               >
@@ -1559,7 +585,7 @@ function ChallengeEditor() {
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={handleRunCode}
+                    onClick={() => handleRunCode(code, challenge, setCurrentStep, setLastFailingCode)}
                     disabled={isRunning}
                     className={`flex items-center gap-2 px-4 py-2 rounded font-bold ${
                       isRunning
