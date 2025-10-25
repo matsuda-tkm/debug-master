@@ -3,6 +3,18 @@ import { API_ENDPOINTS } from '../config/api';
 import { Challenge } from '../types/challenge';
 import { TestResult } from '../types/challengeEditor';
 
+// API Response types
+interface CodeGenerationResponse {
+  code?: string;
+  explanation?: string;
+  error?: string;
+}
+
+interface CodeGenerationRequest {
+  challenge?: string;
+  testCases?: unknown[];
+}
+
 export function useCodeGeneration() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState('');
@@ -16,17 +28,19 @@ export function useCodeGeneration() {
     setCurrentStep(2);
 
     try {
+      const requestBody: CodeGenerationRequest = {
+        challenge: challenge?.instructions,
+        testCases: challenge?.testCases,
+      };
+
       const response = await fetch(API_ENDPOINTS.GENERATE_CODE, {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          challenge: challenge?.instructions,
-          testCases: challenge?.testCases,
-          }),
+        body: JSON.stringify(requestBody),
       });
 
-      const data = await response.json();
+      const data = await response.json() as CodeGenerationResponse;
       console.log('Generated code response:', data);
 
       if (!response.ok || data.error) {
@@ -43,7 +57,10 @@ export function useCodeGeneration() {
       }
     } catch (error) {
       console.error('Error generating code: ', error);
-      setGenerationError('Failed to connect to code generation service.');
+      const errorMessage = error instanceof Error 
+        ? `Failed to connect to code generation service: ${error.message}`
+        : 'Failed to connect to code generation service.';
+      setGenerationError(errorMessage);
     } finally {
       setIsGenerating(false);
     }
@@ -121,12 +138,15 @@ export function useCodeExecution() {
       }
     } catch (error) {
       console.error('Error running code:', error);
+      const errorMessage = error instanceof Error 
+        ? `Failed to connect to Python server: ${error.message}`
+        : 'Failed to connect to Python server. Please make sure the server is running.';
+      
       setTestResults([
         {
           testCase: 1,
           status: 'error',
-          message:
-            'Failed to connect to Python server. Please make sure the server is running.',
+          message: errorMessage,
         },
       ]);
     } finally {

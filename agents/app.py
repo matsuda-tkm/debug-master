@@ -11,6 +11,11 @@ from google.genai import types
 
 load_dotenv()
 
+# Configuration constants
+MAX_ITERATIONS = 10
+MAX_RETRIES = 3
+GEMINI_MODEL_NAME = "gemini-2.0-flash"
+
 SYSTEM_INSTRUCTION: str = """\
 Write a Manim program to visually illustrate the following problem with animation:  
 - The animation should convey the problem concisely with minimal text.  
@@ -40,13 +45,12 @@ def call_gemini_api(prompt: str, system_prompt: str) -> str:
     client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
     # 最大再試行回数
-    max_retries = 3
     retry_count = 0
 
-    while retry_count < max_retries:
+    while retry_count < MAX_RETRIES:
         try:
             response = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model=GEMINI_MODEL_NAME,
                 contents=[prompt],
                 config=types.GenerateContentConfig(
                     temperature=0.6,
@@ -54,14 +58,14 @@ def call_gemini_api(prompt: str, system_prompt: str) -> str:
                     response_mime_type="application/json",
                 ),
             )
-            generated_code = response.text
+            generated_code = response.text or ""
             # JSONデコードを試みる
             code_json = json.loads(generated_code)
             return code_json["code"]
 
         except json.JSONDecodeError:
             print(
-                f"JSONデコードエラーが発生しました。再試行 {retry_count+1}/{max_retries}"
+                f"JSONデコードエラーが発生しました。再試行 {retry_count+1}/{MAX_RETRIES}"
             )
             # レスポンスがJSONでない場合、より明示的なプロンプトで再試行
             prompt = (
@@ -73,7 +77,7 @@ def call_gemini_api(prompt: str, system_prompt: str) -> str:
             time.sleep(1)
 
         except KeyError:
-            print(f"'code'キーが見つかりません。再試行 {retry_count+1}/{max_retries}")
+            print(f"'code'キーが見つかりません。再試行 {retry_count+1}/{MAX_RETRIES}")
             # 'code'キーがない場合
             prompt = (
                 prompt
@@ -86,7 +90,7 @@ def call_gemini_api(prompt: str, system_prompt: str) -> str:
     print(
         "JSONデコードの再試行が全て失敗しました。レスポンステキストをそのまま返します。"
     )
-    return response.text
+    return response.text or ""
 
 
 def clean_media_folder():
@@ -248,7 +252,7 @@ def main():
             error_history = []
             code_history = []
             iteration = 0
-            max_iterations = 10  # 最大試行回数を設定
+            max_iterations = MAX_ITERATIONS  # 最大試行回数を設定
             while iteration < max_iterations:
                 iteration += 1
                 # プログレスバーを更新
