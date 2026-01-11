@@ -38,7 +38,7 @@ GEMINI_MODEL_PRIMARY=gemini-3.0-flash
 GEMINI_MODEL_FALLBACK=gemini-2.5-flash
 
 # Gemini APIの温度パラメータ（デフォルト: 0.5）
-GEMINI_TEMPERATURE=0.5
+GEMINI_TEMPERATURE=1.0
 ```
 
 ### 設定値の変更方法
@@ -54,7 +54,7 @@ PORT: int = 8000
 # Gemini API設定
 GEMINI_MODEL_PRIMARY = "gemini-3.0-flash"
 GEMINI_MODEL_FALLBACK = "gemini-2.5-flash"
-GEMINI_TEMPERATURE = 0.5
+GEMINI_TEMPERATURE = 1.0
 ```
 
 #### フロントエンド設定の変更
