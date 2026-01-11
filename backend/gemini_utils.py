@@ -15,9 +15,7 @@ TRIPLE_BACKTICK_PATTERN = re.compile(r"```([a-zA-Z0-9_-]+)?\s*\n?([\s\S]*?)```",
 
 
 def _generate_content_with_fallback(
-    *,
     contents: Sequence[str],
-    temperature: float,
     system_instruction: str,
     response_mime_type: str = "application/json",
 ):
@@ -28,7 +26,7 @@ def _generate_content_with_fallback(
                 model=model_name,
                 contents=contents,
                 config=types.GenerateContentConfig(
-                    temperature=temperature,
+                    temperature=config.GEMINI_TEMPERATURE,
                     system_instruction=system_instruction,
                     response_mime_type=response_mime_type,
                 ),
@@ -130,7 +128,6 @@ def generate_code_logic(
 ) -> Dict[str, str]:
     response = _generate_content_with_fallback(
         contents=[prompt_str],
-        temperature=config.GEMINI_TEMPERATURE,
         system_instruction=config.SYSTEM_INSTRUCTION,
     )
     print(
@@ -295,7 +292,6 @@ def generate_hint_logic(
 
     response = _generate_content_with_fallback(
         contents=[prompt],
-        temperature=0.0,
         system_instruction=config.HINT_SYSTEM_INSTRUCTION,
     )
 
@@ -339,7 +335,6 @@ After (修正後のコード):
 """
     response = _generate_content_with_fallback(
         contents=[prompt],
-        temperature=0.2,
         system_instruction=config.EXPLANATION_SYSTEM_INSTRUCTION,
     )
     # Ensure valid JSON
@@ -384,7 +379,6 @@ AI生成コード（学習者が修正の出発点としたコード）:
 """
     response = _generate_content_with_fallback(
         contents=[prompt],
-        temperature=0.15,
         system_instruction=config.RETIRE_SYSTEM_INSTRUCTION,
     )
     try:
