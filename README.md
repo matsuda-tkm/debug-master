@@ -25,36 +25,11 @@
 GEMINI_API_KEY=your_api_key_here
 ```
 
-#### 2. その他の環境変数（オプション）
-
-必要に応じて以下の環境変数を設定できます：
-
-```bash
-# バックエンドサーバーのポート（デフォルト: 8000）
-PORT=8000
-
-# Gemini APIのモデル候補（デフォルト: gemini-3.0-flash -> gemini-2.5-flash の順で試行）
-GEMINI_MODEL_CANDIDATES = ['gemini-3.0-flash', 'gemini-2.5-flash']
-
-# Gemini APIの温度パラメータ（デフォルト: 1.0）
-GEMINI_TEMPERATURE=1.0
-```
-
 ### 設定値の変更方法
 
 #### バックエンド設定の変更
 
-`backend/config.py` ファイルで以下の設定を変更できます：
-
-```python
-# サーバー設定
-PORT: int = 8000
-
-# Gemini API設定
-GEMINI_MODEL_PRIMARY = "gemini-3.0-flash"
-GEMINI_MODEL_FALLBACK = "gemini-2.5-flash"
-GEMINI_TEMPERATURE = 1.0
-```
+`backend/config.py` ファイルで設定を変更できます。
 
 #### フロントエンド設定の変更
 
