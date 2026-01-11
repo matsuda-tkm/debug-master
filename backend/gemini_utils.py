@@ -2,7 +2,7 @@ import json
 import random
 import re
 import textwrap
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
 import config
 from google import genai
@@ -12,6 +12,32 @@ client = genai.Client(api_key=config.GEMINI_API_KEY)
 
 INLINE_CODE_PATTERN = re.compile(r"(^|[^`])`([^`\n]+)`(?!`)")
 TRIPLE_BACKTICK_PATTERN = re.compile(r"```([a-zA-Z0-9_-]+)?\s*\n?([\s\S]*?)```", re.MULTILINE)
+
+
+def _generate_content_with_fallback(
+    *,
+    contents: Sequence[str],
+    temperature: float,
+    system_instruction: str,
+    response_mime_type: str = "application/json",
+):
+    last_error: Optional[Exception] = None
+    for model_name in config.GEMINI_MODEL_CANDIDATES:
+        try:
+            return client.models.generate_content(
+                model=model_name,
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    temperature=temperature,
+                    system_instruction=system_instruction,
+                    response_mime_type=response_mime_type,
+                ),
+            )
+        except Exception as exc:  # noqa: BLE001
+            last_error = exc
+            print(f"Gemini API error with model {model_name}: {exc}")
+
+    raise last_error or RuntimeError("Gemini model call failed")
 
 
 def _normalize_hint_content(text: str) -> str:
@@ -102,14 +128,10 @@ def generate_code_logic(
     test_cases: List[Dict[str, Any]],
     fn_test_code_against_all_cases: Callable[[str, List[Dict[str, Any]]], bool],
 ) -> Dict[str, str]:
-    response = client.models.generate_content(
-        model=config.GEMINI_MODEL_NAME,
+    response = _generate_content_with_fallback(
         contents=[prompt_str],
-        config=types.GenerateContentConfig(
-            temperature=config.GEMINI_TEMPERATURE,
-            system_instruction=config.SYSTEM_INSTRUCTION,
-            response_mime_type="application/json",
-        ),
+        temperature=config.GEMINI_TEMPERATURE,
+        system_instruction=config.SYSTEM_INSTRUCTION,
     )
     print(
         f"Gemini API response for code generation: {response.text[:500]}..."  # type: ignore
@@ -271,14 +293,10 @@ def generate_hint_logic(
         test_results_text=test_results_text,
     )
 
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",  # Consider making model name a config variable
+    response = _generate_content_with_fallback(
         contents=[prompt],
-        config=types.GenerateContentConfig(
-            temperature=0.0,  # Consider making temperature a config variable
-            system_instruction=config.HINT_SYSTEM_INSTRUCTION,
-            response_mime_type="application/json",
-        ),
+        temperature=0.0,
+        system_instruction=config.HINT_SYSTEM_INSTRUCTION,
     )
 
     return _parse_hint_levels(response.text)  # type: ignore
@@ -319,14 +337,10 @@ After (修正後のコード):
 テスト結果サマリ:
 {test_results_text}
 """
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
+    response = _generate_content_with_fallback(
         contents=[prompt],
-        config=types.GenerateContentConfig(
-            temperature=0.2,
-            system_instruction=config.EXPLANATION_SYSTEM_INSTRUCTION,
-            response_mime_type="application/json",
-        ),
+        temperature=0.2,
+        system_instruction=config.EXPLANATION_SYSTEM_INSTRUCTION,
     )
     # Ensure valid JSON
     try:
@@ -368,14 +382,10 @@ AI生成コード（学習者が修正の出発点としたコード）:
 テスト結果:
 {test_results_text}
 """
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
+    response = _generate_content_with_fallback(
         contents=[prompt],
-        config=types.GenerateContentConfig(
-            temperature=0.15,
-            system_instruction=config.RETIRE_SYSTEM_INSTRUCTION,
-            response_mime_type="application/json",
-        ),
+        temperature=0.15,
+        system_instruction=config.RETIRE_SYSTEM_INSTRUCTION,
     )
     try:
         return json.loads(response.text)  # type: ignore[arg-type]
