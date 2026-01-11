@@ -9,12 +9,13 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
+GEMINI_MODEL_NAME = "gemini-3.0-flash"
+
 load_dotenv()
 
 # Configuration constants
 MAX_ITERATIONS = 10
 MAX_RETRIES = 3
-GEMINI_MODEL_NAME = "gemini-2.0-flash"
 
 SYSTEM_INSTRUCTION: str = """\
 Write a Manim program to visually illustrate the following problem with animation:  
