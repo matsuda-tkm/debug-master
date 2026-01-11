@@ -8,12 +8,7 @@ PORT: int = 8000
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 # Gemini API Configuration
-GEMINI_MODEL_PRIMARY = 'gemini-3.0-flash'
-GEMINI_MODEL_FALLBACK = 'gemini-2.5-flash'
-GEMINI_MODEL_CANDIDATES = [
-    model_name
-    for model_name in [GEMINI_MODEL_PRIMARY, GEMINI_MODEL_FALLBACK]
-]
+GEMINI_MODEL_CANDIDATES = ['gemini-3.0-flash', 'gemini-2.5-flash']
 GEMINI_TEMPERATURE = 1.0
 
 SYSTEM_INSTRUCTION: str = """\

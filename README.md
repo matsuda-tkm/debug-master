@@ -34,10 +34,9 @@ GEMINI_API_KEY=your_api_key_here
 PORT=8000
 
 # Gemini APIのモデル候補（デフォルト: gemini-3.0-flash -> gemini-2.5-flash の順で試行）
-GEMINI_MODEL_PRIMARY=gemini-3.0-flash
-GEMINI_MODEL_FALLBACK=gemini-2.5-flash
+GEMINI_MODEL_CANDIDATES = ['gemini-3.0-flash', 'gemini-2.5-flash']
 
-# Gemini APIの温度パラメータ（デフォルト: 0.5）
+# Gemini APIの温度パラメータ（デフォルト: 1.0）
 GEMINI_TEMPERATURE=1.0
 ```
 
