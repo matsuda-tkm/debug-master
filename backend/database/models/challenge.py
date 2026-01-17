@@ -4,7 +4,7 @@ from typing import List, Any, Dict
 
 @dataclass
 class TestCase:
-    input: List[Any]
+    input: Any
     expected: Any
 
     def to_dict(self) -> Dict[str, Any]:
