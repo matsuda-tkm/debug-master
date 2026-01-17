@@ -1,64 +1,88 @@
 import io
+import re
 import traceback
 from contextlib import redirect_stdout
-from copy import deepcopy
 from typing import Any, Dict, List
+
+TESTCASE_MARKER_PATTERN = re.compile(r"----\s*テストケース\s*(\d+)\s*----")
+
+
+def _split_output_by_markers(output: str, expected_cases: int) -> Dict[int, str] | str:
+    if expected_cases == 0:
+        return {}
+    matches = list(TESTCASE_MARKER_PATTERN.finditer(output))
+    if not matches:
+        return "---- テストケース1 ----が検出されませんでした"
+
+    segments: Dict[int, str] = {}
+    for idx, match in enumerate(matches):
+        case_number = int(match.group(1))
+        start = match.end()
+        end = matches[idx + 1].start() if idx + 1 < len(matches) else len(output)
+        segments[case_number] = output[start:end].strip()
+
+    for i in range(1, expected_cases + 1):
+        if i not in segments:
+            return f"---- テストケース{i} ----が検出されませんでした"
+
+    return segments
+
+
+def run_all_test_cases(code: str, test_cases: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    stdout_capture: io.StringIO = io.StringIO()
+    try:
+        namespace: Dict[str, Any] = {"__name__": "__main__"}
+
+        with redirect_stdout(stdout_capture):
+            exec(code, namespace)
+
+        full_output = stdout_capture.getvalue()
+        split_result = _split_output_by_markers(full_output, len(test_cases))
+
+        if isinstance(split_result, str):
+            return [
+                {
+                    "status": "error",
+                    "message": split_result,
+                    "input": test_case.get("input"),
+                    "expected_output": str(test_case.get("expected")).strip(),
+                    "actual_output": "",
+                }
+                for test_case in test_cases
+            ]
+
+        results: List[Dict[str, Any]] = []
+        for idx, test_case in enumerate(test_cases, start=1):
+            expected_output = str(test_case.get("expected")).strip()
+            actual_output = split_result.get(idx, "")
+            status = "success" if actual_output == expected_output else "error"
+            results.append(
+                {
+                    "status": status,
+                    "input": test_case.get("input"),
+                    "expected_output": expected_output,
+                    "actual_output": actual_output,
+                }
+            )
+        return results
+
+    except Exception as e:
+        return [
+            {
+                "status": "error",
+                "message": f"Error during execution:\n\n{str(e)}\n{traceback.format_exc()}",
+            }
+        ]
 
 
 def run_single_test_case(code: str, test_case: Dict[str, Any]) -> Dict[str, Any]:
-    stdout_capture: io.StringIO = io.StringIO()
-    try:
-        namespace: Dict[str, Any] = {}
-        
-        with redirect_stdout(stdout_capture):
-            # Ensure input_data is a list of arguments for splatting
-            input_data_orig = test_case.get("input", [])
-            if not isinstance(input_data_orig, list):
-                input_data_list = [input_data_orig]
-            else:
-                input_data_list = input_data_orig
-
-            input_data = deepcopy(input_data_list)
-            
-            # Execute the code and check if main function exists
-            exec(code, namespace)
-            solution = namespace.get("main")
-
-            if not callable(solution):
-                return {
-                    "status": "error",
-                    "message": f'Function "main" not found or not callable in code. Found: {type(solution)}',
-                }
-            
-            # Call the main function (this will produce output via print statements)
-            solution(*input_data)
-
-        # Get the captured output and strip trailing whitespace/newlines
-        actual_output = stdout_capture.getvalue().strip()
-        expected_output = str(test_case.get("expected")).strip()
-        
-        # Compare the outputs
-        status = "success" if actual_output == expected_output else "error"
-        
-        # Return structured data instead of formatted message
-        return {
-            "status": status,
-            "input": input_data_list,
-            "expected_output": expected_output,
-            "actual_output": actual_output,
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "message": f"Error during execution:\n\n{str(e)}\n{traceback.format_exc()}",
-        }
+    # Kept for backward compatibility; now simply runs all tests and returns the first result.
+    results = run_all_test_cases(code, [test_case])
+    return results[0]
 
 
 def test_code_against_all_cases(code: str, test_cases: List[Dict[str, Any]]) -> bool:
-    if not test_cases:  # If there are no test cases, consider it as passing
+    if not test_cases:
         return True
-    for test_case in test_cases:
-        result = run_single_test_case(code, test_case)
-        if result.get("status") != "success":
-            return False
-    return True
+    results = run_all_test_cases(code, test_cases)
+    return all(result.get("status") == "success" for result in results)

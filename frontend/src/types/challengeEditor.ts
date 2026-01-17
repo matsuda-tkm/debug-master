@@ -10,7 +10,7 @@ export type TestResult = {
   testCase: number;
   status: 'success' | 'failure' | 'forbidden' | 'error';
   message?: string;
-  input?: any[];
+  input?: any;
   expected_output?: string;
   actual_output?: string;
 };

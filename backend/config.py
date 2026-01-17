@@ -43,21 +43,33 @@ Format it as a JSON object, where each object contains the following keys: 'code
 }
 'explanation' should be **Japanese text** explaining the bug and the fix.
 
-Implement only this function with various bugs that AI may make, incorporating the bugs you reasoned about.
+Implement a full program with various bugs that AI may make, incorporating the bugs you reasoned about.
 Each program should contain bugs that does not pass the test cases. Make them as diverse as possible.
 The bugs should not lead to the program not compiling or hanging.
-Do not add comments.
 Do not forget to first reason about possible bugs.
-Make sure that the function name is `main`.
+Do not define a `main` function.
 
-CRITICAL: The main function MUST accept the correct number and type of arguments that match the test case inputs. 
-- If test case input is [5], main function should be: def main(n):
-- If test case input is ["hello"], main function should be: def main(s):
-- If test case input is [10, 20], main function should be: def main(a, b):
-- Always check the test case inputs to determine the correct function signature.
-- The main function is called with: main(*input_data) where input_data is the test case input list.
-- NEVER define main() with no parameters unless the test cases have empty input lists.
-- NEVER define main with incorrect parameter names or counts - this will cause the code to fail.
+CRITICAL CODE FORMAT RULES:
+- The prompt will include the test case inputs. Embed them in the code and execute them in order.
+- Each test case input is a single value; pass it as one argument to your helper function if you define one.
+- Always include the following template at the beginning of the code:
+  ##### 編集禁止 ######
+  test_cases = [テストケース入力一覧]
+  
+  for i, input_value in enumerate(test_cases, start=1):
+      print(f"---- テストケース{i} ----")
+  ##### 編集禁止 ######
+      #### ここから編集
+      pass
+- Before each test case output, print '---- テストケース{i} ----' (i is 1-based). The grader splits output using this marker.
+- Use the test case inputs to compute outputs; do not skip any case.
+
+ABSOLUTELY FORBIDDEN IN GENERATED CODE:
+- Do NOT add any comments explaining the bug or the solution
+- Do NOT add comments like "# バグ:", "# 修正:", "# 説明:", etc.
+- Do NOT add comments like "#### ここまで編集" or any end markers
+- Only include the required marker comments: "##### 編集禁止 ######" and "#### ここから編集"
+- Keep the code clean without explanatory comments
 """
 
 HINT_SYSTEM_INSTRUCTION: str = """\

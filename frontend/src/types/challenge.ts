@@ -1,5 +1,5 @@
 export interface TestCase {
-  input: any[];
+  input: any;
   expected: any;
 }
 

@@ -1,10 +1,11 @@
 import json
+from pprint import pformat
 from typing import Any, AsyncGenerator
 
 import config
 import uvicorn
 from api.challenges import ChallengesAPIHandler
-from code_runner import run_single_test_case, test_code_against_all_cases
+from code_runner import run_all_test_cases, test_code_against_all_cases
 from fastapi import Body, FastAPI, HTTPException, Path
 from fastapi.middleware.cors import CORSMiddleware
 from gemini_utils import (
@@ -106,11 +107,10 @@ async def _sse_generator(code: str, test_cases: list[dict[str, Any]]) -> AsyncGe
         )
         return
 
-    for i, test_case in enumerate(test_cases):
-        result = run_single_test_case(code, test_case)
+    results = run_all_test_cases(code, test_cases)
+    for idx, result in enumerate(results, start=1):
         payload: dict[str, Any] = {
-            "status": "ok",
-            "testCaseNumber": i + 1,
+            "testCase": idx,
             **result,
         }
         yield _sse_format(payload)
@@ -128,7 +128,28 @@ def run_python(payload: dict[str, Any] = Body(...)) -> StreamingResponse:
 def generate_code(payload: dict[str, Any] = Body(...)) -> JSONResponse:
     challenge: str = payload.get("challenge", "")
     test_cases: list[dict[str, Any]] = payload.get("testCases", [])
-    prompt = f"Problem description:\n{challenge}\n"
+    test_case_inputs = [test_case.get("input") for test_case in test_cases]
+    test_case_inputs_text = pformat(test_case_inputs, width=80)
+    prompt = (
+        f"Problem description:\n{challenge}\n\n"
+        f"Test case inputs:\n{test_case_inputs_text}\n\n"
+        "Output format rules:\n"
+        "- Always include the following template at the beginning of the code:\n"
+        "  ##### 編集禁止 ######\n"
+        "  test_cases = [test case inputs]\n"
+        "  \n"
+        "  for i, input_value in enumerate(test_cases, start=1):\n"
+        "      print(f\"---- テストケース{{i}} ----\")\n"
+        "  ##### 編集禁止 ######\n"
+        "      #### ここから編集\n"
+        "      pass\n"
+        "  \n"
+        "- Always output '---- テストケース{i} ----' immediately before each test case output (i is a sequential number starting from 1).\n"
+        "- Grading assumes that standard output includes this line as a delimiter for test cases.\n"
+        "- If the delimiter cannot be detected, it will result in an error.\n"
+        "- Do not define a main function; embed the test case inputs in the code and process them in order.\n"
+        "- Treat each test case input as a single value, and pass it as an argument if necessary.\n"
+    )
     try:
         result = generate_code_logic(prompt, test_cases, test_code_against_all_cases)
         return JSONResponse(content=result)

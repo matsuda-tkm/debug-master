@@ -30,8 +30,13 @@ function ChallengeEditor() {
   const { themeId } = useParams();
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [loading, setLoading] = useState(true);
-  const [code, setCode] = useState(`def main(numbers):
-    # Write your solution here
+  const [code, setCode] = useState(`##### 編集禁止 ######
+test_cases = []
+
+for i, input_value in enumerate(test_cases, start=1):
+    print(f"---- テストケース{i} ----")
+##### 編集禁止 ######
+    #### ここから編集
     pass
     `);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -614,57 +619,64 @@ function ChallengeEditor() {
                 </div>
               </div>
               <div className="flex-1 p-4 overflow-auto">
-                {testResults.map((result, index) => (
-                  <div
-                    key={index}
-                    className={`mb-4 rounded-lg border-2 overflow-hidden ${
-                      result.status === 'success' 
-                        ? 'bg-green-50 border-green-300' 
-                        : 'bg-red-50 border-red-300'
-                    }`}
-                  >
-                    <div className={`flex items-center gap-2 px-4 py-2 font-bold ${
-                      result.status === 'success' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {result.status === 'success' ? (
-                        <CheckCircle className="w-5 h-5 flex-shrink-0" />
-                      ) : (
-                        <XCircle className="w-5 h-5 flex-shrink-0" />
-                      )}
-                      <span>テスト {result.testCase} {result.status === 'success' ? '✅' : '❌'}</span>
-                    </div>
-                    
-                    <div className="p-4 space-y-3">
-                      {result.status === 'forbidden' ? (
-                        <div className="text-sm text-red-700 font-medium">
-                          ⚠️ APIキーを抜き取ろうとするコードは許可されていません！
-                        </div>
-                      ) : result.message ? (
-                        <div className="text-sm text-slate-600 whitespace-pre-wrap">
-                          {result.message}
-                        </div>
-                      ) : (
-                        <>
-                          {/* 入力データ */}
-                          <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="bg-slate-600 text-white px-3 py-1 rounded-md text-xs font-bold">
-                                📥 入力データ
+                {testResults.map((result, index) => {
+                  const inputItems = Array.isArray(result.input)
+                    ? result.input
+                    : result.input !== undefined && result.input !== null
+                      ? [result.input]
+                      : [];
+
+                  return (
+                    <div
+                      key={index}
+                      className={`mb-4 rounded-lg border-2 overflow-hidden ${
+                        result.status === 'success' 
+                          ? 'bg-green-50 border-green-300' 
+                          : 'bg-red-50 border-red-300'
+                      }`}
+                    >
+                      <div className={`flex items-center gap-2 px-4 py-2 font-bold ${
+                        result.status === 'success' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {result.status === 'success' ? (
+                          <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                        ) : (
+                          <XCircle className="w-5 h-5 flex-shrink-0" />
+                        )}
+                        <span>テスト {result.testCase} {result.status === 'success' ? '✅' : '❌'}</span>
+                      </div>
+                      
+                      <div className="p-4 space-y-3">
+                        {result.status === 'forbidden' ? (
+                          <div className="text-sm text-red-700 font-medium">
+                            ⚠️ APIキーを抜き取ろうとするコードは許可されていません！
+                          </div>
+                        ) : result.message ? (
+                          <div className="text-sm text-slate-600 whitespace-pre-wrap">
+                            {result.message}
+                          </div>
+                        ) : (
+                          <>
+                            {/* 入力データ */}
+                            <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="bg-slate-600 text-white px-3 py-1 rounded-md text-xs font-bold">
+                                  📥 入力データ
+                                </div>
+                              </div>
+                              <div className="text-sm font-mono bg-white px-3 py-2 rounded border border-slate-200">
+                                {inputItems.length > 0
+                                  ? inputItems.map((item, i) => (
+                                      <div key={i} className="text-slate-700">
+                                        {typeof item === 'string' ? `"${item}"` : String(item)}
+                                      </div>
+                                    ))
+                                  : <span className="text-slate-400">なし</span>
+                                }
                               </div>
                             </div>
-                            <div className="text-sm font-mono bg-white px-3 py-2 rounded border border-slate-200">
-                              {result.input && result.input.length > 0 
-                                ? result.input.map((item, i) => (
-                                    <div key={i} className="text-slate-700">
-                                      {typeof item === 'string' ? `"${item}"` : String(item)}
-                                    </div>
-                                  ))
-                                : <span className="text-slate-400">なし</span>
-                              }
-                            </div>
-                          </div>
 
                           {/* 期待される出力 */}
                           <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
@@ -702,26 +714,27 @@ function ChallengeEditor() {
                             </div>
                           </div>
 
-                          {/* 比較結果の説明 */}
-                          {result.status !== 'success' && (
-                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                              <div className="flex gap-2">
-                                <span className="text-yellow-600 text-xl">💡</span>
-                                <div className="flex-1">
-                                  <div className="font-bold text-yellow-800 mb-1">ヒント</div>
-                                  <div className="text-sm text-yellow-700">
-                                    「正しい答え」と「あなたのプログラムの出力」を見比べてみましょう。<br/>
-                                    どこが違うかな？スペースや改行も確認してみてね！
+                            {/* 比較結果の説明 */}
+                            {result.status !== 'success' && (
+                              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                <div className="flex gap-2">
+                                  <span className="text-yellow-600 text-xl">💡</span>
+                                  <div className="flex-1">
+                                    <div className="font-bold text-yellow-800 mb-1">ヒント</div>
+                                    <div className="text-sm text-yellow-700">
+                                      「正しい答え」と「あなたのプログラムの出力」を見比べてみましょう。<br/>
+                                      どこが違うかな？スペースや改行も確認してみてね！
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          )}
-                        </>
-                      )}
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {testResults.length === 0 && (
                   <div className="text-center text-slate-500 py-8">
                     <Terminal className="w-12 h-12 mx-auto mb-3 opacity-50" />
