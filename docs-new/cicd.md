@@ -18,19 +18,17 @@ flowchart TB
         Build["ビルド確認"]
     end
 
-    subgraph deployDev [dev デプロイ]
-        DevBE["Backend → Cloud Run (dev)"]
-        DevFE["Frontend → Vercel Preview"]
-    end
-
     subgraph deployProd [prod デプロイ]
-        ProdBE["Backend → Cloud Run (prod)"]
+        ProdBE["Backend → Cloud Run"]
         ProdFE["Frontend → Vercel Production"]
     end
 
+    subgraph preview [プレビュー]
+        PreviewFE["Frontend → Vercel Preview"]
+    end
+
     PR --> Lint --> Build
-    PR --> DevBE
-    PR --> DevFE
+    PR --> PreviewFE
 
     Merge --> Lint --> Build
     Merge --> ProdBE
@@ -42,8 +40,7 @@ flowchart TB
 | ワークフロー | ファイル | トリガー | 内容 |
 |---|---|---|---|
 | テスト | `.github/workflows/test.yml` | PR, push to main | Lint、型チェック、ビルド確認 |
-| バックエンドデプロイ (dev) | `.github/workflows/deploy-backend.yml` | PR to main | dev 環境への Cloud Run デプロイ |
-| バックエンドデプロイ (prod) | `.github/workflows/deploy-backend.yml` | push to main | prod 環境への Cloud Run デプロイ |
+| バックエンドデプロイ | `.github/workflows/deploy-backend.yml` | push to main | Cloud Run へのデプロイ |
 | フロントエンドデプロイ | Vercel GitHub 連携 | PR / push to main | Preview / Production デプロイ |
 
 ---
@@ -110,10 +107,6 @@ jobs:
 name: Deploy Backend
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'backend/**'
   push:
     branches: [main]
     paths:
@@ -125,48 +118,8 @@ env:
   REPOSITORY: debug-master
 
 jobs:
-  deploy-dev:
-    name: Deploy to Dev
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    environment: dev
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - id: auth
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_DEV }}
-          service_account: ${{ secrets.GCP_SA_EMAIL_DEV }}
-
-      - uses: google-github-actions/setup-gcloud@v2
-
-      - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
-
-      - name: Build and Push Docker Image
-        run: |
-          IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID_DEV }}/${{ env.REPOSITORY }}/api:dev-${{ github.sha }}
-          docker build -t $IMAGE backend/
-          docker push $IMAGE
-
-      - name: Deploy to Cloud Run
-        run: |
-          gcloud run deploy ${{ env.SERVICE_NAME }}-dev \
-            --image ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID_DEV }}/${{ env.REPOSITORY }}/api:dev-${{ github.sha }} \
-            --region ${{ env.REGION }} \
-            --project ${{ secrets.GCP_PROJECT_ID_DEV }} \
-            --platform managed \
-            --allow-unauthenticated \
-            --set-env-vars "ENVIRONMENT=dev,ALLOWED_ORIGINS=http://localhost:5173" \
-            --set-secrets "GEMINI_API_KEY=gemini-api-key:latest"
-
-  deploy-prod:
-    name: Deploy to Prod
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  deploy:
+    name: Deploy to Cloud Run
     runs-on: ubuntu-latest
     environment: production
     permissions:
@@ -178,8 +131,8 @@ jobs:
       - id: auth
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_PROD }}
-          service_account: ${{ secrets.GCP_SA_EMAIL_PROD }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SA_EMAIL }}
 
       - uses: google-github-actions/setup-gcloud@v2
 
@@ -188,16 +141,16 @@ jobs:
 
       - name: Build and Push Docker Image
         run: |
-          IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID_PROD }}/${{ env.REPOSITORY }}/api:prod-${{ github.sha }}
+          IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/api:${{ github.sha }}
           docker build -t $IMAGE backend/
           docker push $IMAGE
 
       - name: Deploy to Cloud Run
         run: |
-          gcloud run deploy ${{ env.SERVICE_NAME }}-prod \
-            --image ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID_PROD }}/${{ env.REPOSITORY }}/api:prod-${{ github.sha }} \
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/api:${{ github.sha }} \
             --region ${{ env.REGION }} \
-            --project ${{ secrets.GCP_PROJECT_ID_PROD }} \
+            --project ${{ secrets.GCP_PROJECT_ID }} \
             --platform managed \
             --allow-unauthenticated \
             --min-instances 1 \
@@ -230,12 +183,12 @@ Vercel の GitHub 連携を使用し、ワークフローの作成は不要。
 
 Vercel ダッシュボードの「Settings > Environment Variables」で設定する。
 
-| 変数名 | Preview | Production |
-|---|---|---|
-| `VITE_API_BASE_URL` | Cloud Run dev URL | Cloud Run prod URL |
-| `VITE_FIREBASE_API_KEY` | Firebase dev API キー | Firebase prod API キー |
-| `VITE_FIREBASE_AUTH_DOMAIN` | dev ドメイン | prod ドメイン |
-| `VITE_FIREBASE_PROJECT_ID` | dev プロジェクト ID | prod プロジェクト ID |
+| 変数名 | 値 |
+|---|---|
+| `VITE_API_BASE_URL` | Cloud Run の URL |
+| `VITE_FIREBASE_API_KEY` | Firebase API キー |
+| `VITE_FIREBASE_AUTH_DOMAIN` | Firebase Auth ドメイン |
+| `VITE_FIREBASE_PROJECT_ID` | GCP プロジェクト ID |
 
 ---
 
@@ -243,23 +196,15 @@ Vercel ダッシュボードの「Settings > Environment Variables」で設定�
 
 ### GitHub Environments
 
-2 つの Environment を作成する: `dev`, `production`
+`production` Environment を作成する。
 
-### dev 環境の Secrets
-
-| シークレット名 | 説明 |
-|---|---|
-| `GCP_PROJECT_ID_DEV` | dev 用 GCP プロジェクト ID |
-| `GCP_WORKLOAD_IDENTITY_PROVIDER_DEV` | Workload Identity Federation プロバイダ |
-| `GCP_SA_EMAIL_DEV` | GitHub Actions 用サービスアカウントのメールアドレス |
-
-### production 環境の Secrets
+### Secrets
 
 | シークレット名 | 説明 |
 |---|---|
-| `GCP_PROJECT_ID_PROD` | prod 用 GCP プロジェクト ID |
-| `GCP_WORKLOAD_IDENTITY_PROVIDER_PROD` | Workload Identity Federation プロバイダ |
-| `GCP_SA_EMAIL_PROD` | GitHub Actions 用サービスアカウントのメールアドレス |
+| `GCP_PROJECT_ID` | GCP プロジェクト ID |
+| `GCP_WORKLOAD_IDENTITY_PROVIDER` | Workload Identity Federation プロバイダ |
+| `GCP_SA_EMAIL` | GitHub Actions 用サービスアカウントのメールアドレス |
 
 ### 認証方式: Workload Identity Federation
 
@@ -318,16 +263,14 @@ gcloud iam service-accounts add-iam-policy-binding \
 flowchart TD
     Dev["開発者"] -->|PR 作成| GitHub["GitHub"]
 
-    GitHub -->|PR イベント| TestWF["test.yml<br>Lint + Build"]
-    GitHub -->|PR イベント| DevBE["deploy-backend.yml<br>(dev job)"]
-    GitHub -->|PR イベント| VercelPreview["Vercel<br>Preview Deploy"]
+    GitHub -->|PR イベント| TestWF["test.yml\nLint + Build"]
+    GitHub -->|PR イベント| VercelPreview["Vercel\nPreview Deploy"]
 
-    GitHub -->|main マージ| TestWFProd["test.yml<br>Lint + Build"]
-    GitHub -->|main マージ| ProdBE["deploy-backend.yml<br>(prod job)"]
-    GitHub -->|main マージ| VercelProd["Vercel<br>Production Deploy"]
+    GitHub -->|main マージ| TestWFProd["test.yml\nLint + Build"]
+    GitHub -->|main マージ| ProdBE["deploy-backend.yml"]
+    GitHub -->|main マージ| VercelProd["Vercel\nProduction Deploy"]
 
-    DevBE --> DevCR["Cloud Run (dev)"]
-    ProdBE --> ProdCR["Cloud Run (prod)"]
+    ProdBE --> ProdCR["Cloud Run"]
     VercelPreview --> Preview["Preview URL"]
     VercelProd --> Production["Production URL"]
 ```

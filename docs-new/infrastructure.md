@@ -6,66 +6,42 @@ Debug Master のクラウドインフラは Google Cloud Platform (GCP) と Verc
 
 ## GCP リソース一覧
 
-| サービス | 用途 | 環境 |
-|---|---|---|
-| **Cloud Run** | FastAPI バックエンドの実行 | dev / prod |
-| **Cloud Firestore** | チャレンジデータ、ユーザーデータの永続化 | dev / prod |
-| **Secret Manager** | API キー等のシークレット管理 | dev / prod |
-| **Artifact Registry** | Docker イメージの保存 | 共有 |
-| **Firebase Authentication** | Google SSO によるユーザー認証 | dev / prod |
-| **Cloud Logging** | アプリケーションログの収集 | dev / prod |
-| **Cloud Monitoring** | アラート・監視 | prod |
+| サービス | 用途 |
+|---|---|
+| **Cloud Run** | FastAPI バックエンドの実行 |
+| **Cloud Firestore** | チャレンジデータ、ユーザーデータの永続化 |
+| **Secret Manager** | API キー等のシークレット管理 |
+| **Artifact Registry** | Docker イメージの保存 |
+| **Firebase Authentication** | Google SSO によるユーザー認証 |
+| **Cloud Logging** | アプリケーションログの収集 |
+| **Cloud Monitoring** | アラート・監視 |
 
-## 環境分離方針
+## GCP プロジェクト構成
 
-### GCP プロジェクト構成
-
-環境ごとに GCP プロジェクトを分離する。
+本番環境用の GCP プロジェクトを 1 つ作成する。ローカル開発は Docker Compose で行う。
 
 | 環境 | GCP プロジェクト ID (例) | 用途 |
 |---|---|---|
-| dev | `debug-master-dev` | 開発・テスト用 |
 | prod | `debug-master-prod` | 本番用 |
 
 ```mermaid
 graph TB
-    subgraph devProject ["GCP: debug-master-dev"]
-        DevRun["Cloud Run (dev)"]
-        DevFS["Firestore (dev)"]
-        DevSM["Secret Manager (dev)"]
-        DevAuth["Firebase Auth (dev)"]
-    end
-
     subgraph prodProject ["GCP: debug-master-prod"]
-        ProdRun["Cloud Run (prod)"]
-        ProdFS["Firestore (prod)"]
-        ProdSM["Secret Manager (prod)"]
-        ProdAuth["Firebase Auth (prod)"]
-    end
-
-    subgraph shared ["共有リソース"]
+        ProdRun["Cloud Run"]
+        ProdFS["Firestore"]
+        ProdSM["Secret Manager"]
+        ProdAuth["Firebase Auth"]
         AR["Artifact Registry"]
     end
-
-    AR --> DevRun
-    AR --> ProdRun
 ```
 
-### 環境分離のメリット
+### 環境変数
 
-- IAM 権限の完全な分離 (dev での事故が prod に影響しない)
-- 課金の分離と可視化
-- Firestore のセキュリティルールを環境ごとに管理可能
-
-### 環境変数による切り替え
-
-バックエンドでは `ENVIRONMENT` 環境変数で動作を制御する。
-
-| 環境変数 | dev | prod |
+| 環境変数 | ローカル | prod |
 |---|---|---|
-| `ENVIRONMENT` | `dev` | `prod` |
-| `ALLOWED_ORIGINS` | `http://localhost:5173,https://*.vercel.app` | `https://debug-master.vercel.app` |
-| `GEMINI_API_KEY` | Secret Manager 経由 | Secret Manager 経由 |
+| `ENVIRONMENT` | `local` | `prod` |
+| `ALLOWED_ORIGINS` | `http://localhost:5173` | `https://debug-master.vercel.app` |
+| `GEMINI_API_KEY` | `.env` ファイル | Secret Manager 経由 |
 
 ---
 
@@ -73,17 +49,17 @@ graph TB
 
 ### サービス構成
 
-| 項目 | dev | prod |
-|---|---|---|
-| サービス名 | `debug-master-api-dev` | `debug-master-api-prod` |
-| リージョン | `asia-northeast1` (東京) | `asia-northeast1` (東京) |
-| CPU | 1 | 1 |
-| メモリ | 512 Mi | 512 Mi |
-| 最小インスタンス数 | 0 | 1 |
-| 最大インスタンス数 | 3 | 10 |
-| リクエストタイムアウト | 60 秒 | 60 秒 |
-| 同時実行数 | 80 | 80 |
-| Ingress | すべてのトラフィック | すべてのトラフィック |
+| 項目 | 値 |
+|---|---|
+| サービス名 | `debug-master-api` |
+| リージョン | `asia-northeast1` (東京) |
+| CPU | 1 |
+| メモリ | 512 Mi |
+| 最小インスタンス数 | 1 |
+| 最大インスタンス数 | 10 |
+| リクエストタイムアウト | 60 秒 |
+| 同時実行数 | 80 |
+| Ingress | すべてのトラフィック |
 
 > コード実行 (`exec()`) はリクエスト内で行うため、タイムアウトには余裕を持たせる。個別のコード実行タイムアウトはアプリケーション側で 10 秒に制限する。
 
@@ -230,8 +206,7 @@ asia-northeast1-docker.pkg.dev/{PROJECT_ID}/debug-master/api:{tag}
 
 タグの運用:
 - `latest`: 最新の main ブランチのビルド
-- `dev-{commit-sha}`: dev 環境向けビルド
-- `prod-{commit-sha}`: prod 環境向けビルド
+- `{commit-sha}`: コミット SHA による特定バージョン
 
 ---
 
@@ -248,19 +223,18 @@ asia-northeast1-docker.pkg.dev/{PROJECT_ID}/debug-master/api:{tag}
 
 ### 環境変数
 
-| 環境変数 | Preview (dev) | Production (prod) |
-|---|---|---|
-| `VITE_API_BASE_URL` | Cloud Run dev の URL | Cloud Run prod の URL |
-| `VITE_FIREBASE_API_KEY` | Firebase dev の API キー | Firebase prod の API キー |
-| `VITE_FIREBASE_AUTH_DOMAIN` | `debug-master-dev.firebaseapp.com` | `debug-master-prod.firebaseapp.com` |
-| `VITE_FIREBASE_PROJECT_ID` | `debug-master-dev` | `debug-master-prod` |
+| 環境変数 | 値 |
+|---|---|
+| `VITE_API_BASE_URL` | Cloud Run の URL |
+| `VITE_FIREBASE_API_KEY` | Firebase の API キー |
+| `VITE_FIREBASE_AUTH_DOMAIN` | `debug-master-prod.firebaseapp.com` |
+| `VITE_FIREBASE_PROJECT_ID` | `debug-master-prod` |
 
 ### ドメイン設定
 
 | 環境 | ドメイン |
 |---|---|
 | Production | `debug-master.vercel.app` (またはカスタムドメイン) |
-| Preview | `debug-master-{branch}-{hash}.vercel.app` (自動生成) |
 
 ### SPA リライトルール
 

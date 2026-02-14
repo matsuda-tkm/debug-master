@@ -48,4 +48,4 @@ Debug Master を Google Cloud + Vercel 構成にリファクタ・クラウド�
 | 認証 | Firebase Authentication (Google SSO) |
 | シークレット管理 | Google Secret Manager |
 | CI/CD | GitHub Actions |
-| 環境 | dev / prod の 2 環境 |
+| 環境 | prod (ローカル開発は Docker Compose) |

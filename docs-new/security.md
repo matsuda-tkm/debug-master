@@ -363,7 +363,6 @@ app.add_middleware(
 | 環境 | `ALLOWED_ORIGINS` |
 |---|---|
 | ローカル | `http://localhost:5173` |
-| dev | `http://localhost:5173,https://*.vercel.app` |
 | prod | `https://debug-master.vercel.app` |
 
 ### レート制限

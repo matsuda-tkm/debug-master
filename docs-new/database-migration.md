@@ -170,7 +170,7 @@ challenges.json から Firestore にデータを移行するスクリプト。
 
 使い方:
   # 環境変数で GCP プロジェクトを指定
-  export GOOGLE_CLOUD_PROJECT=debug-master-dev
+  export GOOGLE_CLOUD_PROJECT=debug-master-prod
 
   # サービスアカウントキーで認証 (ローカル実行時)
   export GOOGLE_APPLICATION_CREDENTIALS=path/to/key.json
@@ -258,21 +258,14 @@ if __name__ == "__main__":
 python scripts/migrate_to_firestore.py --dry-run
 ```
 
-2. dev 環境に移行
-
-```bash
-export GOOGLE_CLOUD_PROJECT=debug-master-dev
-python scripts/migrate_to_firestore.py
-```
-
-3. dev 環境で動作確認
-
-4. prod 環境に移行
+2. prod 環境に移行
 
 ```bash
 export GOOGLE_CLOUD_PROJECT=debug-master-prod
 python scripts/migrate_to_firestore.py
 ```
+
+3. prod 環境で動作確認
 
 ---
 
@@ -467,16 +460,14 @@ def export_challenges():
 ## 移行チェックリスト
 
 - [ ] 移行スクリプトをローカルで dry-run 実行し、出力を確認
-- [ ] dev 環境の Firestore にデータを移行
-- [ ] dev 環境で `ChallengeRepository` の全メソッドをテスト
+- [ ] prod 環境の Firestore にデータを移行
+- [ ] `ChallengeRepository` の全メソッドをテスト
   - [ ] `get_all_challenges()` で全件取得
   - [ ] `get_challenge_by_id("hello-world")` で個別取得
   - [ ] `create_challenge()` で新規作成
   - [ ] `update_challenge()` で更新
   - [ ] `delete_challenge()` で削除
-- [ ] dev 環境でフロントエンドからの E2E 確認
-- [ ] prod 環境の Firestore にデータを移行
-- [ ] prod 環境で同様のテストを実施
+- [ ] フロントエンドからの E2E 確認
 - [ ] `challenges.json` のバックアップを保持 (移行完了後も一定期間)
 
 ## 関連ドキュメント

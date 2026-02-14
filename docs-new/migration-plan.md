@@ -47,15 +47,15 @@ GCP プロジェクトの作成と、全フェーズで利用する基盤サー�
 
 ### タスク一覧
 
-- [ ] GCP プロジェクト作成 (dev / prod)
+- [ ] GCP プロジェクト作成
 - [ ] 課金アカウントの紐付けと予算アラートの設定
 - [ ] 必要な API の有効化 (Cloud Run, Firestore, Secret Manager, Artifact Registry, Firebase)
-- [ ] Firestore データベースの作成 (dev / prod)
+- [ ] Firestore データベースの作成
   - [ ] `challenges` コレクションの設計確認
   - [ ] `users` コレクションの設計確認
   - [ ] セキュリティルールの初期設定
 - [ ] Google Secret Manager のセットアップ
-  - [ ] `GEMINI_API_KEY` の登録 (dev / prod)
+  - [ ] `GEMINI_API_KEY` の登録
 - [ ] Firebase プロジェクトのセットアップ
   - [ ] Firebase Authentication の有効化
   - [ ] Google SSO プロバイダの設定
@@ -68,7 +68,7 @@ GCP プロジェクトの作成と、全フェーズで利用する基盤サー�
 
 ### 完了条件
 
-- GCP プロジェクト (dev / prod) が作成され、必要な API が有効化されている
+- GCP プロジェクトが作成され、必要な API が有効化されている
 - Firestore にアクセスでき、コレクション構造が確認できる
 - Secret Manager に `GEMINI_API_KEY` が登録されている
 - Firebase Auth で Google ログインのテストが成功する
@@ -93,7 +93,7 @@ FastAPI バックエンドを Cloud Run にデプロイし、データ永続化�
     - [ ] `update_challenge(id, challenge)` → ドキュメント更新
     - [ ] `delete_challenge(id)` → ドキュメント削除
   - [ ] データ移行スクリプトの作成 (`challenges.json` → Firestore)
-  - [ ] 移行スクリプトの実行 (dev → prod の順)
+  - [ ] 移行スクリプトの実行
 - [ ] **Secret Manager 統合**
   - [ ] `google-cloud-secret-manager` パッケージを `requirements.txt` に追加
   - [ ] `backend/config.py` を更新
@@ -112,7 +112,7 @@ FastAPI バックエンドを Cloud Run にデプロイし、データ永続化�
     - [ ] `GET /api/health`: 認証不要
 - [ ] **CORS 設定の更新**
   - [ ] `backend/app.py` の CORS `allow_origins` を環境変数ベースに変更
-  - [ ] dev: `localhost:5173` + Vercel プレビュー URL
+  - [ ] ローカル: `localhost:5173`
   - [ ] prod: 本番 Vercel ドメインのみ
 - [ ] **コード実行のセキュリティ強化**
   - [ ] 実行タイムアウトの明示的な設定 (例: 10 秒)
@@ -120,7 +120,7 @@ FastAPI バックエンドを Cloud Run にデプロイし、データ永続化�
   - [ ] stdout/stderr のサイズ制限
 - [ ] **Cloud Run デプロイ**
   - [ ] `backend/Dockerfile` の最適化 (マルチステージビルド等)
-  - [ ] Cloud Run サービスの作成 (dev / prod)
+  - [ ] Cloud Run サービスの作成
   - [ ] Secret Manager シークレットのマウント設定
   - [ ] 環境変数の設定 (`ENVIRONMENT`, `ALLOWED_ORIGINS` 等)
   - [ ] 動作確認 (ヘルスチェック、CRUD、コード実行、AI 生成)
@@ -176,7 +176,7 @@ FastAPI バックエンドを Cloud Run にデプロイし、データ永続化�
   - [ ] Vercel プロジェクトの作成
   - [ ] GitHub リポジトリとの連携
   - [ ] 環境変数の設定
-    - [ ] `VITE_API_BASE_URL` (dev: Cloud Run dev URL / prod: Cloud Run prod URL)
+    - [ ] `VITE_API_BASE_URL` (Cloud Run の URL)
     - [ ] `VITE_FIREBASE_*` (Firebase 設定値)
   - [ ] ビルド設定の確認 (`npm run build`)
   - [ ] プレビューデプロイの確認
@@ -209,8 +209,7 @@ GitHub Actions による自動デプロイパイプラインを構築し、運�
 - [ ] **GitHub Actions ワークフローの作成**
   - [ ] バックエンドデプロイワークフロー (`.github/workflows/deploy-backend.yml`)
     - [ ] Docker ビルド → Artifact Registry プッシュ → Cloud Run デプロイ
-    - [ ] dev: PR 作成/更新時に dev 環境へデプロイ
-    - [ ] prod: main ブランチへのマージ時に prod 環境へデプロイ
+    - [ ] main ブランチへのマージ時に prod 環境へデプロイ
   - [ ] フロントエンドデプロイ (Vercel GitHub 連携で自動化)
     - [ ] PR: プレビューデプロイ
     - [ ] main マージ: 本番デプロイ
@@ -218,8 +217,9 @@ GitHub Actions による自動デプロイパイプラインを構築し、運�
     - [ ] フロントエンド: `npm run lint`, `npm run build`
     - [ ] バックエンド: `ruff check`, `pytest` (テストがあれば)
 - [ ] **GitHub Secrets の設定**
-  - [ ] `GCP_PROJECT_ID_DEV` / `GCP_PROJECT_ID_PROD`
-  - [ ] `GCP_SA_KEY` (サービスアカウントキー JSON)
+  - [ ] `GCP_PROJECT_ID`
+  - [ ] `GCP_WORKLOAD_IDENTITY_PROVIDER`
+  - [ ] `GCP_SA_EMAIL`
   - [ ] `GCP_REGION`
 - [ ] **監視・ログ**
   - [ ] Cloud Run のログを Cloud Logging で確認できることを確認
@@ -237,7 +237,7 @@ GitHub Actions による自動デプロイパイプラインを構築し、運�
 ### 完了条件
 
 - main ブランチへのマージで自動的にフロントエンド・バックエンドがデプロイされる
-- PR 作成時に dev 環境/プレビュー環境にデプロイされる
+- PR 作成時にプレビュー環境にデプロイされる (Vercel)
 - Cloud Logging でバックエンドのログが確認できる
 - README が新しいクラウド構成を反映している
 
