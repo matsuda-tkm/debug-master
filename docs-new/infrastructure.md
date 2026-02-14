@@ -120,11 +120,9 @@ erDiagram
         string title "タイトル"
         string description "説明文"
         string difficulty "難易度"
-        string image "画像パス"
         array languages "対応言語"
         string instructions "問題仕様"
         string examples "入出力例"
-        string video "動画パス"
         array testCases "テストケース"
     }
 
@@ -150,11 +148,9 @@ challenges/
 │   ├── title: "はじめてのプログラム"
 │   ├── description: "..."
 │   ├── difficulty: "入門"
-│   ├── image: "images/character.png?..."
 │   ├── languages: ["Python"]
 │   ├── instructions: "..."
 │   ├── examples: "..."
-│   ├── video: "/videos/hello-world.mp4"
 │   └── testCases: [{input: "太郎", expected: "こんにちは、太郎です！"}, ...]
 ├── age-calculator
 │   └── ...

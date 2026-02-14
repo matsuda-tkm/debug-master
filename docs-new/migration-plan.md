@@ -172,6 +172,13 @@ FastAPI バックエンドを Cloud Run にデプロイし、データ永続化�
 - [ ] **静的データの整理**
   - [ ] `frontend/src/challengesData.ts` を API 経由に統合するか検討
     - [ ] ThemeSelection コンポーネントを API 経由のデータ取得に変更
+- [ ] **image / video フィールドの廃止と UI 変更**
+  - [ ] `Challenge` 型から `image` / `video` フィールドを削除
+  - [ ] バックエンドのデータモデルから `image` / `video` を削除
+  - [ ] ThemeSelection (問題一覧画面) のUI変更 (サムネイル廃止に伴うレイアウト変更)
+  - [ ] VideoModal コンポーネントの削除
+  - [ ] ChallengeEditor から動画関連UIを削除
+  - [ ] キャラクター画像等の静的アセットをソースコードに含める
 - [ ] **Vercel デプロイ**
   - [ ] Vercel プロジェクトの作成
   - [ ] GitHub リポジトリとの連携

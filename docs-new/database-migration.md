@@ -15,11 +15,9 @@
     "title": "はじめてのプログラム",
     "description": "自分の名前を表示するプログラムを作成します。...",
     "difficulty": "入門",
-    "image": "images/character.png?auto=format&fit=crop&w=800&q=80",
     "languages": ["Python"],
     "instructions": "自分の名前を「こんにちは、〇〇です！」の形で...",
     "examples": "例:\nname = \"花子\"\n出力: こんにちは、花子です！",
-    "video": "/videos/hello-world.mp4",
     "testCases": [
       { "input": "太郎", "expected": "こんにちは、太郎です！" },
       { "input": "花子", "expected": "こんにちは、花子です！" }
@@ -27,6 +25,8 @@
   }
 ]
 ```
+
+> 現行の `image` / `video` フィールドは廃止。キャラクター画像等はソースコードに含める。
 
 ### 現行チャレンジ一覧
 
@@ -54,11 +54,9 @@ firestore/
     │   ├── title: string
     │   ├── description: string
     │   ├── difficulty: string
-    │   ├── image: string
     │   ├── languages: array<string>
     │   ├── instructions: string
     │   ├── examples: string
-    │   ├── video: string
     │   └── testCases: array<map>
     │       ├── [0] { input: any, expected: any }
     │       └── [1] { input: any, expected: any }
@@ -74,11 +72,9 @@ firestore/
 | `title` | string | タイトル | Yes |
 | `description` | string | 短い説明文 | Yes |
 | `difficulty` | string | 難易度 | Yes |
-| `image` | string | サムネイル画像パス | Yes |
 | `languages` | array (string) | 対応言語 | Yes |
 | `instructions` | string | 問題の仕様 | Yes |
 | `examples` | string | 入出力例 | Yes |
-| `video` | string | 解説動画パス | Yes |
 | `testCases` | array (map) | テストケースの配列 | Yes |
 | `testCases[].input` | string / number | テスト入力値 | Yes |
 | `testCases[].expected` | string / number | 期待される出力値 | Yes |
@@ -144,11 +140,11 @@ flowchart LR
 | `title` | `title` | そのまま | - |
 | `description` | `description` | そのまま | - |
 | `difficulty` | `difficulty` | そのまま | - |
-| `image` | `image` | そのまま | - |
+| `image` | (削除) | - | サムネイル廃止のため移行しない |
 | `languages` | `languages` | そのまま | - |
 | `instructions` | `instructions` | そのまま | - |
 | `examples` | `examples` | そのまま | - |
-| `video` | `video` | そのまま | - |
+| `video` | (削除) | - | 動画パス廃止のため移行しない |
 | `testCases` | `testCases` | そのまま | ネストされた配列もそのまま |
 | (なし) | `createdAt` | - | 移行時に現在時刻を設定 |
 | (なし) | `updatedAt` | - | 移行時に現在時刻を設定 |
@@ -412,16 +408,16 @@ interface Challenge {
   title: string;
   description: string;
   difficulty: string;
-  image: string;
   languages: string[];
   instructions: string;
   examples: string;
-  video: string;
   testCases: TestCase[];
   createdAt?: string;  // 新規追加
   updatedAt?: string;  // 新規追加
 }
 ```
+
+> `image` / `video` フィールドは廃止。キャラクター画像等はソースコードに含める。
 
 ---
 
