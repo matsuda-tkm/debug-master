@@ -4,7 +4,7 @@
 
 Debug Master のクラウド化にあたり、以下の 5 つのセキュリティ領域を設計する。
 
-1. **認証・認可** - Firebase Authentication (Google SSO) + 管理者ロール
+1. **認証・認可** - Basic 認証 (User / Admin の 2 アカウント)
 2. **シークレット管理** - Google Secret Manager
 3. **コード実行のサンドボックス** - Cloud Run gVisor + アプリケーションレベルの制限
 4. **通信セキュリティ** - HTTPS + CORS 制限
@@ -14,94 +14,62 @@ Debug Master のクラウド化にあたり、以下の 5 つのセキュリテ�
 
 ## 1. 認証・認可
 
-### 認証方式: Firebase Authentication (Google SSO)
+### 認証方式: Basic 認証
+
+User 権限用と Admin 権限用の ID/パスワードをそれぞれ 1 つずつ用意する。メンバー管理は行わず、ID/パスワードを知っている人のみがアクセスできる。
+
+| アカウント | 用途 | 権限 |
+|---|---|---|
+| User | 一般利用者 | チャレンジの閲覧・実行、コード実行、AI 機能の利用 |
+| Admin | 管理者 | 上記 + チャレンジの作成・編集・削除、管理画面アクセス |
+
+### 認証フロー
 
 ```mermaid
 sequenceDiagram
     participant User as ユーザー
     participant FE as Frontend
-    participant Firebase as Firebase Auth
-    participant Google as Google OAuth
     participant BE as Backend
 
-    User->>FE: ログインボタンクリック
-    FE->>Firebase: signInWithPopup(GoogleAuthProvider)
-    Firebase->>Google: OAuth 認証
-    Google-->>User: Google ログイン画面
-    User->>Google: 認証情報入力
-    Google-->>Firebase: OAuth トークン
-    Firebase-->>FE: UserCredential (ID トークン含む)
-    FE->>FE: ID トークンを保持
+    User->>FE: アクセス
+    FE->>FE: sessionStorage に認証情報があるか確認
 
-    FE->>BE: API リクエスト + Authorization: Bearer <ID Token>
-    BE->>Firebase: verifyIdToken(token)
-    Firebase-->>BE: DecodedToken (uid, email, ...)
-    BE->>BE: ユーザー情報に基づく認可判定
+    alt 未認証
+        FE->>User: ログインフォーム表示
+        User->>FE: ID / パスワード入力
+        FE->>BE: GET /api/auth/me (Authorization: Basic base64)
+        BE->>BE: 認証情報を検証
+        alt 認証成功
+            BE-->>FE: 200 OK + { role: "user" | "admin" }
+            FE->>FE: 認証情報とロールを sessionStorage に保存
+        else 認証失敗
+            BE-->>FE: 401 Unauthorized
+            FE->>User: エラー表示
+        end
+    end
+
+    FE->>BE: API リクエスト (Authorization: Basic base64)
+    BE->>BE: 認証情報を検証 + ロール判定
     BE-->>FE: レスポンス
 ```
 
-### ユーザーロール
+### シークレット管理
 
-| ロール | 説明 | 権限 |
-|---|---|---|
-| `user` | 一般ユーザー | チャレンジの閲覧・実行、コード実行、AI 機能の利用 |
-| `admin` | 管理者 | 上記 + チャレンジの作成・編集・削除 |
+認証用の ID/パスワードは Secret Manager で管理する。
 
-ロール情報は Firestore の `users` コレクションで管理する。
-
-```
-users/{uid}
-├── email: "user@example.com"
-├── displayName: "ユーザー名"
-├── role: "user" | "admin"
-├── createdAt: Timestamp
-└── lastLoginAt: Timestamp
-```
-
-### 初回ログイン時のユーザー登録
-
-初回 Google ログイン時に、バックエンドまたはフロントエンドで `users` コレクションにドキュメントを自動作成する。デフォルトロールは `user`。
-
-```python
-# バックエンド側: 認証ミドルウェア内での処理イメージ
-async def get_or_create_user(uid: str, email: str, display_name: str):
-    user_ref = db.collection("users").document(uid)
-    user_doc = user_ref.get()
-    if not user_doc.exists:
-        user_ref.set({
-            "email": email,
-            "displayName": display_name,
-            "role": "user",
-            "createdAt": firestore.SERVER_TIMESTAMP,
-            "lastLoginAt": firestore.SERVER_TIMESTAMP,
-        })
-    else:
-        user_ref.update({"lastLoginAt": firestore.SERVER_TIMESTAMP})
-    return user_ref.get().to_dict()
-```
-
-### 管理者ロールの付与
-
-管理者の付与は以下のいずれかの方法で行う (初期段階では手動で十分)。
-
-1. **Firestore コンソール**: ドキュメントの `role` フィールドを `admin` に直接変更
-2. **管理スクリプト**: CLI ツールでロールを変更
-
-```python
-# 管理スクリプト例: scripts/set_admin.py
-from google.cloud import firestore
-
-def set_admin(uid: str):
-    db = firestore.Client()
-    db.collection("users").document(uid).update({"role": "admin"})
-    print(f"User {uid} is now admin")
-```
+| シークレット名 | 説明 |
+|---|---|
+| `basic-auth-user-id` | User 権限用 ID |
+| `basic-auth-user-password` | User 権限用パスワード |
+| `basic-auth-admin-id` | Admin 権限用 ID |
+| `basic-auth-admin-password` | Admin 権限用パスワード |
 
 ### API エンドポイントの認可マトリクス
 
-| エンドポイント | 未認証 | user | admin |
+| エンドポイント | 未認証 | User | Admin |
 |---|---|---|---|
 | `GET /api/health` | OK | OK | OK |
+| `GET /api/auth/me` | 401 | OK | OK |
 | `GET /api/challenges` | 401 | OK | OK |
 | `GET /api/challenges/{id}` | 401 | OK | OK |
 | `POST /api/challenges` | 401 | 403 | OK |
@@ -117,33 +85,40 @@ def set_admin(uid: str):
 
 ```python
 # backend/middleware/auth.py (実装方針)
-import firebase_admin
-from firebase_admin import auth as firebase_auth
+import base64
+import secrets
 from fastapi import Request, HTTPException, Depends
 
-# Firebase Admin SDK 初期化
-firebase_admin.initialize_app()
+# Secret Manager or 環境変数から読み込み
+CREDENTIALS = {
+    "user": {"id": "...", "password": "...", "role": "user"},
+    "admin": {"id": "...", "password": "...", "role": "admin"},
+}
 
-async def verify_token(request: Request) -> dict:
-    """Bearer トークンを検証し、ユーザー情報を返す"""
+def verify_basic_auth(request: Request) -> dict:
+    """Basic 認証を検証し、ロール情報を返す"""
     auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing or invalid token")
+    if not auth_header or not auth_header.startswith("Basic "):
+        raise HTTPException(status_code=401, detail="Missing or invalid credentials")
 
-    token = auth_header.split("Bearer ")[1]
     try:
-        decoded = firebase_auth.verify_id_token(token)
-        return decoded
+        decoded = base64.b64decode(auth_header.split("Basic ")[1]).decode("utf-8")
+        username, password = decoded.split(":", 1)
     except Exception:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
-async def require_admin(user: dict = Depends(verify_token)) -> dict:
-    """管理者ロールを要求する"""
-    uid = user["uid"]
-    user_doc = db.collection("users").document(uid).get()
-    if not user_doc.exists or user_doc.to_dict().get("role") != "admin":
+    for cred in CREDENTIALS.values():
+        if secrets.compare_digest(username, cred["id"]) and \
+           secrets.compare_digest(password, cred["password"]):
+            return {"role": cred["role"]}
+
+    raise HTTPException(status_code=401, detail="Invalid credentials")
+
+def require_admin(auth: dict = Depends(verify_basic_auth)) -> dict:
+    """Admin ロールを要求する"""
+    if auth["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
-    return user
+    return auth
 ```
 
 ### フロントエンドの認証コンテキスト
@@ -151,27 +126,26 @@ async def require_admin(user: dict = Depends(verify_token)) -> dict:
 ```typescript
 // frontend/src/contexts/AuthContext.tsx (実装方針)
 interface AuthContextType {
-  user: User | null;
-  loading: boolean;
+  isAuthenticated: boolean;
   isAdmin: boolean;
-  signInWithGoogle: () => Promise<void>;
-  signOut: () => Promise<void>;
-  getIdToken: () => Promise<string | null>;
+  login: (username: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  getAuthHeader: () => string | null;
 }
 ```
 
-API クライアントでは `getIdToken()` を使い、リクエストヘッダーにトークンを付与する。
+API クライアントでは `getAuthHeader()` を使い、リクエストヘッダーに Basic 認証情報を付与する。
 
 ```typescript
 // frontend/src/services/api.ts (実装方針)
 const apiClient = async (endpoint: string, options: RequestInit = {}) => {
-  const token = await getIdToken();
+  const authHeader = getAuthHeader();
   return fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers: {
       ...options.headers,
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(authHeader ? { Authorization: authHeader } : {}),
     },
   });
 };
@@ -391,7 +365,7 @@ service cloud.firestore {
 }
 ```
 
-> バックエンドは Firebase Admin SDK を使用するため、セキュリティルールをバイパスする。このルールはフロントエンドからの直接アクセスを完全にブロックする目的で設定する。
+> バックエンドは Google Cloud の Admin SDK を使用するため、セキュリティルールをバイパスする。このルールはフロントエンドからの直接アクセスを完全にブロックする目的で設定する。
 
 ---
 
@@ -399,7 +373,7 @@ service cloud.firestore {
 
 ### デプロイ前
 
-- [ ] Firebase Auth の承認済みドメインに Vercel ドメインを追加
+- [ ] Secret Manager に Basic 認証の ID/パスワードを登録
 - [ ] Secret Manager に `GEMINI_API_KEY` を登録
 - [ ] Cloud Run の環境変数 `ALLOWED_ORIGINS` を正しく設定
 - [ ] Firestore セキュリティルールをデプロイ
@@ -408,8 +382,7 @@ service cloud.firestore {
 
 ### 定期確認
 
-- [ ] Firebase Auth の不審なログインアクティビティ
-- [ ] Cloud Run のエラーログ
+- [ ] Cloud Run のエラーログ (不審なアクセスパターン含む)
 - [ ] Secret Manager のアクセスログ
 - [ ] Firestore のアクセスパターン
 - [ ] 想定外の課金増加

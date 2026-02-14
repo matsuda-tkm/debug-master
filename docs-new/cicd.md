@@ -186,9 +186,6 @@ Vercel ダッシュボードの「Settings > Environment Variables」で設定�
 | 変数名 | 値 |
 |---|---|
 | `VITE_API_BASE_URL` | Cloud Run の URL |
-| `VITE_FIREBASE_API_KEY` | Firebase API キー |
-| `VITE_FIREBASE_AUTH_DOMAIN` | Firebase Auth ドメイン |
-| `VITE_FIREBASE_PROJECT_ID` | GCP プロジェクト ID |
 
 ---
 

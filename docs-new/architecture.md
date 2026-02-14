@@ -2,7 +2,7 @@
 
 ## 概要
 
-Debug Master を Docker Compose によるローカル構成から、Google Cloud (Cloud Run, Firestore) + Vercel によるクラウド構成に移行する。認証には Firebase Authentication (Google SSO) を採用し、管理者ユーザーによるチャレンジ管理機能を追加する。
+Debug Master を Docker Compose によるローカル構成から、Google Cloud (Cloud Run, Firestore) + Vercel によるクラウド構成に移行する。認証には Basic 認証を採用し、User 権限と Admin 権限の 2 アカウントでアクセス制御を行う。
 
 ## 技術スタック (移行後)
 
@@ -13,7 +13,7 @@ Debug Master を Docker Compose によるローカル構成から、Google Cloud
 | **バックエンド** | Python 3.13 + FastAPI | 変更なし |
 | **ホスティング (BE)** | Google Cloud Run | Docker コンテナで実行 |
 | **データベース** | Cloud Firestore | JSON ファイルから移行 |
-| **認証** | Firebase Authentication | Google SSO、管理者ロール |
+| **認証** | Basic 認証 | User / Admin の 2 アカウント |
 | **AI** | Google Gemini API | 変更なし |
 | **シークレット管理** | Google Secret Manager | API キー等を安全に管理 |
 | **コンテナレジストリ** | Artifact Registry | Docker イメージの保存 |
@@ -38,18 +38,12 @@ graph TB
         ArtifactReg["Artifact Registry<br>Docker イメージ"]
     end
 
-    subgraph firebase [Firebase]
-        FireAuth["Firebase Authentication<br>Google SSO"]
-    end
-
     subgraph external [外部サービス]
         Gemini["Google Gemini API"]
     end
 
     Browser -->|HTTPS| Frontend
-    Frontend -->|REST API + Bearer Token| CloudRun
-    Browser -->|認証| FireAuth
-    CloudRun -->|トークン検証| FireAuth
+    Frontend -->|REST API + Basic Auth| CloudRun
     CloudRun -->|読み書き| Firestore
     CloudRun -->|シークレット取得| SecretMgr
     CloudRun -->|AI 生成リクエスト| Gemini
@@ -72,10 +66,7 @@ graph LR
         A_FE["Frontend<br>Vercel"]
         A_BE["Backend<br>Cloud Run"]
         A_DB["Firestore"]
-        A_Auth["Firebase Auth"]
         A_FE --> A_BE --> A_DB
-        A_FE --> A_Auth
-        A_BE --> A_Auth
     end
 
     before -.->|移行| after
@@ -83,32 +74,33 @@ graph LR
 
 ## 認証フロー
 
+Basic 認証により、User 権限と Admin 権限の 2 つのアカウントでアクセス制御を行う。メンバー管理は行わず、ID/パスワードを知っている人のみがアクセスできる。
+
 ```mermaid
 sequenceDiagram
     participant User as ユーザー
     participant FE as Frontend (Vercel)
-    participant Auth as Firebase Auth
     participant BE as Backend (Cloud Run)
     participant FS as Firestore
 
     User->>FE: アクセス
-    FE->>FE: 認証状態チェック
+    FE->>FE: 認証状態チェック (sessionStorage)
 
     alt 未認証
-        FE->>User: ログイン画面表示
-        User->>Auth: Google ログイン
-        Auth-->>FE: ID トークン
-        FE->>FE: トークンを保存
+        FE->>User: ログインフォーム表示
+        User->>FE: ID / パスワード入力
+        FE->>BE: API リクエスト (Authorization: Basic base64)
+        BE->>BE: 認証情報検証 + ロール判定
+        BE-->>FE: 200 OK + ロール情報
+        FE->>FE: 認証情報とロールを保存
     end
 
-    FE->>BE: API リクエスト (Authorization: Bearer <token>)
-    BE->>Auth: トークン検証
-    Auth-->>BE: ユーザー情報 (uid, email)
+    FE->>BE: API リクエスト (Authorization: Basic base64)
+    BE->>BE: 認証情報検証
 
     alt 管理者操作 (POST/PUT/DELETE /api/challenges)
-        BE->>FS: users/{uid} のロール確認
-        FS-->>BE: role: admin
-        alt 管理者でない
+        BE->>BE: Admin ロールか確認
+        alt Admin でない
             BE-->>FE: 403 Forbidden
         end
     end
@@ -167,27 +159,27 @@ sequenceDiagram
 
 | パス | コンポーネント | 認証 | 説明 |
 |---|---|---|---|
-| `/login` | `LoginPage` | 不要 | Google ログイン画面 |
-| `/` | `ThemeSelection` | 必要 | ホーム画面。ミッション一覧 |
-| `/challenge/:themeId` | `ChallengeEditor` | 必要 | チャレンジ画面 |
-| `/admin` | `AdminDashboard` | 管理者のみ | 管理者ダッシュボード |
-| `/admin/challenges` | `ChallengeManager` | 管理者のみ | チャレンジ CRUD 管理 |
-| `/admin/challenges/new` | `ChallengeForm` | 管理者のみ | チャレンジ新規作成 |
-| `/admin/challenges/:id/edit` | `ChallengeForm` | 管理者のみ | チャレンジ編集 |
+| `/login` | `LoginPage` | 不要 | ID/パスワード入力画面 |
+| `/` | `ThemeSelection` | User 以上 | ホーム画面。ミッション一覧 |
+| `/challenge/:themeId` | `ChallengeEditor` | User 以上 | チャレンジ画面 |
+| `/admin` | `AdminDashboard` | Admin のみ | 管理者ダッシュボード |
+| `/admin/challenges` | `ChallengeManager` | Admin のみ | チャレンジ CRUD 管理 |
+| `/admin/challenges/new` | `ChallengeForm` | Admin のみ | チャレンジ新規作成 |
+| `/admin/challenges/:id/edit` | `ChallengeForm` | Admin のみ | チャレンジ編集 |
 
 ```mermaid
 flowchart TD
     main["main.tsx"] --> BrowserRouter
     BrowserRouter --> App["App.tsx"]
     App --> Login["/login → LoginPage"]
-    App --> PrivateRoute["PrivateRoute (認証必須)"]
-    PrivateRoute --> Home["/  →  ThemeSelection"]
-    PrivateRoute --> Challenge["/challenge/:themeId  →  ChallengeEditor"]
-    PrivateRoute --> AdminRoute["AdminRoute (管理者のみ)"]
-    AdminRoute --> AdminDash["/admin  →  AdminDashboard"]
-    AdminRoute --> AdminChallenges["/admin/challenges  →  ChallengeManager"]
-    AdminRoute --> AdminNew["/admin/challenges/new  →  ChallengeForm"]
-    AdminRoute --> AdminEdit["/admin/challenges/:id/edit  →  ChallengeForm"]
+    App --> AuthGuard["AuthGuard (認証必須)"]
+    AuthGuard --> Home["/  →  ThemeSelection"]
+    AuthGuard --> Challenge["/challenge/:themeId  →  ChallengeEditor"]
+    AuthGuard --> AdminGuard["AdminGuard (Admin のみ)"]
+    AdminGuard --> AdminDash["/admin  →  AdminDashboard"]
+    AdminGuard --> AdminChallenges["/admin/challenges  →  ChallengeManager"]
+    AdminGuard --> AdminNew["/admin/challenges/new  →  ChallengeForm"]
+    AdminGuard --> AdminEdit["/admin/challenges/:id/edit  →  ChallengeForm"]
 ```
 
 ## ディレクトリ構成 (移行後の変更点)
@@ -205,20 +197,19 @@ debug-master/
 │   │   │   ├── ChallengeManager.tsx
 │   │   │   └── ChallengeForm.tsx
 │   │   ├── config/
-│   │   │   ├── api.ts
-│   │   │   └── firebase.ts           # [新規] Firebase 設定
+│   │   │   └── api.ts
 │   │   ├── contexts/                  # [新規] コンテキスト
-│   │   │   └── AuthContext.tsx
+│   │   │   └── AuthContext.tsx        # Basic 認証の状態管理
 │   │   ├── guards/                    # [新規] ルートガード
-│   │   │   ├── PrivateRoute.tsx
-│   │   │   └── AdminRoute.tsx
+│   │   │   ├── AuthGuard.tsx
+│   │   │   └── AdminGuard.tsx
 │   │   ├── hooks/
-│   │   ├── services/                  # [変更] 認証トークン付与
+│   │   ├── services/                  # [変更] Basic 認証ヘッダー付与
 │   │   ├── types/
 │   │   ├── App.tsx                    # [変更] ルート追加
 │   │   ├── ChallengeEditor.tsx
 │   │   └── main.tsx
-│   ├── package.json                   # [変更] firebase 追加
+│   ├── package.json
 │   └── ...
 │
 ├── backend/
@@ -229,7 +220,7 @@ debug-master/
 │   │   └── models/
 │   │       └── challenge.py
 │   ├── middleware/                     # [新規] ミドルウェア
-│   │   └── auth.py                    # Firebase Auth トークン検証
+│   │   └── auth.py                    # Basic 認証検証
 │   ├── app.py                         # [変更] CORS、認証ミドルウェア追加
 │   ├── config.py                      # [変更] Secret Manager 統合
 │   ├── code_runner.py                 # [変更] セキュリティ強化

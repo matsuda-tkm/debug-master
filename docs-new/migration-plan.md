@@ -34,7 +34,7 @@ flowchart LR
 
 - Phase 2 は Phase 1 の GCP プロジェクト・Firestore・Secret Manager が完了していることが前提
 - Phase 3 は Phase 2 の Cloud Run デプロイが完了し、API エンドポイントが確定していることが前提
-- Phase 3 の認証 UI は Phase 1 の Firebase Auth セットアップに依存
+- Phase 3 の認証 UI は Phase 1 の Secret Manager (認証情報登録) に依存
 - Phase 4 は Phase 2, 3 が完了していることが前提だが、ワークフローの雛形作成は並行可能
 
 ---
@@ -49,17 +49,13 @@ GCP プロジェクトの作成と、全フェーズで利用する基盤サー�
 
 - [ ] GCP プロジェクト作成
 - [ ] 課金アカウントの紐付けと予算アラートの設定
-- [ ] 必要な API の有効化 (Cloud Run, Firestore, Secret Manager, Artifact Registry, Firebase)
+- [ ] 必要な API の有効化 (Cloud Run, Firestore, Secret Manager, Artifact Registry)
 - [ ] Firestore データベースの作成
   - [ ] `challenges` コレクションの設計確認
-  - [ ] `users` コレクションの設計確認
   - [ ] セキュリティルールの初期設定
 - [ ] Google Secret Manager のセットアップ
   - [ ] `GEMINI_API_KEY` の登録
-- [ ] Firebase プロジェクトのセットアップ
-  - [ ] Firebase Authentication の有効化
-  - [ ] Google SSO プロバイダの設定
-  - [ ] 承認済みドメインの追加 (Vercel ドメイン、localhost)
+  - [ ] Basic 認証用 ID/パスワード (User / Admin) の登録
 - [ ] Artifact Registry リポジトリの作成 (Docker イメージ用)
 - [ ] サービスアカウントの作成と IAM ロール付与
   - [ ] Cloud Run 用サービスアカウント (Firestore 読み書き、Secret Manager アクセス)
@@ -70,8 +66,7 @@ GCP プロジェクトの作成と、全フェーズで利用する基盤サー�
 
 - GCP プロジェクトが作成され、必要な API が有効化されている
 - Firestore にアクセスでき、コレクション構造が確認できる
-- Secret Manager に `GEMINI_API_KEY` が登録されている
-- Firebase Auth で Google ログインのテストが成功する
+- Secret Manager に `GEMINI_API_KEY` と Basic 認証情報が登録されている
 - `agents/` ディレクトリが削除されている
 
 ---
@@ -99,14 +94,13 @@ FastAPI バックエンドを Cloud Run にデプロイし、データ永続化�
   - [ ] `backend/config.py` を更新
     - [ ] ローカル: `.env` から読み取り (現行維持)
     - [ ] Cloud Run: Secret Manager からマウント or API 経由で取得
-- [ ] **認証ミドルウェアの追加**
-  - [ ] `firebase-admin` パッケージを `requirements.txt` に追加
-  - [ ] Firebase Admin SDK の初期化処理を追加
-  - [ ] JWT トークン検証ミドルウェアの実装
-  - [ ] 管理者ロールチェック用のデコレータ/依存性注入の実装
+- [ ] **Basic 認証ミドルウェアの追加**
+  - [ ] Basic 認証検証ミドルウェアの実装
+  - [ ] Admin ロールチェック用の依存性注入の実装
+  - [ ] 認証確認用エンドポイント `GET /api/auth/me` の追加
   - [ ] 各エンドポイントへの認証適用
     - [ ] `GET /api/challenges`, `GET /api/challenges/{id}`: 認証済みユーザー
-    - [ ] `POST /api/challenges`, `PUT /api/challenges/{id}`, `DELETE /api/challenges/{id}`: 管理者のみ
+    - [ ] `POST /api/challenges`, `PUT /api/challenges/{id}`, `DELETE /api/challenges/{id}`: Admin のみ
     - [ ] `POST /api/run-python`: 認証済みユーザー
     - [ ] `POST /api/generate-*`: 認証済みユーザー
     - [ ] `GET /api/health`: 認証不要
@@ -131,8 +125,8 @@ FastAPI バックエンドを Cloud Run にデプロイし、データ永続化�
 
 - Cloud Run 上で FastAPI が稼働し、`/api/health` が応答する
 - Firestore 経由でチャレンジの CRUD が動作する
-- Firebase Auth トークンなしのリクエストが 401 で拒否される
-- 管理者以外のユーザーによる POST/PUT/DELETE が 403 で拒否される
+- Basic 認証なしのリクエストが 401 で拒否される
+- User 権限での POST/PUT/DELETE が 403 で拒否される
 - コード実行がタイムアウト付きで正常に動作する
 - Gemini API キーが Secret Manager 経由で取得できている
 
@@ -142,7 +136,7 @@ FastAPI バックエンドを Cloud Run にデプロイし、データ永続化�
 
 ### 目的
 
-フロントエンドを Vercel にデプロイし、Firebase Authentication による Google ログインと管理者画面を追加する。
+フロントエンドを Vercel にデプロイし、Basic 認証によるログインと管理者画面を追加する。
 
 ### タスク一覧
 
@@ -151,19 +145,17 @@ FastAPI バックエンドを Cloud Run にデプロイし、データ永続化�
     - [ ] `VITE_API_BASE_URL` 環境変数で Cloud Run の URL を設定
   - [ ] API クライアントに認証トークン付与を追加
     - [ ] `frontend/src/services/` 配下のリクエストに `Authorization: Bearer <token>` ヘッダーを追加
-- [ ] **Firebase Auth の統合**
-  - [ ] `firebase` パッケージを `package.json` に追加
-  - [ ] Firebase 設定ファイルの作成 (`frontend/src/config/firebase.ts`)
+- [ ] **Basic 認証の統合**
   - [ ] 認証コンテキストの作成 (`frontend/src/contexts/AuthContext.tsx`)
-    - [ ] Google ログイン/ログアウト機能
-    - [ ] 認証状態の管理
-    - [ ] トークンの自動更新
-  - [ ] ログイン画面の作成 (`frontend/src/components/LoginPage.tsx`)
-  - [ ] 認証ガード (PrivateRoute) の実装
-  - [ ] ヘッダーにユーザー情報とログアウトボタンを追加
+    - [ ] ID/パスワード認証機能
+    - [ ] 認証状態とロール管理 (sessionStorage)
+    - [ ] ログアウト機能
+  - [ ] ログインフォームの作成 (`frontend/src/components/LoginPage.tsx`)
+  - [ ] 認証ガード (`AuthGuard`) の実装
+  - [ ] ヘッダーにログアウトボタンを追加
 - [ ] **管理者画面の追加**
   - [ ] 管理者ルート (`/admin`) の追加 (`App.tsx`)
-  - [ ] 管理者専用ガード (AdminRoute) の実装
+  - [ ] 管理者専用ガード (`AdminGuard`) の実装
   - [ ] チャレンジ管理画面の作成
     - [ ] チャレンジ一覧 (テーブル表示)
     - [ ] チャレンジ作成フォーム
@@ -184,12 +176,11 @@ FastAPI バックエンドを Cloud Run にデプロイし、データ永続化�
   - [ ] GitHub リポジトリとの連携
   - [ ] 環境変数の設定
     - [ ] `VITE_API_BASE_URL` (Cloud Run の URL)
-    - [ ] `VITE_FIREBASE_*` (Firebase 設定値)
   - [ ] ビルド設定の確認 (`npm run build`)
   - [ ] プレビューデプロイの確認
   - [ ] 本番デプロイの確認
 - [ ] **動作確認**
-  - [ ] Google ログインフロー
+  - [ ] Basic 認証ログインフロー
   - [ ] 一般ユーザーでのチャレンジ利用
   - [ ] 管理者でのチャレンジ CRUD
   - [ ] コード実行とテスト結果表示
@@ -198,8 +189,8 @@ FastAPI バックエンドを Cloud Run にデプロイし、データ永続化�
 ### 完了条件
 
 - Vercel 上でフロントエンドが稼働している
-- Google ログインでアクセスできる
-- 管理者ユーザーがチャレンジの作成・編集・削除を行える
+- User / Admin の ID/パスワードでログインできる
+- Admin アカウントでチャレンジの作成・編集・削除を行える
 - 一般ユーザーがチャレンジを選択し、コードを修正・実行・テストできる
 - AI 連携 (コード生成、ヒント、解説) が正常に動作する
 

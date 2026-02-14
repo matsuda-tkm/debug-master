@@ -2,7 +2,7 @@
 
 ## 概要
 
-現在 `backend/database/data/challenges.json` で管理しているチャレンジデータを Cloud Firestore に移行する。加えて、Firebase Authentication と連携する `users` コレクションを新規に設計する。
+現在 `backend/database/data/challenges.json` で管理しているチャレンジデータを Cloud Firestore に移行する。
 
 ## 現行のデータ構造
 
@@ -83,31 +83,7 @@ firestore/
 
 > `createdAt` / `updatedAt` は既存データにはないため、移行時に現在時刻を設定する。
 
-### users コレクション (新規)
-
-Firebase Authentication のユーザーに対応するコレクション。
-
-```
-firestore/
-└── users/                   # コレクション
-    ├── {firebase-uid}       # ドキュメント ID = Firebase Auth UID
-    │   ├── email: string
-    │   ├── displayName: string
-    │   ├── role: string     # "user" | "admin"
-    │   ├── createdAt: timestamp
-    │   └── lastLoginAt: timestamp
-    └── ...
-```
-
-#### フィールド定義
-
-| フィールド | Firestore 型 | 説明 | 必須 |
-|---|---|---|---|
-| `email` | string | メールアドレス | Yes |
-| `displayName` | string | 表示名 | Yes |
-| `role` | string | `user` または `admin` | Yes |
-| `createdAt` | timestamp | アカウント作成日時 | Yes |
-| `lastLoginAt` | timestamp | 最終ログイン日時 | Yes |
+> 認証は Basic 認証で行うため、`users` コレクションは不要。
 
 ---
 

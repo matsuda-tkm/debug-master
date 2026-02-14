@@ -12,7 +12,7 @@ Debug Master を Google Cloud + Vercel 構成にリファクタ・クラウド�
 | [architecture.md](./architecture.md) | 新アーキテクチャ設計書（GCP + Vercel 構成図、データフロー、認証フロー） |
 | [infrastructure.md](./infrastructure.md) | インフラ構成（GCP リソース一覧、環境分離、Cloud Run / Firestore / Vercel 設定） |
 | [cicd.md](./cicd.md) | CI/CD パイプライン（GitHub Actions ワークフロー設計、YAML テンプレート） |
-| [security.md](./security.md) | セキュリティ設計（Firebase Auth、Secret Manager、コード実行サンドボックス） |
+| [security.md](./security.md) | セキュリティ設計（Basic 認証、Secret Manager、コード実行サンドボックス） |
 | [database-migration.md](./database-migration.md) | DB 移行設計（JSON → Firestore のマッピング、移行スクリプト方針） |
 
 ## クイックリンク
@@ -45,7 +45,7 @@ Debug Master を Google Cloud + Vercel 構成にリファクタ・クラウド�
 | バックエンド | Python + FastAPI → Google Cloud Run |
 | データ | Cloud Firestore |
 | AI | Google Gemini API (変更なし) |
-| 認証 | Firebase Authentication (Google SSO) |
+| 認証 | Basic 認証 (User / Admin の 2 アカウント) |
 | シークレット管理 | Google Secret Manager |
 | CI/CD | GitHub Actions |
 | 環境 | prod (ローカル開発は Docker Compose) |

@@ -9,10 +9,9 @@ Debug Master のクラウドインフラは Google Cloud Platform (GCP) と Verc
 | サービス | 用途 |
 |---|---|
 | **Cloud Run** | FastAPI バックエンドの実行 |
-| **Cloud Firestore** | チャレンジデータ、ユーザーデータの永続化 |
-| **Secret Manager** | API キー等のシークレット管理 |
+| **Cloud Firestore** | チャレンジデータの永続化 |
+| **Secret Manager** | API キー、認証情報等のシークレット管理 |
 | **Artifact Registry** | Docker イメージの保存 |
-| **Firebase Authentication** | Google SSO によるユーザー認証 |
 | **Cloud Logging** | アプリケーションログの収集 |
 | **Cloud Monitoring** | アラート・監視 |
 
@@ -30,7 +29,6 @@ graph TB
         ProdRun["Cloud Run"]
         ProdFS["Firestore"]
         ProdSM["Secret Manager"]
-        ProdAuth["Firebase Auth"]
         AR["Artifact Registry"]
     end
 ```
@@ -98,7 +96,6 @@ Cloud Run サービスに専用のサービスアカウントを割り当てる�
 |---|---|---|
 | `cloudrun-api@PROJECT_ID.iam.gserviceaccount.com` | `roles/datastore.user` | Firestore 読み書き |
 | 同上 | `roles/secretmanager.secretAccessor` | Secret Manager 参照 |
-| 同上 | `roles/firebase.sdkAdminServiceAgent` | Firebase Auth トークン検証 |
 
 ---
 
@@ -126,15 +123,6 @@ erDiagram
         array testCases "テストケース"
     }
 
-    users {
-        string uid PK "Firebase Auth UID (ドキュメント ID)"
-        string email "メールアドレス"
-        string displayName "表示名"
-        string role "ロール (user / admin)"
-        timestamp createdAt "作成日時"
-        timestamp lastLoginAt "最終ログイン日時"
-    }
-
     challenges ||--o{ testCases : "contains"
 ```
 
@@ -157,28 +145,7 @@ challenges/
 └── ...
 ```
 
-#### `users` コレクション
-
-Firebase Auth のユーザーに対応。初回ログイン時に自動作成する。
-
-```
-users/
-├── {firebase-uid-1}
-│   ├── email: "user@example.com"
-│   ├── displayName: "ユーザー名"
-│   ├── role: "user"
-│   ├── createdAt: Timestamp
-│   └── lastLoginAt: Timestamp
-├── {firebase-uid-2}
-│   ├── email: "admin@example.com"
-│   ├── displayName: "管理者"
-│   ├── role: "admin"
-│   ├── createdAt: Timestamp
-│   └── lastLoginAt: Timestamp
-└── ...
-```
-
-> 管理者ロールの付与は、Firestore のコンソールまたは管理スクリプトで直接 `role` フィールドを `admin` に変更する。
+> 認証はBasic 認証で行うため、`users` コレクションは不要。ユーザー管理は Secret Manager に格納した ID/パスワードで行う。
 
 ### Firestore インデックス
 
@@ -222,9 +189,6 @@ asia-northeast1-docker.pkg.dev/{PROJECT_ID}/debug-master/api:{tag}
 | 環境変数 | 値 |
 |---|---|
 | `VITE_API_BASE_URL` | Cloud Run の URL |
-| `VITE_FIREBASE_API_KEY` | Firebase の API キー |
-| `VITE_FIREBASE_AUTH_DOMAIN` | `debug-master-prod.firebaseapp.com` |
-| `VITE_FIREBASE_PROJECT_ID` | `debug-master-prod` |
 
 ### ドメイン設定
 
@@ -255,7 +219,6 @@ flowchart LR
     CloudRun -->|内部| Firestore["Firestore"]
     CloudRun -->|内部| SecretMgr["Secret Manager"]
     CloudRun -->|HTTPS| Gemini["Gemini API"]
-    User -->|HTTPS| FireAuth["Firebase Auth"]
 ```
 
 - すべての外部通信は HTTPS
@@ -275,7 +238,6 @@ flowchart LR
 | Firestore | 50K 読み取り/日、20K 書き込み/日 | 小規模利用 | 無料枠内 |
 | Secret Manager | 6 アクティブバージョン | 1-2 シークレット | 無料枠内 |
 | Artifact Registry | 0.5 GB まで無料 | Docker イメージ数個 | 無料枠内 |
-| Firebase Auth | 50K MAU まで無料 | 小規模利用 | 無料枠内 |
 | Vercel | Hobby プラン無料 | 小規模利用 | 無料 |
 | **合計** | | | **ほぼ無料** |
 
