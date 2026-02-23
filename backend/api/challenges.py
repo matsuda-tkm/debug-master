@@ -5,8 +5,8 @@ from database.models.challenge import Challenge
 
 
 class ChallengesAPIHandler:
-    def __init__(self):
-        self.repository = ChallengeRepository()
+    def __init__(self, repository: ChallengeRepository):
+        self.repository = repository
 
     def handle_get_challenges(self, path: str) -> Dict[str, Any]:
         try:

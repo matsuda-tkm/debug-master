@@ -6,6 +6,12 @@ load_dotenv()
 
 PORT: int = 8000
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+CHALLENGE_REPOSITORY = os.environ.get("CHALLENGE_REPOSITORY")
+CHALLENGE_JSON_PATH = os.environ.get("CHALLENGE_JSON_PATH")
+FIRESTORE_PROJECT_ID = os.environ.get("FIRESTORE_PROJECT_ID")
+FIRESTORE_COLLECTION = os.environ.get("FIRESTORE_COLLECTION")
+FIRESTORE_CREDENTIALS_PATH = os.environ.get("FIRESTORE_CREDENTIALS_PATH")
+FIRESTORE_DATABASE_ID = os.environ.get("FIRESTORE_DATABASE_ID")
 
 # Gemini API Configuration
 GEMINI_MODEL_CANDIDATES = ['gemini-3-flash-preview', 'gemini-2.5-flash']
