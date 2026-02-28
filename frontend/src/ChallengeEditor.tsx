@@ -3,15 +3,15 @@ import { indentUnit } from '@codemirror/language';
 import { oneDark } from '@codemirror/theme-one-dark';
 import CodeMirror from '@uiw/react-codemirror';
 import {
-  BookOpen,
-  Bug,
-  CheckCircle,
-  ChevronRight,
-  Code2,
-  PlayCircle,
-  Terminal,
-  ThumbsUp,
-  XCircle
+    BookOpen,
+    Bug,
+    CheckCircle,
+    ChevronRight,
+    Code2,
+    PlayCircle,
+    Terminal,
+    ThumbsUp,
+    XCircle
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
