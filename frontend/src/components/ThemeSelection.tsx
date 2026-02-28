@@ -12,7 +12,7 @@ function ThemeSelection() {
             <div className="fixed bottom-6 right-6 z-50">
                 <div className="relative">
                     <img 
-                        src="/public/images/fight-character.png" 
+                        src="/images/fight-character.png" 
                         alt="プログラミング助手" 
                         className="w-20 h-20 object-contain animate-bounce transition-transform duration-300"
                         style={{animationDuration: '3s'}}

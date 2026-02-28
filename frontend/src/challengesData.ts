@@ -9,7 +9,7 @@ export const challengesData: Challenge[] = [
       '自分の名前を表示するプログラムを作成します。Pythonの基本的な出力を学びましょう。',
     difficulty: '入門',
     image:
-      'public/images/character.png?auto=format&fit=crop&w=800&q=80',
+      'images/character.png?auto=format&fit=crop&w=800&q=80',
     languages: ['Python'],
     instructions: `自分の名前を「こんにちは、○○です！」の形で表示するプログラムを作成してください。
   
@@ -36,7 +36,7 @@ export const challengesData: Challenge[] = [
       '生まれ年を入力して、現在の年齢を計算するプログラムを作成します。計算の基本を学びましょう。',
     difficulty: '入門',
     image:
-      'public/images/character.png?auto=format&fit=crop&w=800&q=80',
+      'images/character.png?auto=format&fit=crop&w=800&q=80',
     languages: ['Python'],
     instructions: `生まれ年を入力として受け取り、2024年における年齢を計算して表示するプログラムを実装してください。
   
@@ -68,7 +68,7 @@ export const challengesData: Challenge[] = [
       '温度を入力して、暑い・普通・寒いを判定するプログラムを作成します。条件分岐の基本を学びましょう。',
     difficulty: '初級',
     image:
-      'public/images/character.png?auto=format&fit=crop&w=800&q=80',
+      'images/character.png?auto=format&fit=crop&w=800&q=80',
     languages: ['Python'],
     instructions: `温度を入力として受け取り、以下の基準で判定して表示するプログラムを実装してください。
   
@@ -108,7 +108,7 @@ export const challengesData: Challenge[] = [
       '1からnまでの数を全て足し算するプログラムを作成します。ループの基本を学びましょう。',
     difficulty: '初級',
     image:
-      'public/images/sum_character.png?auto=format&fit=crop&w=800&q=80',
+      'images/sum_character.png?auto=format&fit=crop&w=800&q=80',
     languages: ['Python'],
     instructions: `整数 n を入力として受け取り、1からnまでの整数の合計を計算して表示するプログラムを実装してください。
   
@@ -142,7 +142,7 @@ export const challengesData: Challenge[] = [
       '文字列を逆順に並べ変えるプログラムを作成します。文字列操作の基本を学びましょう。',
     difficulty: '初級',
     image:
-      'public/images/reverse_character.png?auto=format&fit=crop&w=800&q=80',
+      'images/reverse_character.png?auto=format&fit=crop&w=800&q=80',
     languages: ['Python'],
     instructions: `文字列 s を入力として受け取り、文字の順番を逆にした文字列を表示するプログラムを実装してください。
   
@@ -176,7 +176,7 @@ export const challengesData: Challenge[] = [
       '指定した数の九九を表示するプログラムを作成します。ループと計算の組み合わせを学びましょう。',
     difficulty: '初級',
     image:
-      'public/images/character.png?auto=format&fit=crop&w=800&q=80',
+      'images/character.png?auto=format&fit=crop&w=800&q=80',
     languages: ['Python'],
     instructions: `数字 n を入力として受け取り、n の九九（1〜9まで）の計算結果を表示するプログラムを実装してください。
   

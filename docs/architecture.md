@@ -118,7 +118,7 @@ debug-master/
 │   │   ├── challengesData.ts  # 静的チャレンジデータ
 │   │   ├── main.tsx           # エントリーポイント
 │   │   └── index.css          # グローバルスタイル
-│   ├── public/images/                # 画像アセット
+│   ├── images/                # 画像アセット
 │   ├── videos/                # 動画アセット
 │   ├── Dockerfile
 │   ├── package.json

@@ -205,7 +205,7 @@ export function HintModal({
         <div className="mt-2 flex flex-col gap-6 md:mt-4 md:flex-row">
           <div className="mx-auto w-40 flex-shrink-0 md:mx-0 md:w-48">
             <img
-              src="/public/images/character.png"
+              src="/images/character.png"
               alt="プログラミング助手"
               className="h-full w-full object-contain"
             />
