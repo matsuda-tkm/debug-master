@@ -15,6 +15,7 @@ from gemini_utils import (
     generate_retire_explanation_logic,
 )
 from starlette.responses import JSONResponse, StreamingResponse
+from database.challenge_repository import build_challenge_repository
 
 app = FastAPI(title="Debug Master Backend", version="1.0.0")
 
@@ -28,7 +29,7 @@ app.add_middleware(
 )
 
 
-challenges_handler = ChallengesAPIHandler()
+challenges_handler = ChallengesAPIHandler(build_challenge_repository())
 
 
 @app.get("/api/health")
