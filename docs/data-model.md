@@ -113,7 +113,7 @@ const HINT_LEVEL_COUNT = 4;
     "title": "はじめてのプログラム",
     "description": "自分の名前を表示するプログラムを作成します。Pythonの基本的な出力を学びましょう。",
     "difficulty": "入門",
-    "image": "images/character.png?auto=format&fit=crop&w=800&q=80",
+    "image": "public/images/character.png?auto=format&fit=crop&w=800&q=80",
     "languages": ["Python"],
     "instructions": "自分の名前を「こんにちは、〇〇です！」の形で表示する関数を作成してください。...",
     "examples": "例:\nname = \"花子\"\n出力: こんにちは、花子です！",

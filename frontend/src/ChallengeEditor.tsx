@@ -3,15 +3,15 @@ import { indentUnit } from '@codemirror/language';
 import { oneDark } from '@codemirror/theme-one-dark';
 import CodeMirror from '@uiw/react-codemirror';
 import {
-  BookOpen,
-  Bug,
-  CheckCircle,
-  ChevronRight,
-  Code2,
-  PlayCircle,
-  Terminal,
-  ThumbsUp,
-  XCircle
+    BookOpen,
+    Bug,
+    CheckCircle,
+    ChevronRight,
+    Code2,
+    PlayCircle,
+    Terminal,
+    ThumbsUp,
+    XCircle
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -369,7 +369,7 @@ for i, input_value in enumerate(test_cases, start=1):
           <div className="absolute inset-0 rounded-full bg-gradient-to-br from-pink-400/50 via-purple-400/40 to-indigo-400/20 opacity-0 blur-md transition duration-200 group-hover:opacity-100" />
           <div className="absolute inset-0 rounded-full border-2 border-transparent group-hover:border-pink-300 transition duration-200" />
           <img
-            src="/images/character.png"
+            src="/public/images/character.png"
             alt="プログラミング助手"
             className={`relative z-10 w-full h-full object-contain animate-float group-hover:animate-wiggle group-hover:scale-110 transition-transform duration-300 drop-shadow-lg ${
               isLoadingHints ? 'opacity-60 blur-sm' : ''
