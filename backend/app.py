@@ -19,13 +19,15 @@ from database.challenge_repository import build_challenge_repository
 
 app = FastAPI(title="Debug Master Backend", version="1.0.0")
 
-# CORS (allow all origins for dev simplicity; tighten in production)
+assert config.ALLOWED_ORIGIN is not None, "ALLOWED_ORIGIN must be set in environment variables"
+
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[config.ALLOWED_ORIGIN],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 
