@@ -11,18 +11,23 @@ from google.oauth2 import service_account
 
 def _build_firestore_client(
     project_id: str,
-    credentials_path: str,
+    credentials_path: str | None,
     database_id: str,
 ) -> firestore.Client:
-    if not os.path.exists(credentials_path):
-        raise ValueError(
-            f"FIRESTORE_CREDENTIALS_PATH does not exist: {credentials_path}"
+    if credentials_path is not None:
+        if not os.path.exists(credentials_path):
+            raise ValueError(
+                f"FIRESTORE_CREDENTIALS_PATH does not exist: {credentials_path}"
+            )
+        credentials = service_account.Credentials.from_service_account_file(credentials_path)
+        return firestore.Client(
+            project=project_id,
+            credentials=credentials,
+            database=database_id,
         )
-    credentials = service_account.Credentials.from_service_account_file(credentials_path)
 
     return firestore.Client(
         project=project_id,
-        credentials=credentials,
         database=database_id,
     )
 
@@ -189,11 +194,12 @@ def build_challenge_repository() -> ChallengeRepository:
     if source == "firestore":
         project_id = config.FIRESTORE_PROJECT_ID
         collection_name = config.FIRESTORE_COLLECTION
-        credentials_path = config.FIRESTORE_CREDENTIALS_PATH
+        is_prod = config.APP_ENV == "prod"
+        credentials_path = None if is_prod else config.FIRESTORE_CREDENTIALS_PATH
         database_id = config.FIRESTORE_DATABASE_ID
 
         assert project_id is not None, "FIRESTORE_PROJECT_ID must be set when using firestore repository"
-        assert credentials_path is not None, "FIRESTORE_CREDENTIALS_PATH must be set when using firestore repository"
+        assert is_prod or credentials_path is not None, "FIRESTORE_CREDENTIALS_PATH must be set when using firestore repository"
         assert database_id is not None, "FIRESTORE_DATABASE_ID must be set when using firestore repository"
         assert collection_name is not None, "FIRESTORE_COLLECTION must be set when using firestore repository"
 
