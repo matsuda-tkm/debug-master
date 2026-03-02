@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { API_ENDPOINTS } from '../config/api';
+import { apiFetch } from '../services/apiClient';
 import { Challenge } from '../types/challenge';
 import { TestResult } from '../types/challengeEditor';
 
@@ -33,10 +34,10 @@ export function useCodeGeneration() {
         testCases: challenge?.testCases,
       };
 
-      const response = await fetch(API_ENDPOINTS.GENERATE_CODE, {
+      const response = await apiFetch(API_ENDPOINTS.GENERATE_CODE, {
         method: 'POST',
         mode: 'cors',
-        headers: { 'Content-Type': 'application/json' },
+        includeJsonContentType: true,
         body: JSON.stringify(requestBody),
       });
 
@@ -93,9 +94,9 @@ export function useCodeExecution() {
     setCurrentStep(3);
 
     try {
-      const response = await fetch(API_ENDPOINTS.RUN_PYTHON, {
+      const response = await apiFetch(API_ENDPOINTS.RUN_PYTHON, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        includeJsonContentType: true,
         body: JSON.stringify({
           code,
           testCases: challenge.testCases,

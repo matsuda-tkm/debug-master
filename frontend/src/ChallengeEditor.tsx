@@ -8,7 +8,9 @@ import {
     CheckCircle,
     ChevronRight,
     Code2,
+    LogOut,
     PlayCircle,
+    ShieldCheck,
     Terminal,
     ThumbsUp,
     XCircle
@@ -22,12 +24,14 @@ import SuccessModal from './components/modals/SuccessModal';
 import VideoModal from './components/modals/VideoModal';
 import { useCodeExecution, useCodeGeneration } from './hooks/useCodeGeneration';
 import { useHints } from './hooks/useHints';
+import { useAuth } from './contexts/AuthContext';
 import { challengeService } from './services/challengeService';
 import { Challenge } from './types/challenge';
 
 function ChallengeEditor() {
   const navigate = useNavigate();
   const { themeId } = useParams();
+  const { isAdmin, logout, role } = useAuth();
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [loading, setLoading] = useState(true);
   const [code, setCode] = useState(`##### 編集禁止 ######
@@ -303,6 +307,11 @@ for i, input_value in enumerate(test_cases, start=1):
     }
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 flex items-center justify-center">
@@ -431,6 +440,29 @@ for i, input_value in enumerate(test_cases, start=1):
             <div className="flex items-center gap-1 ml-2">
               <span className="text-sm font-medium text-purple-600">君ならできる！</span> 
             </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-purple-100 border border-purple-200 px-3 py-1 text-xs font-bold text-purple-700">
+              ROLE: {role?.toUpperCase()}
+            </span>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => navigate('/admin')}
+                className="inline-flex items-center gap-1 rounded-lg border border-purple-200 bg-white px-3 py-2 text-sm font-semibold text-purple-700 hover:bg-purple-50 transition"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                管理画面
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1 rounded-lg bg-pink-500 px-3 py-2 text-sm font-semibold text-white hover:bg-pink-600 transition"
+            >
+              <LogOut className="w-4 h-4" />
+              ログアウト
+            </button>
           </div>
         </div>
       </header>

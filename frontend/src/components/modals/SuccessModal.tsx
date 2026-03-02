@@ -2,6 +2,7 @@ import { ChevronRight, SettingsIcon as Confetti, PartyPopper } from 'lucide-reac
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_ENDPOINTS } from '../../config/api';
+import { apiFetch } from '../../services/apiClient';
 import { SuccessModalProps } from '../../types/challengeEditor';
 import Markdown from '../Markdown';
 
@@ -27,9 +28,9 @@ export default function SuccessModal({
       try {
         setLoadingDetail(true);
         setDetailError('');
-        const resp = await fetch(API_ENDPOINTS.GENERATE_EXPLANATION, {
+        const resp = await apiFetch(API_ENDPOINTS.GENERATE_EXPLANATION, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          includeJsonContentType: true,
           body: JSON.stringify({
             beforeCode: aiGeneratedCode || lastFailingCode || '',
             afterCode: userAnswer || '',

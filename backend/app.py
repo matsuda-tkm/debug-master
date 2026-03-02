@@ -6,7 +6,7 @@ import config
 import uvicorn
 from api.challenges import ChallengesAPIHandler
 from code_runner import run_all_test_cases, test_code_against_all_cases
-from fastapi import Body, FastAPI, HTTPException, Path
+from fastapi import Body, Depends, FastAPI, HTTPException, Path
 from fastapi.middleware.cors import CORSMiddleware
 from gemini_utils import (
     generate_code_logic,
@@ -14,6 +14,7 @@ from gemini_utils import (
     generate_explanation_logic,
     generate_retire_explanation_logic,
 )
+from middleware.auth import AuthContext, require_admin, verify_basic_auth
 from starlette.responses import JSONResponse, StreamingResponse
 from database.challenge_repository import build_challenge_repository
 
@@ -39,12 +40,17 @@ def health() -> dict[str, str]:
     return {"status": "OK"}
 
 
+@app.get("/api/auth/me")
+def auth_me(auth: AuthContext = Depends(verify_basic_auth)) -> dict[str, str]:
+    return {"role": auth["role"]}
+
+
 # ---------------
 # Challenges APIs
 # ---------------
 
 @app.get("/api/challenges")
-def get_challenges() -> JSONResponse:
+def get_challenges(_auth: AuthContext = Depends(verify_basic_auth)) -> JSONResponse:
     result = challenges_handler.handle_get_challenges("/api/challenges")
     if "error" in result:
         raise HTTPException(status_code=result["status"], detail=result["error"])  # type: ignore[arg-type]
@@ -53,6 +59,7 @@ def get_challenges() -> JSONResponse:
 
 @app.get("/api/challenges/{challenge_id}")
 def get_challenge(
+    _auth: AuthContext = Depends(verify_basic_auth),
     challenge_id: str = Path(..., description="Challenge ID"),
 ) -> JSONResponse:
     path = f"/api/challenges/{challenge_id}"
@@ -63,7 +70,10 @@ def get_challenge(
 
 
 @app.post("/api/challenges")
-def create_challenge(payload: dict[str, Any] = Body(...)) -> JSONResponse:
+def create_challenge(
+    _auth: AuthContext = Depends(require_admin),
+    payload: dict[str, Any] = Body(...),
+) -> JSONResponse:
     result = challenges_handler.handle_post_challenge(payload)
     if "error" in result:
         raise HTTPException(status_code=result["status"], detail=result["error"])  # type: ignore[arg-type]
@@ -72,6 +82,7 @@ def create_challenge(payload: dict[str, Any] = Body(...)) -> JSONResponse:
 
 @app.put("/api/challenges/{challenge_id}")
 def update_challenge(
+    _auth: AuthContext = Depends(require_admin),
     challenge_id: str = Path(..., description="Challenge ID"),
     payload: dict[str, Any] = Body(...),
 ) -> JSONResponse:
@@ -83,6 +94,7 @@ def update_challenge(
 
 @app.delete("/api/challenges/{challenge_id}")
 def delete_challenge(
+    _auth: AuthContext = Depends(require_admin),
     challenge_id: str = Path(..., description="Challenge ID"),
 ) -> JSONResponse:
     result = challenges_handler.handle_delete_challenge(challenge_id)
@@ -120,7 +132,10 @@ async def _sse_generator(code: str, test_cases: list[dict[str, Any]]) -> AsyncGe
 
 
 @app.post("/api/run-python")
-def run_python(payload: dict[str, Any] = Body(...)) -> StreamingResponse:
+def run_python(
+    _auth: AuthContext = Depends(verify_basic_auth),
+    payload: dict[str, Any] = Body(...),
+) -> StreamingResponse:
     code: str = payload.get("code", "")
     test_cases: list[dict[str, Any]] = payload.get("testCases", [])
     gen = _sse_generator(code, test_cases)
@@ -128,7 +143,10 @@ def run_python(payload: dict[str, Any] = Body(...)) -> StreamingResponse:
 
 
 @app.post("/api/generate-code")
-def generate_code(payload: dict[str, Any] = Body(...)) -> JSONResponse:
+def generate_code(
+    _auth: AuthContext = Depends(verify_basic_auth),
+    payload: dict[str, Any] = Body(...),
+) -> JSONResponse:
     challenge: str = payload.get("challenge", "")
     test_cases: list[dict[str, Any]] = payload.get("testCases", [])
     test_case_inputs = [test_case.get("input") for test_case in test_cases]
@@ -161,7 +179,10 @@ def generate_code(payload: dict[str, Any] = Body(...)) -> JSONResponse:
 
 
 @app.post("/api/generate-hint")
-def generate_hint(payload: dict[str, Any] = Body(...)) -> JSONResponse:
+def generate_hint(
+    _auth: AuthContext = Depends(verify_basic_auth),
+    payload: dict[str, Any] = Body(...),
+) -> JSONResponse:
     code: str = payload.get("code", "")
     instructions: str = payload.get("instructions", "")
     examples: str = payload.get("examples", "")
@@ -176,7 +197,10 @@ def generate_hint(payload: dict[str, Any] = Body(...)) -> JSONResponse:
 
 
 @app.post("/api/generate-explanation")
-def generate_explanation(payload: dict[str, Any] = Body(...)) -> JSONResponse:
+def generate_explanation(
+    _auth: AuthContext = Depends(verify_basic_auth),
+    payload: dict[str, Any] = Body(...),
+) -> JSONResponse:
     before_code: str = payload.get("beforeCode", "")
     after_code: str = payload.get("afterCode", "")
     instructions: str = payload.get("instructions", "")
@@ -192,7 +216,10 @@ def generate_explanation(payload: dict[str, Any] = Body(...)) -> JSONResponse:
 
 
 @app.post("/api/generate-retire-explanation")
-def generate_retire_explanation(payload: dict[str, Any] = Body(...)) -> JSONResponse:
+def generate_retire_explanation(
+    _auth: AuthContext = Depends(verify_basic_auth),
+    payload: dict[str, Any] = Body(...),
+) -> JSONResponse:
     before_code: str = payload.get("beforeCode", "")
     after_code: str = payload.get("afterCode", "")
     instructions: str = payload.get("instructions", "")
