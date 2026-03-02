@@ -53,12 +53,12 @@ class Challenge:
         return cls(
             id=data["id"],
             title=data["title"],
-            description=data["description"],
+            description=data["description"].replace("\\n", "\n"),
             difficulty=data["difficulty"],
             image=data["image"],
             languages=data["languages"],
-            instructions=data["instructions"],
-            examples=data["examples"],
+            instructions=data["instructions"].replace("\\n", "\n"),
+            examples=data["examples"].replace("\\n", "\n"),
             video=data["video"],
             testCases=[TestCase.from_dict(tc) for tc in data["testCases"]]
         )
