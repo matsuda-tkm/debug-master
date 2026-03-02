@@ -1,10 +1,27 @@
 import { ArrowRight, Bug, Heart, Star } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { challengesData } from '../challengesData';
+import { challengeService } from '../services/challengeService';
+import { Challenge } from '../types/challenge';
 
 function ThemeSelection() {
     const navigate = useNavigate();
-    const themes = challengesData;;
+    const [themes, setThemes] = useState<Challenge[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const loadChallenges = async () => {
+            try {
+                const data = await challengeService.getAllChallenges();
+                setThemes(data);
+            } catch (error) {
+                console.error('Failed to load challenges:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadChallenges();
+    }, []);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 relative overflow-hidden">
@@ -58,53 +75,64 @@ function ThemeSelection() {
             {/* Main Content */}
             <main className="container mx-auto px-4 py-8">
                 <div className="max-w-4xl mx-auto">
-                    <div className="text-center mb-8">
-                        <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent mb-4">🕵️‍♀️ ミッションを選ぼう！ 🕵️‍♂️</h1>
-                        <p className="text-lg text-purple-700 font-medium">君の挑戦したいプログラミングミッションを選んでね！</p>
-                        <div className="flex justify-center items-center gap-2 mt-2">
-                            <Star className="w-5 h-5 text-yellow-400" />
-                            <span className="text-purple-600 font-medium">レベルアップして探偵マスターを目指そう</span>
-                            <Star className="w-5 h-5 text-yellow-400" />
+                    {loading ? (
+                        <div className="flex items-center justify-center py-20">
+                            <div className="text-center">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+                                <p className="mt-4 text-purple-700 font-medium">ミッションを読み込み中...</p>
+                            </div>
                         </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {themes.map((theme) => (
-                            <div
-                                key={theme.id}
-                                className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border-2 border-purple-200 overflow-hidden hover:shadow-xl hover:border-pink-300 transition-all duration-300 group cursor-pointer transform hover:scale-105"
-                                onClick={() => navigate(`/challenge/${theme.id}`)}
-                            >
-                                <div className="aspect-video relative overflow-hidden">
-                                    <img
-                                        src={theme.image}
-                                        alt={theme.title}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                                    />
-                                    <div className="absolute top-3 right-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg transform group-hover:scale-110 transition-transform">
-                                        ⭐ {theme.difficulty}
-                                    </div>
-                                </div>
-                                <div className="p-6">
-                                    <h3 className="text-xl font-bold text-purple-800 mb-2 flex items-center justify-between">
-                                        {theme.title}
-                                        <ArrowRight className="w-6 h-6 text-pink-500 group-hover:text-purple-600 group-hover:translate-x-2 transition-all duration-300" />
-                                    </h3>
-                                    <p className="text-purple-700 mb-4 font-medium">{theme.description}</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {theme.languages.map((lang) => (
-                                            <span
-                                                key={lang}
-                                                className="px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 border border-purple-200 shadow-sm"
-                                            >
-                                                {lang}
-                                            </span>
-                                        ))}
-                                    </div>
+                    ) : (
+                        <>
+                            <div className="text-center mb-8">
+                                <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent mb-4">🕵️‍♀️ ミッションを選ぼう！ 🕵️‍♂️</h1>
+                                <p className="text-lg text-purple-700 font-medium">君の挑戦したいプログラミングミッションを選んでね！</p>
+                                <div className="flex justify-center items-center gap-2 mt-2">
+                                    <Star className="w-5 h-5 text-yellow-400" />
+                                    <span className="text-purple-600 font-medium">レベルアップして探偵マスターを目指そう</span>
+                                    <Star className="w-5 h-5 text-yellow-400" />
                                 </div>
                             </div>
-                        ))}
-                    </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {themes.map((theme) => (
+                                    <div
+                                        key={theme.id}
+                                        className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border-2 border-purple-200 overflow-hidden hover:shadow-xl hover:border-pink-300 transition-all duration-300 group cursor-pointer transform hover:scale-105"
+                                        onClick={() => navigate(`/challenge/${theme.id}`)}
+                                    >
+                                        <div className="aspect-video relative overflow-hidden">
+                                            <img
+                                                src={theme.image}
+                                                alt={theme.title}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                                            />
+                                            <div className="absolute top-3 right-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg transform group-hover:scale-110 transition-transform">
+                                                ⭐ {theme.difficulty}
+                                            </div>
+                                        </div>
+                                        <div className="p-6">
+                                            <h3 className="text-xl font-bold text-purple-800 mb-2 flex items-center justify-between">
+                                                {theme.title}
+                                                <ArrowRight className="w-6 h-6 text-pink-500 group-hover:text-purple-600 group-hover:translate-x-2 transition-all duration-300" />
+                                            </h3>
+                                            <p className="text-purple-700 mb-4 font-medium">{theme.description}</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {theme.languages.map((lang) => (
+                                                    <span
+                                                        key={lang}
+                                                        className="px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 border border-purple-200 shadow-sm"
+                                                    >
+                                                        {lang}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
                 </div>
             </main>
         </div>
