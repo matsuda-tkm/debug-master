@@ -1,10 +1,11 @@
 import { API_ENDPOINTS } from '../config/api';
 import { Challenge } from '../types/challenge';
+import { apiFetch } from './apiClient';
 
 class ChallengeService {
   async getAllChallenges(): Promise<Challenge[]> {
     try {
-      const response = await fetch(API_ENDPOINTS.CHALLENGES);
+      const response = await apiFetch(API_ENDPOINTS.CHALLENGES);
       if (!response.ok) {
         throw new Error(`Failed to fetch challenges: ${response.statusText}`);
       }
@@ -17,7 +18,7 @@ class ChallengeService {
 
   async getChallengeById(id: string): Promise<Challenge> {
     try {
-      const response = await fetch(API_ENDPOINTS.CHALLENGE_BY_ID(id));
+      const response = await apiFetch(API_ENDPOINTS.CHALLENGE_BY_ID(id));
       if (!response.ok) {
         throw new Error(`Failed to fetch challenge: ${response.statusText}`);
       }
@@ -30,11 +31,9 @@ class ChallengeService {
 
   async createChallenge(challenge: Challenge): Promise<Challenge> {
     try {
-      const response = await fetch(API_ENDPOINTS.CHALLENGES, {
+      const response = await apiFetch(API_ENDPOINTS.CHALLENGES, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        includeJsonContentType: true,
         body: JSON.stringify(challenge),
       });
       
@@ -51,11 +50,9 @@ class ChallengeService {
 
   async updateChallenge(id: string, challenge: Partial<Challenge>): Promise<Challenge> {
     try {
-      const response = await fetch(API_ENDPOINTS.CHALLENGE_BY_ID(id), {
+      const response = await apiFetch(API_ENDPOINTS.CHALLENGE_BY_ID(id), {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        includeJsonContentType: true,
         body: JSON.stringify(challenge),
       });
       
@@ -72,7 +69,7 @@ class ChallengeService {
 
   async deleteChallenge(id: string): Promise<void> {
     try {
-      const response = await fetch(API_ENDPOINTS.CHALLENGE_BY_ID(id), {
+      const response = await apiFetch(API_ENDPOINTS.CHALLENGE_BY_ID(id), {
         method: 'DELETE',
       });
       

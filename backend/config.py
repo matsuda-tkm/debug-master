@@ -16,6 +16,10 @@ APP_ENV = os.environ.get("APP_ENV", "local")
 ALLOWED_LOCAL_ORIGIN = os.environ.get("ALLOWED_LOCAL_ORIGIN")
 ALLOWED_PROD_ORIGIN = os.environ.get("ALLOWED_PROD_ORIGIN")
 ALLOWED_ORIGIN = ALLOWED_PROD_ORIGIN if APP_ENV == "prod" else ALLOWED_LOCAL_ORIGIN
+BASIC_AUTH_USER_ID = os.environ.get("BASIC_AUTH_USER_ID")
+BASIC_AUTH_USER_PASSWORD = os.environ.get("BASIC_AUTH_USER_PASSWORD")
+BASIC_AUTH_ADMIN_ID = os.environ.get("BASIC_AUTH_ADMIN_ID")
+BASIC_AUTH_ADMIN_PASSWORD = os.environ.get("BASIC_AUTH_ADMIN_PASSWORD")
 
 # Gemini API Configuration
 GEMINI_MODEL_CANDIDATES = ['gemini-3-flash-preview', 'gemini-2.5-flash']

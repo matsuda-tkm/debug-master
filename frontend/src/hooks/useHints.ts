@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { API_ENDPOINTS } from '../config/api';
+import { apiFetch } from '../services/apiClient';
 import { Challenge } from '../types/challenge';
 import { DEFAULT_HINT_TITLES, HINT_LEVEL_COUNT, HintLevel, TestResult } from '../types/challengeEditor';
 
@@ -119,9 +120,9 @@ export function useHints(challenge: Challenge | null, code: string, testResults:
       setHintError('');
 
       try {
-        const response = await fetch(API_ENDPOINTS.GENERATE_HINT, {
+        const response = await apiFetch(API_ENDPOINTS.GENERATE_HINT, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          includeJsonContentType: true,
           body: JSON.stringify({
             code,
             instructions: challenge.instructions,
