@@ -1,22 +1,9 @@
-# syntax=docker/dockerfile:1
 
-# ---------------
-# -- VARIABLES --
-# ---------------
+FROM python:3.13-slim-bookworm
 
-ARG PYTHON_VERSION=3.13
-ARG APP_DIR=bug-gym/backend
+WORKDIR /backend
 
-
-# -------------------
-# -- BASE IMAGE  ----
-# -------------------
-
-FROM python:${PYTHON_VERSION}-slim-bookworm
-
-WORKDIR /${APP_DIR}
-
-COPY requirements.txt ./${APP_DIR}
+COPY . .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
